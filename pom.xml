@@ -1,0 +1,40 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.icgc.dcc</groupId>
+    <artifactId>dcc-parent</artifactId>
+    <version>29</version>
+  </parent>
+
+
+  <artifactId>dcc-download</artifactId>
+  <packaging>pom</packaging>
+  <version>1.0-SNAPSHOT</version>
+
+  <name>${project.artifactId}</name>
+  <description>${project.name}</description>
+
+  <url>https://github.com/icgc-dcc/dcc-download</url>
+  <organization>
+    <name>ICGC DCC</name>
+    <url>http://dcc.icgc.org</url>
+  </organization>
+  <inceptionYear>2015</inceptionYear>
+
+  <repositories>
+    <!-- DCC -->
+    <repository>
+      <id>dcc-release</id>
+      <url>http://seqwaremaven.oicr.on.ca/artifactory/dcc-release</url>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+  </dependencyManagement>
+  
+  <modules>
+    <module>dcc-download-server</module>
+  </modules>
+</project>
