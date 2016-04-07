@@ -1,0 +1,24 @@
+---
+#
+# Common
+#
+
+---
+# Spring
+spring:
+  profiles: development
+
+# Spark  
+spark:
+  master: "local"
+  
+# Mongo
+spring.data.mongodb:
+  uri: mongodb://localhost/dcc-download
+  
+job:
+  # The inputDir is configured to be used in Eclipse
+  inputDir: ../dcc-download-job/src/test/resources/fixtures/input
+  outputDir: /tmp/dcc-download
+
+---

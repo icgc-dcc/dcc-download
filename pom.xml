@@ -1,3 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (c) 2016 The Ontario Institute for Cancer Research. All rights reserved.
+ 
+This program and the accompanying materials are made available under the terms of the GNU Public License v3.0.
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <http://www.gnu.org/licenses/>.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
@@ -5,9 +24,8 @@
   <parent>
     <groupId>org.icgc.dcc</groupId>
     <artifactId>dcc-parent</artifactId>
-    <version>29</version>
+    <version>30</version>
   </parent>
-
 
   <artifactId>dcc-download</artifactId>
   <packaging>pom</packaging>
@@ -19,22 +37,172 @@
   <url>https://github.com/icgc-dcc/dcc-download</url>
   <organization>
     <name>ICGC DCC</name>
-    <url>http://dcc.icgc.org</url>
+    <url>https://dcc.icgc.org</url>
   </organization>
-  <inceptionYear>2015</inceptionYear>
+  <inceptionYear>2016</inceptionYear>
 
   <repositories>
     <!-- DCC -->
     <repository>
       <id>dcc-release</id>
-      <url>http://seqwaremaven.oicr.on.ca/artifactory/dcc-release</url>
+      <url>https://seqwaremaven.oicr.on.ca/artifactory/dcc-release</url>
     </repository>
   </repositories>
 
-  <dependencyManagement>
-  </dependencyManagement>
-  
   <modules>
     <module>dcc-download-server</module>
+    <module>dcc-download-core</module>
+    <module>dcc-download-job</module>
+    <module>dcc-download-client</module>
+    <module>dcc-download-test</module>
   </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- DCC - Common -->
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>dcc-common-core</artifactId>
+        <version>${dcc-common.version}</version>
+      </dependency>
+      
+      <!-- Spring -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+        <version>${spring-boot.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        <version>${spring-boot.version}</version>
+      </dependency>
+      
+      <!-- Spark -->
+      <dependency>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-core_${scala-build.version}</artifactId>
+        <version>${spark.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-sql_${scala-build.version}</artifactId>
+        <version>${spark.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <!-- Hadoop -->
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>${hadoop-cdh.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          
+          <!-- 
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+          </exclusion>
+           -->
+          <exclusion>
+            <artifactId>avro</artifactId>
+            <groupId>org.apache.avro</groupId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-hdfs</artifactId>
+        <version>${hadoop-cdh.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+                    <!--
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+          </exclusion>
+          -->
+        </exclusions>
+      </dependency>
+      
+              <!-- REST -->
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-client</artifactId>
+      <version>${jersey.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-json</artifactId>
+      <version>${jersey.version}</version>
+    </dependency>
+    
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Utilities -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+  </dependencies>
+
+  <properties>
+    <!-- Versions - DCC -->
+    <dcc-common.version>4.0.9</dcc-common.version>
+    
+    <!-- Spring -->
+    <spring-boot.version>1.1.10.RELEASE</spring-boot.version>
+  
+    <!-- SCM -->
+    <github.url>scm:git:git@github.com:icgc-dcc/dcc-download.git</github.url>
+    
+    <!-- Versions- Scala -->
+    <scala-build.version>2.10</scala-build.version>
+    <scala.version>${scala-build.version}.4</scala.version>
+
+    <!-- Versions- Spark -->
+    <spark.version>1.6.1</spark.version>
+    
+        <!-- Required for Spark -->
+    <jackson.version>2.4.4</jackson.version>
+    <jackson-smile.version>${jackson.version}</jackson-smile.version>
+    <jackson-yaml.version>${jackson.version}</jackson-yaml.version>
+    <jackson-csv.version>${jackson.version}</jackson-csv.version>
+    
+    <!-- REST -->
+    <jersey.version>1.17.1</jersey.version>
+  </properties>
+
 </project>
