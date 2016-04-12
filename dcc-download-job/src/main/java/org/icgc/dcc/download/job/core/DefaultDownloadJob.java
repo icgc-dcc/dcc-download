@@ -20,6 +20,7 @@ package org.icgc.dcc.download.job.core;
 import static java.util.Collections.singleton;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
+import static org.icgc.dcc.download.core.model.DownloadDataType.hasClinicalDataTypes;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,11 +48,6 @@ public class DefaultDownloadJob implements DownloadJob {
   @Override
   public void execute(JobContext jobContext) {
     log.info("Running spark job...");
-    // TODO: Set job name in format jobId-download_data_type
-    setJobGroupName(jobContext.getSparkContext(), jobContext.getJobId());
-
-    DownloadJobs.getJobName(null, null);
-
     createTasks(jobContext).entrySet().parallelStream()
         .forEach(e -> {
           Task task = e.getKey();
@@ -64,7 +60,7 @@ public class DefaultDownloadJob implements DownloadJob {
   private static void setJobName(TaskContext taskContext) {
     val jobId = taskContext.getJobId();
     val dataTypes = taskContext.getDataTypes();
-    val dataType = DownloadDataType.hasClinicalDataTypes(dataTypes) ? DownloadDataType.DONOR : Iterables.get(dataTypes, 0);
+    val dataType = hasClinicalDataTypes(dataTypes) ? DownloadDataType.DONOR : Iterables.get(dataTypes, 0);
     val jobName = DownloadJobs.getJobName(jobId, dataType);
 
     setJobGroupName(taskContext.getSparkContext(), jobName);

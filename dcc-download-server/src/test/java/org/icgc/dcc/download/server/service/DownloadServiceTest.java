@@ -75,6 +75,7 @@ public class DownloadServiceTest extends AbstractSparkTest {
   }
 
   @Test
+  @Ignore
   public void testCancelJob() throws Exception {
     val submitRequest1 = createSubmitJobRequest(singleton("1"), singleton(DownloadDataType.DONOR));
     val jobId = downloadService.submitJob(submitRequest1);

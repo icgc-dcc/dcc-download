@@ -53,6 +53,7 @@ public class HttpDownloadClientIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void testSubmitJob() throws Exception {
     val requestBody = SubmitJobRequest.builder()
         .donorIds(ImmutableSet.of("DO001"))

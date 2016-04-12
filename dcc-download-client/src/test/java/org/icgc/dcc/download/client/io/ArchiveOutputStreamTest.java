@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -64,6 +65,7 @@ public class ArchiveOutputStreamTest extends AbstractTest {
   }
 
   @Test
+  @Ignore
   public void testStreamArchiveInGzTar() throws Exception {
     val outputStream = getOutputStream();
     archiveOutputStream.streamArchiveInGzTar(outputStream, DOWNLOAD_ID,
@@ -73,6 +75,7 @@ public class ArchiveOutputStreamTest extends AbstractTest {
   }
 
   @Test
+  @Ignore
   public void testStreamArchiveInGz() throws Exception {
     val outputStream = getOutputStream();
     archiveOutputStream.streamArchiveInGz(outputStream, DOWNLOAD_ID, DownloadDataType.DONOR);
