@@ -18,57 +18,31 @@
 package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 
-import java.util.Date;
+import java.util.Map;
+import java.util.Set;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobProgress;
 import org.icgc.dcc.download.core.model.JobStatus;
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.icgc.dcc.download.server.model.Job;
+import org.icgc.dcc.download.core.model.TaskProgress;
 
 @NoArgsConstructor(access = PRIVATE)
-public final class Jobs {
+public final class JobProgresses {
 
-  public static Job createJob(@NonNull String jobId, @NonNull SubmitJobRequest request) {
-    return Job.builder()
-        .id(jobId)
-        .donorIds(request.getDonorIds())
-        .dataTypes(request.getDataTypes())
-        .jobInfo(request.getJobInfo())
-        .userEmailAddress(request.getUserEmailAddress())
-        .status(JobStatus.RUNNING)
-        .build();
+  public static JobProgress createJobProgress(@NonNull JobStatus status, @NonNull Set<DownloadDataType> dataTypes) {
+    return status == JobStatus.CANCELLED ?
+        new JobProgress(status, createTaskProgress(dataTypes, 0L)) :
+        new JobProgress(status, createTaskProgress(dataTypes, 1L));
   }
 
-  public static Job completeJob(@NonNull Job job) {
-    job.setCompletionDate(getDateAsMillis());
-    job.setStatus(JobStatus.COMPLETED);
-
-    return job;
-  }
-
-  public static Job cancelJob(@NonNull Job job) {
-    job.setStatus(JobStatus.CANCELLED);
-
-    return job;
-  }
-
-  public static Job setActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.ACTIVE_DOWNLOAD);
-
-    return job;
-  }
-
-  public static Job unsetActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.COMPLETED);
-
-    return job;
-  }
-
-  private static long getDateAsMillis() {
-    return new Date().getTime();
+  private static Map<DownloadDataType, TaskProgress> createTaskProgress(Set<DownloadDataType> dataTypes, long progress) {
+    return dataTypes.stream()
+        .collect(toImmutableMap(dt -> dt, dt -> new TaskProgress(progress, progress)));
   }
 
 }

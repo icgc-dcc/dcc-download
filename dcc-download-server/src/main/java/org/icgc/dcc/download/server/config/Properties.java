@@ -27,6 +27,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@Data
 @Configuration
 public class Properties {
 
@@ -42,6 +43,12 @@ public class Properties {
     return new SparkProperties();
   }
 
+  @Bean
+  @ConfigurationProperties(prefix = "download.server")
+  public DownloadServerProperties downloadServerProperties() {
+    return new DownloadServerProperties();
+  }
+
   @Data
   public static class JobProperties {
 
@@ -55,6 +62,13 @@ public class Properties {
 
     private String master;
     private Map<String, String> properties = newLinkedHashMap();
+
+  }
+
+  @Data
+  public static class DownloadServerProperties {
+
+    private String recordWeightsFile;
 
   }
 

@@ -19,15 +19,16 @@ package org.icgc.dcc.download.server.endpoint;
 
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.core.model.JobStatusResponse;
-import org.icgc.dcc.download.server.model.SubmitJobRequest;
+import org.icgc.dcc.download.core.request.GetJobsInfoRequest;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.response.JobInfoResponse;
+import org.icgc.dcc.download.core.response.JobsProgressResponse;
 import org.icgc.dcc.download.server.service.DownloadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,7 +54,7 @@ public final class JobController {
       throw new BadRequestException("Empty submission job request");
     }
 
-    val jobId = downloadService.submitJob(request.getDonorIds(), request.getDataTypes());
+    val jobId = downloadService.submitJob(request);
 
     return jobId;
   }
@@ -64,9 +65,18 @@ public final class JobController {
     downloadService.cancelJob(jobId);
   }
 
-  @RequestMapping(value = "/{jobId:.+}", method = GET)
-  public JobStatusResponse getJobStatus(@PathVariable("jobId") String jobId) {
-    return downloadService.getJobStatus(jobId);
+  @RequestMapping(value = "/progress", method = POST)
+  public JobsProgressResponse getJobStatus(@RequestBody GetJobsInfoRequest request) {
+    val response = downloadService.getJobsStatus(request.getJobIds());
+
+    return new JobsProgressResponse(response);
+  }
+
+  @RequestMapping(value = "/info", method = POST)
+  public JobInfoResponse getJobsinfo(@RequestBody GetJobsInfoRequest request) {
+    val info = downloadService.getJobsInfo(request.getJobIds());
+
+    return new JobInfoResponse(info);
   }
 
   @ResponseStatus(OK)

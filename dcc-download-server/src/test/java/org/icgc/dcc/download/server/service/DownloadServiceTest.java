@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Executors;
@@ -32,7 +33,8 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.job.core.ArchiveJob;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.job.core.DownloadJob;
 import org.icgc.dcc.download.job.core.JobContext;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.icgc.dcc.download.server.model.Job;
@@ -74,8 +76,8 @@ public class DownloadServiceTest extends AbstractSparkTest {
 
   @Test
   public void testCancelJob() throws Exception {
-
-    val jobId = downloadService.submitJob(singleton("1"), singleton(DownloadDataType.DONOR));
+    val submitRequest1 = createSubmitJobRequest(singleton("1"), singleton(DownloadDataType.DONOR));
+    val jobId = downloadService.submitJob(submitRequest1);
     when(jobRepository.findById(jobId)).thenReturn(job);
     log.warn("Job ID: {}", jobId);
     downloadService.cancelJob(jobId);
@@ -85,15 +87,25 @@ public class DownloadServiceTest extends AbstractSparkTest {
   @Test
   @Ignore("For manual tests only")
   public void testWaitJob() throws Exception {
-    downloadService.submitJob(singleton("1"), singleton(DownloadDataType.DONOR));
+    val submitRequest1 = createSubmitJobRequest(singleton("1"), singleton(DownloadDataType.DONOR));
+    val submitRequest2 = createSubmitJobRequest(singleton("2"), singleton(DownloadDataType.DONOR));
 
-    downloadService.submitJob(singleton("2"), singleton(DownloadDataType.DONOR));
+    downloadService.submitJob(submitRequest1);
+    downloadService.submitJob(submitRequest2);
 
     Thread.sleep(5_000L);
     reportStats();
 
     log.info("Press any button to exit.");
     System.in.read();
+  }
+
+  private SubmitJobRequest createSubmitJobRequest(Set<String> donorIds, Set<DownloadDataType> dataTypes) {
+    val submitRequest = SubmitJobRequest.builder()
+        .donorIds(donorIds)
+        .dataTypes(dataTypes)
+        .build();
+    return submitRequest;
   }
 
   private void reportStats() {
@@ -127,7 +139,7 @@ public class DownloadServiceTest extends AbstractSparkTest {
     return new ExecutorCompletionService<String>(executor);
   }
 
-  public static class TestArchiveJob implements ArchiveJob {
+  public static class TestArchiveJob implements DownloadJob {
 
     @Override
     @SneakyThrows

@@ -20,42 +20,47 @@ package org.icgc.dcc.download.client;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.JSON_UTF_8;
 
+import java.util.Map;
 import java.util.Set;
 
 import lombok.NonNull;
 import lombok.val;
 
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
-import org.icgc.dcc.common.core.json.Jackson;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobStatusResponse;
+import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.model.JobProgress;
+import org.icgc.dcc.download.core.request.GetJobsInfoRequest;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
+import org.icgc.dcc.download.core.response.JobInfoResponse;
+import org.icgc.dcc.download.core.response.JobsProgressResponse;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.client.filter.LoggingFilter;
 import com.sun.jersey.api.json.JSONConfiguration;
 
 public class HttpDownloadClient {
 
-  private static final String DATA_TYPES_PARAM = "dataTypes";
-  private static final String DONOR_IDS_PARAM = "donorIds";
   private static final String JOBS_PATH = "/jobs";
+  private static final String STATS_PATH = "/stats";
 
   private WebResource resource;
 
   public HttpDownloadClient(@NonNull String baseUrl) {
     val jerseyClient = Client.create(getClientConfig());
+    // TODO: externalize
+    jerseyClient.addFilter(new LoggingFilter());
     this.resource = jerseyClient.resource(baseUrl);
   }
 
-  public String submitJob(@NonNull Set<String> donorIds, @NonNull Set<DownloadDataType> dataTypes) {
-    val requestBody = createSubmitJobRequestBody(donorIds, dataTypes);
-    return resource.path(JOBS_PATH).path("submit")
+  public String submitJob(@NonNull SubmitJobRequest requestBody) {
+    return resource.path(JOBS_PATH)
         .header(CONTENT_TYPE, JSON_UTF_8)
         .post(String.class, requestBody);
-
   }
 
   public void cancelJob(@NonNull String jobId) {
@@ -63,10 +68,22 @@ public class HttpDownloadClient {
         .delete();
   }
 
-  public JobStatusResponse getJobStatus(@NonNull String jobId) {
-    return resource.path(JOBS_PATH).path(jobId).path("status")
+  public Map<String, JobProgress> getJobsProgress(@NonNull Set<String> jobIds) {
+    val requestBody = new GetJobsInfoRequest(jobIds);
+    val response = resource.path(JOBS_PATH).path("progress")
         .header(CONTENT_TYPE, JSON_UTF_8)
-        .get(JobStatusResponse.class);
+        .post(JobsProgressResponse.class, requestBody);
+
+    return response.getJobProgress();
+  }
+
+  public Map<String, JobInfo> getJobsInfo(@NonNull Set<String> jobIds) {
+    val requestBody = new GetJobsInfoRequest(jobIds);
+    val response = resource.path(JOBS_PATH).path("info")
+        .header(CONTENT_TYPE, JSON_UTF_8)
+        .post(JobInfoResponse.class, requestBody);
+
+    return response.getInfo();
   }
 
   public void setActiveDownload(@NonNull String jobId) {
@@ -79,12 +96,13 @@ public class HttpDownloadClient {
         .delete();
   }
 
-  private JsonNode createSubmitJobRequestBody(Set<String> donorIds, Set<DownloadDataType> dataTypes) {
-    val request = Jackson.DEFAULT.createObjectNode();
-    request.putPOJO(DONOR_IDS_PARAM, donorIds);
-    request.putPOJO(DATA_TYPES_PARAM, dataTypes);
+  public Map<DownloadDataType, Long> getSizes(@NonNull SubmitJobRequest requestBody) {
+    val response = resource.path(STATS_PATH)
+        .header(CONTENT_TYPE, JSON_UTF_8)
+        .post(DataTypeSizesResponse.class, requestBody);
 
-    return request;
+    return response.getSizes();
+
   }
 
   private static ClientConfig getClientConfig() {

@@ -25,7 +25,8 @@ public enum JobStatus implements Identifiable {
   RUNNING,
   COMPLETED,
   CANCELLED,
-  ACTIVE_DOWNLOAD;
+  ACTIVE_DOWNLOAD,
+  EXPIRED;
 
   @Override
   public String getId() {

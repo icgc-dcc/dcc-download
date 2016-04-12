@@ -15,60 +15,57 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.job.core;
 
-import static lombok.AccessLevel.PRIVATE;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Date;
+import java.io.File;
 
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.core.model.JobStatus;
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.icgc.dcc.download.server.model.Job;
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.test.AbstractSparkTest;
+import org.icgc.dcc.download.test.io.TestFiles;
+import org.junit.Test;
 
-@NoArgsConstructor(access = PRIVATE)
-public final class Jobs {
+import com.google.common.collect.ImmutableSet;
 
-  public static Job createJob(@NonNull String jobId, @NonNull SubmitJobRequest request) {
-    return Job.builder()
-        .id(jobId)
-        .donorIds(request.getDonorIds())
-        .dataTypes(request.getDataTypes())
-        .jobInfo(request.getJobInfo())
-        .userEmailAddress(request.getUserEmailAddress())
-        .status(JobStatus.RUNNING)
-        .build();
+@Slf4j
+public class DefaultDownloadJobTest extends AbstractSparkTest {
+
+  private static final String JOB_ID = "job123";
+
+  DefaultDownloadJob job = new DefaultDownloadJob();
+
+  @Test
+  public void testExecute() throws Exception {
+    prepareInput();
+    val jobContext = createJobContext();
+    job.execute(jobContext);
+    val outputPath = workingDir.getAbsolutePath() + "/" + JOB_ID + "/" + DownloadDataType.DONOR.getId()
+        + "/part-00000.gz";
+    log.debug("Expected output file: {}", outputPath);
+    val outputFile = new File(outputPath);
+    log.info("\nResult: {}", new Object[] { new File(workingDir, JOB_ID).list() });
+    assertThat(outputFile.exists()).isTrue();
   }
 
-  public static Job completeJob(@NonNull Job job) {
-    job.setCompletionDate(getDateAsMillis());
-    job.setStatus(JobStatus.COMPLETED);
-
-    return job;
+  private void prepareInput() {
+    val srcDir = new File(INPUT_TEST_FIXTURES_DIR);
+    val destDir = workingDir;
+    TestFiles.copyDirectory(srcDir, destDir);
   }
 
-  public static Job cancelJob(@NonNull Job job) {
-    job.setStatus(JobStatus.CANCELLED);
-
-    return job;
-  }
-
-  public static Job setActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.ACTIVE_DOWNLOAD);
-
-    return job;
-  }
-
-  public static Job unsetActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.COMPLETED);
-
-    return job;
-  }
-
-  private static long getDateAsMillis() {
-    return new Date().getTime();
+  private JobContext createJobContext() {
+    return new JobContext(
+        JOB_ID,
+        ImmutableSet.of("DO001", "DO002"),
+        DownloadDataType.CLINICAL,
+        sparkContext,
+        fileSystem,
+        INPUT_TEST_FIXTURES_DIR,
+        workingDir.getAbsolutePath());
   }
 
 }

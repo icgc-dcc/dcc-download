@@ -31,6 +31,7 @@ import org.icgc.dcc.common.core.model.Identifiable;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Data type requested by the portal users.
@@ -243,6 +244,11 @@ public enum DownloadDataType implements Identifiable {
     return this.getFields().entrySet().stream()
         .map(e -> e.getKey())
         .collect(toImmutableList());
+  }
+
+  public static boolean hasClinicalDataTypes(Set<DownloadDataType> dataTypes) {
+    return Sets.intersection(CLINICAL, dataTypes)
+        .isEmpty() == false;
   }
 
 }

@@ -15,60 +15,19 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.core.util;
 
 import static lombok.AccessLevel.PRIVATE;
-
-import java.util.Date;
-
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
-import org.icgc.dcc.download.core.model.JobStatus;
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.icgc.dcc.download.server.model.Job;
+import org.icgc.dcc.download.core.model.DownloadDataType;
 
 @NoArgsConstructor(access = PRIVATE)
-public final class Jobs {
+public final class DownloadJobs {
 
-  public static Job createJob(@NonNull String jobId, @NonNull SubmitJobRequest request) {
-    return Job.builder()
-        .id(jobId)
-        .donorIds(request.getDonorIds())
-        .dataTypes(request.getDataTypes())
-        .jobInfo(request.getJobInfo())
-        .userEmailAddress(request.getUserEmailAddress())
-        .status(JobStatus.RUNNING)
-        .build();
-  }
-
-  public static Job completeJob(@NonNull Job job) {
-    job.setCompletionDate(getDateAsMillis());
-    job.setStatus(JobStatus.COMPLETED);
-
-    return job;
-  }
-
-  public static Job cancelJob(@NonNull Job job) {
-    job.setStatus(JobStatus.CANCELLED);
-
-    return job;
-  }
-
-  public static Job setActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.ACTIVE_DOWNLOAD);
-
-    return job;
-  }
-
-  public static Job unsetActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.COMPLETED);
-
-    return job;
-  }
-
-  private static long getDateAsMillis() {
-    return new Date().getTime();
+  public static String getJobName(@NonNull String jobId, @NonNull DownloadDataType dataType) {
+    return jobId + "-" + dataType;
   }
 
 }

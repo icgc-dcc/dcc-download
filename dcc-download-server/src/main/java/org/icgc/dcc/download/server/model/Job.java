@@ -17,10 +17,14 @@
  */
 package org.icgc.dcc.download.server.model;
 
-import org.icgc.dcc.download.core.model.JobStatus;
+import java.util.Set;
 
 import lombok.Builder;
 import lombok.Data;
+
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.model.JobStatus;
 
 /**
  * DB entity.
@@ -29,11 +33,14 @@ import lombok.Data;
 @Builder
 public class Job {
 
+  private Set<String> donorIds;
+  private Set<DownloadDataType> dataTypes;
+  private JobInfo jobInfo;
+  private String userEmailAddress;
+
   private String id;
   private JobStatus status;
   private Long submissionDate;
   private Long completionDate;
-
-  // TODO: Add donorId and data types?
 
 }

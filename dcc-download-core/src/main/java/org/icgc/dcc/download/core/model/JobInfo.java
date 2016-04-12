@@ -17,12 +17,21 @@
  */
 package org.icgc.dcc.download.core.model;
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Value
-public class JobStatusResponse {
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class JobInfo {
 
-  JobStatus status;
-  double completedPercentage;
+  String filter;
+  boolean hasEmail;
+  boolean isControlled;
+  long startTime;
+  String uiQueryStr;
 
 }

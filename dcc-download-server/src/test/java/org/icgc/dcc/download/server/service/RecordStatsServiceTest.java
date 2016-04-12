@@ -15,60 +15,45 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.service;
 
-import static lombok.AccessLevel.PRIVATE;
+import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
+import lombok.val;
 
-import java.util.Date;
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.junit.Before;
+import org.junit.Test;
 
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Table;
 
-import org.icgc.dcc.download.core.model.JobStatus;
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.icgc.dcc.download.server.model.Job;
+public class RecordStatsServiceTest {
 
-@NoArgsConstructor(access = PRIVATE)
-public final class Jobs {
+  RecordStatsService service;
 
-  public static Job createJob(@NonNull String jobId, @NonNull SubmitJobRequest request) {
-    return Job.builder()
-        .id(jobId)
-        .donorIds(request.getDonorIds())
-        .dataTypes(request.getDataTypes())
-        .jobInfo(request.getJobInfo())
-        .userEmailAddress(request.getUserEmailAddress())
-        .status(JobStatus.RUNNING)
-        .build();
+  @Before
+  public void setUp() {
+    service = new RecordStatsService(defineStatsTable(), singletonMap(DONOR, 2));
   }
 
-  public static Job completeJob(@NonNull Job job) {
-    job.setCompletionDate(getDateAsMillis());
-    job.setStatus(JobStatus.COMPLETED);
+  @Test
+  public void testGetRecordsSizes() throws Exception {
+    val donorIds = ImmutableSet.of("DO1", "DO2");
+    val sizes = service.getRecordsSizes(donorIds);
+    assertThat(sizes).hasSize(1);
+    assertThat(sizes.get(DONOR)).isEqualTo(6L);
 
-    return job;
   }
 
-  public static Job cancelJob(@NonNull Job job) {
-    job.setStatus(JobStatus.CANCELLED);
+  private static Table<String, DownloadDataType, Long> defineStatsTable() {
+    Table<String, DownloadDataType, Long> statsTable = HashBasedTable.create();
+    statsTable.put("DO1", DownloadDataType.DONOR, 1L);
+    statsTable.put("DO2", DownloadDataType.DONOR, 2L);
 
-    return job;
-  }
-
-  public static Job setActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.ACTIVE_DOWNLOAD);
-
-    return job;
-  }
-
-  public static Job unsetActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.COMPLETED);
-
-    return job;
-  }
-
-  private static long getDateAsMillis() {
-    return new Date().getTime();
+    return statsTable;
   }
 
 }

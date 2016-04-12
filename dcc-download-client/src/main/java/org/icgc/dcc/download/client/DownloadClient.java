@@ -2,6 +2,7 @@ package org.icgc.dcc.download.client;
 
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import lombok.Cleanup;
@@ -12,7 +13,9 @@ import lombok.val;
 
 import org.icgc.dcc.download.client.io.ArchiveOutputStream;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobStatusResponse;
+import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.model.JobProgress;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
 
 @RequiredArgsConstructor
 public class DownloadClient {
@@ -25,16 +28,36 @@ public class DownloadClient {
   @NonNull
   private final HttpDownloadClient httpClient;
 
-  public String submitJob(@NonNull Set<String> donorIds, @NonNull Set<DownloadDataType> dataTypes) {
-    return httpClient.submitJob(donorIds, dataTypes);
+  public boolean isServiceAvailable() {
+    // TODO: Implement!
+    throw new UnsupportedOperationException();
+  }
+
+  public String submitJob(
+      @NonNull Set<String> donorIds,
+      @NonNull Set<DownloadDataType> dataTypes,
+      @NonNull JobInfo jobInfo,
+      @NonNull String userEmailAddress) {
+    val submitJobRequest = SubmitJobRequest.builder()
+        .donorIds(donorIds)
+        .dataTypes(dataTypes)
+        .jobInfo(jobInfo)
+        .userEmailAddress(userEmailAddress)
+        .build();
+
+    return httpClient.submitJob(submitJobRequest);
   }
 
   public void cancelJob(@NonNull String jobId) {
     httpClient.cancelJob(jobId);
   }
 
-  public JobStatusResponse getJobStatus(@NonNull String jobId) {
-    return httpClient.getJobStatus(jobId);
+  public Map<String, JobProgress> getJobsProgress(@NonNull Set<String> jobIds) {
+    return httpClient.getJobsProgress(jobIds);
+  }
+
+  public Map<String, JobInfo> getJobsInfo(@NonNull Set<String> jobIds) {
+    return httpClient.getJobsInfo(jobIds);
   }
 
   public void setActiveDownload(@NonNull String jobId) {
@@ -43,6 +66,14 @@ public class DownloadClient {
 
   public void unsetActiveDownload(@NonNull String jobId) {
     httpClient.unsetActiveDownload(jobId);
+  }
+
+  public Map<DownloadDataType, Long> getSizes(@NonNull Set<String> donorIds) {
+    val requestBody = SubmitJobRequest.builder()
+        .donorIds(donorIds)
+        .build();
+
+    return httpClient.getSizes(requestBody);
   }
 
   @SneakyThrows

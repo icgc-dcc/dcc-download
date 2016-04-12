@@ -15,57 +15,52 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.core;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.File;
+package org.icgc.dcc.download.client;
 
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.test.AbstractSparkTest;
-import org.icgc.dcc.download.test.io.TestFiles;
+import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-@Slf4j
-public class DefaultArchiveJobTest extends AbstractSparkTest {
+public class HttpDownloadClientIntegrationTest {
 
-  private static final String JOB_ID = "job123";
+  private static final String BASE_URL = "http://localhost:8080";
 
-  DefaultArchiveJob job = new DefaultArchiveJob();
+  HttpDownloadClient client;
+
+  @Before
+  public void setUp() {
+    client = new HttpDownloadClient(BASE_URL);
+  }
 
   @Test
-  public void testExecute() throws Exception {
-    prepareInput();
-    val jobContext = createJobContext();
-    job.execute(jobContext);
-    val outputPath = workingDir.getAbsolutePath() + "/" + JOB_ID + "/" + DownloadDataType.DONOR.getId()
-        + "/part-00000.gz";
-    log.debug("Expected output file: {}", outputPath);
-    val outputFile = new File(outputPath);
-    log.info("\nResult: {}", new Object[] { new File(workingDir, JOB_ID).list() });
-    assertThat(outputFile.exists()).isTrue();
+  @Ignore
+  public void testGetSizes() throws Exception {
+    val requestBody = SubmitJobRequest.builder()
+        .donorIds(ImmutableSet.of("DO001"))
+        .dataTypes(ImmutableSet.of(DownloadDataType.DONOR))
+        .jobInfo(new JobInfo("", false, false, 1L, ""))
+        .userEmailAddress("")
+        .build();
+
+    client.getSizes(requestBody);
   }
 
-  private void prepareInput() {
-    val srcDir = new File(INPUT_TEST_FIXTURES_DIR);
-    val destDir = workingDir;
-    TestFiles.copyDirectory(srcDir, destDir);
-  }
-
-  private JobContext createJobContext() {
-    return new JobContext(
-        JOB_ID,
-        ImmutableSet.of("DO001", "DO002"),
-        DownloadDataType.CLINICAL,
-        sparkContext,
-        fileSystem,
-        INPUT_TEST_FIXTURES_DIR,
-        workingDir.getAbsolutePath());
+  @Test
+  public void testSubmitJob() throws Exception {
+    val requestBody = SubmitJobRequest.builder()
+        .donorIds(ImmutableSet.of("DO001"))
+        .dataTypes(ImmutableSet.of(DownloadDataType.DONOR))
+        .jobInfo(new JobInfo("", false, false, 1L, ""))
+        .userEmailAddress("")
+        .build();
+    client.submitJob(requestBody);
   }
 
 }

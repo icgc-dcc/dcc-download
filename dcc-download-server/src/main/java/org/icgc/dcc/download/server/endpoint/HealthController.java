@@ -15,27 +15,20 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.endpoint;
 
-import static lombok.AccessLevel.PRIVATE;
-import lombok.NoArgsConstructor;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
-import org.icgc.dcc.download.core.model.JobStatus;
-import org.icgc.dcc.download.core.model.JobStatusResponse;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@NoArgsConstructor(access = PRIVATE)
-public final class JobStatusResponses {
+@RestController
+@RequestMapping("/jobs")
+public final class HealthController {
 
-  public static JobStatusResponse createCancelledJobResponse() {
-    return new JobStatusResponse(JobStatus.CANCELLED, Double.NaN);
-  }
-
-  public static JobStatusResponse createCompletedJobResponse() {
-    return new JobStatusResponse(JobStatus.COMPLETED, 1.0);
-  }
-
-  public static JobStatusResponse createActiveDownloadJobResponse() {
-    return new JobStatusResponse(JobStatus.ACTIVE_DOWNLOAD, 1.0);
+  @RequestMapping(value = "/health", method = GET)
+  public String getHealth() {
+    return "OK";
   }
 
 }

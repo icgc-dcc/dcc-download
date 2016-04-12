@@ -28,7 +28,7 @@ import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.icgc.dcc.download.job.core.DefaultArchiveJob;
+import org.icgc.dcc.download.job.core.DefaultDownloadJob;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.icgc.dcc.download.server.service.DownloadService;
@@ -59,7 +59,7 @@ public class CompletionServiceConfig {
   public DownloadService downloadService(@NonNull JavaSparkContext sparkContext, @NonNull FileSystem fileSystem,
       @NonNull JobProperties jobProperties, @NonNull JobRepository repository) {
     return new DownloadService(sparkContext, fileSystem, jobProperties, completionService(), repository,
-        submittedJobs(), new DefaultArchiveJob());
+        submittedJobs(), new DefaultDownloadJob());
   }
 
 }

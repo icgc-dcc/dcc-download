@@ -4,6 +4,19 @@
 #
 
 ---
+#
+# Production
+#
+
+# Spring
+spring:
+  profiles: production
+  
+---
+#
+# Development
+#
+
 # Spring
 spring:
   profiles: development
@@ -11,14 +24,18 @@ spring:
 # Spark  
 spark:
   master: "local"
-  
+
 # Mongo
 spring.data.mongodb:
   uri: mongodb://localhost/dcc-download
-  
+
+# Spark Job configuration
 job:
   # The inputDir is configured to be used in Eclipse
   inputDir: ../dcc-download-job/src/test/resources/fixtures/input
   outputDir: /tmp/dcc-download
+
+download.server:
+  recordWeightsFile: src/main/resources/record_weights.txt
 
 ---

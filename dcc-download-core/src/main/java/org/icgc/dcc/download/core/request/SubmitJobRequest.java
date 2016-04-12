@@ -15,10 +15,27 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.core;
+package org.icgc.dcc.download.core.request;
 
-public interface ArchiveJob {
+import java.util.Set;
 
-  public void execute(JobContext jobContext);
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobInfo;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubmitJobRequest {
+
+  Set<String> donorIds;
+  Set<DownloadDataType> dataTypes;
+  JobInfo jobInfo;
+  String userEmailAddress;
 
 }

@@ -30,25 +30,44 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.spark.api.java.JavaSparkContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.util.DownloadJobs;
 import org.icgc.dcc.download.job.task.ClinicalTask;
 import org.icgc.dcc.download.job.task.GenericTask;
 import org.icgc.dcc.download.job.task.Task;
 import org.icgc.dcc.download.job.task.TaskContext;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 @Slf4j
-public class DefaultArchiveJob implements ArchiveJob {
+public class DefaultDownloadJob implements DownloadJob {
 
   @Override
   public void execute(JobContext jobContext) {
     log.info("Running spark job...");
+    // TODO: Set job name in format jobId-download_data_type
     setJobGroupName(jobContext.getSparkContext(), jobContext.getJobId());
 
+    DownloadJobs.getJobName(null, null);
+
     createTasks(jobContext).entrySet().parallelStream()
-        .forEach(e -> e.getKey().execute(e.getValue()));
+        .forEach(e -> {
+          Task task = e.getKey();
+          TaskContext context = e.getValue();
+          setJobName(context);
+          task.execute(context);
+        });
+  }
+
+  private static void setJobName(TaskContext taskContext) {
+    val jobId = taskContext.getJobId();
+    val dataTypes = taskContext.getDataTypes();
+    val dataType = DownloadDataType.hasClinicalDataTypes(dataTypes) ? DownloadDataType.DONOR : Iterables.get(dataTypes, 0);
+    val jobName = DownloadJobs.getJobName(jobId, dataType);
+
+    setJobGroupName(taskContext.getSparkContext(), jobName);
   }
 
   private static void setJobGroupName(JavaSparkContext sparkContext, String jobId) {
@@ -58,7 +77,7 @@ public class DefaultArchiveJob implements ArchiveJob {
 
   private static Map<? extends Task, TaskContext> createTasks(JobContext jobContext) {
     val tasks = ImmutableMap.<Task, TaskContext> builder();
-    if (hasClinicalTasks(jobContext.getDataTypes())) {
+    if (DownloadDataType.hasClinicalDataTypes(jobContext.getDataTypes())) {
       tasks.put(createClinical(jobContext));
     }
 
@@ -95,11 +114,6 @@ public class DefaultArchiveJob implements ArchiveJob {
     genericDataTypes.remove(DownloadDataType.SSM_CONTROLLED);
 
     return genericDataTypes;
-  }
-
-  private static boolean hasClinicalTasks(Set<DownloadDataType> dataTypes) {
-    return Sets.intersection(CLINICAL, dataTypes)
-        .isEmpty() == false;
   }
 
   private static TaskContext createTaskContext(JobContext jobContext, Set<DownloadDataType> dataTypes) {

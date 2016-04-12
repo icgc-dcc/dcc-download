@@ -15,80 +15,46 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.config;
+package org.icgc.dcc.download.server.endpoint;
 
-import static scala.collection.JavaConversions.asScalaMap;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.icgc.dcc.download.job.core.DefaultDownloadJob;
-import org.icgc.dcc.download.server.config.Properties.SparkProperties;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
+import org.icgc.dcc.download.server.service.RecordStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
-@Lazy
-@Configuration
-public class SparkConfig {
+@RestController
+@RequestMapping("/stats")
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+public final class RecordsStatsController {
 
-  /**
-   * Dependencies.
-   */
-  @Autowired
-  SparkProperties spark;
+  @NonNull
+  private final RecordStatsService recordStatsService;
 
-  @Bean
-  public SparkConf sparkConf() {
-    return new SparkConf()
-        .setAppName("archive-download")
-        .setMaster(spark.getMaster())
-        .setAll(asScalaMap(spark.getProperties()));
-  }
-
-  @Bean
-  public JavaSparkContext javaSparkContext() {
-    val sparkContext = new JavaSparkContext(sparkConf());
-    val jobJar = getJobJar();
-    if (!isExploded(jobJar)) {
-      log.info("Adding job jar: {}", jobJar);
-      sparkContext.addJar(jobJar);
+  @RequestMapping(method = POST)
+  public DataTypeSizesResponse estimateRecordsSizes(@RequestBody SubmitJobRequest request) {
+    log.debug("Received get records sizes request. {}", request);
+    if (isEmpty(request)) {
+      log.info("Empty get records sizes request. Skipping... {}", request);
+      throw new BadRequestException("Empty get records sizes request");
     }
 
-    return sparkContext;
+    val recordsSizes = recordStatsService.getRecordsSizes(request.getDonorIds());
+
+    return new DataTypeSizesResponse(recordsSizes);
   }
 
-  private String getJobJar() {
-    val jobJarAnchor = DefaultDownloadJob.class;
-    String path = getPath(jobJarAnchor);
-    if (isPathInJar(path)) {
-      path = fixJarPath(path);
-    }
-
-    return path;
-  }
-
-  private static String fixJarPath(String path) {
-    if (path.startsWith("jar:") || !path.startsWith("file:")) {
-      return path;
-    }
-
-    return "jar:" + path;
-  }
-
-  private static boolean isPathInJar(String path) {
-    return path.contains("!/");
-  }
-
-  private static boolean isExploded(String path) {
-    return path.contains("classes");
-  }
-
-  private static String getPath(Class<?> type) {
-    return type.getProtectionDomain().getCodeSource().getLocation().getPath();
+  private static boolean isEmpty(SubmitJobRequest request) {
+    return request.getDonorIds().isEmpty();
   }
 
 }

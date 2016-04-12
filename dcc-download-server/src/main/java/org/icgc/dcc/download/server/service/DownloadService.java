@@ -17,14 +17,13 @@
  */
 package org.icgc.dcc.download.server.service;
 
+import static com.google.common.collect.Maps.immutableEntry;
 import static org.apache.spark.JobExecutionStatus.FAILED;
 import static org.apache.spark.JobExecutionStatus.SUCCEEDED;
 import static org.icgc.dcc.common.core.util.Separators.DASH;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
-import static org.icgc.dcc.download.server.utils.JobStatusResponses.createActiveDownloadJobResponse;
-import static org.icgc.dcc.download.server.utils.JobStatusResponses.createCancelledJobResponse;
-import static org.icgc.dcc.download.server.utils.JobStatusResponses.createCompletedJobResponse;
-import static org.icgc.dcc.download.server.utils.Responses.throwJobNotFoundException;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.download.server.utils.JobProgresses.createJobProgress;
 import static org.icgc.dcc.download.server.utils.Responses.verifyJobExistance;
 
 import java.util.Map;
@@ -43,9 +42,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.JavaSparkStatusTracker;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.model.JobProgress;
 import org.icgc.dcc.download.core.model.JobStatus;
-import org.icgc.dcc.download.core.model.JobStatusResponse;
-import org.icgc.dcc.download.job.core.ArchiveJob;
+import org.icgc.dcc.download.core.model.TaskProgress;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.util.DownloadJobs;
+import org.icgc.dcc.download.job.core.DownloadJob;
 import org.icgc.dcc.download.job.core.JobContext;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
@@ -73,16 +76,18 @@ public class DownloadService {
   @NonNull
   private final Map<String, Future<String>> submittedJobs;
   @NonNull
-  private final ArchiveJob archiveJob;
+  private final DownloadJob archiveJob;
 
-  public String submitJob(@NonNull Set<String> donorIds, @NonNull Set<DownloadDataType> dataTypes) {
+  public String submitJob(@NonNull SubmitJobRequest request) {
     val jobId = getJobId();
+    val donorIds = request.getDonorIds();
+    val dataTypes = request.getDataTypes();
     val jobContext = createJobContext(jobId, donorIds, dataTypes);
 
     val future = submitJob(jobId, jobContext);
     submittedJobs.put(jobId, future);
 
-    val job = Jobs.createJob(jobId);
+    val job = Jobs.createJob(jobId, request);
     jobRepository.save(job);
     log.info("Submitted job '{}'.", jobId);
 
@@ -105,25 +110,18 @@ public class DownloadService {
     jobRepository.save(cancelledJob);
   }
 
-  public JobStatusResponse getJobStatus(@NonNull String jobId) {
-    val job = jobRepository.findById(jobId);
-    verifyJobExistance(job, jobId);
+  public Map<String, JobProgress> getJobsStatus(@NonNull Set<String> jobIds) {
+    return jobIds.stream()
+        .map(jobId -> immutableEntry(jobId, getJobStatus(jobId)))
+        .filter(entry -> entry.getValue() != null)
+        .collect(toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+  }
 
-    switch (job.getStatus()) {
-    case COMPLETED:
-      return createCompletedJobResponse();
-    case RUNNING:
-      return calculateJobCompleteness(jobId);
-    case CANCELLED:
-      return createCancelledJobResponse();
-    case ACTIVE_DOWNLOAD:
-      return createActiveDownloadJobResponse();
-    default:
-      throwJobNotFoundException(jobId);
-    }
-
-    // Not accessible
-    return null;
+  public Map<String, JobInfo> getJobsInfo(@NonNull Set<String> jobIds) {
+    return jobIds.stream()
+        .map(jobId -> jobRepository.findById(jobId))
+        .filter(job -> job != null)
+        .collect(toImmutableMap(job -> job.getId(), job -> job.getJobInfo()));
   }
 
   public void setActiveDownload(@NonNull String jobId) {
@@ -140,33 +138,53 @@ public class DownloadService {
     jobRepository.save(activeJob);
   }
 
-  private JobStatusResponse calculateJobCompleteness(String jobId) {
-    log.debug("Calculating job status for job '{}'", jobId);
-    val statusTracker = sparkContext.statusTracker();
-    int[] jobIds = statusTracker.getJobIdsForGroup(jobId);
-    double totalJobs = jobIds.length;
-    log.debug("[{}] Total jobs: {}", jobId, totalJobs);
+  private JobProgress getJobStatus(String jobId) {
+    val job = jobRepository.findById(jobId);
+    if (job == null) {
+      return null;
+    }
 
-    if (totalJobs == 0.0) {
-      throw new NotFoundException("Failed to find job " + jobId);
+    val jobStatus = job.getStatus();
+    val dataTypes = job.getDataTypes();
+
+    return jobStatus == JobStatus.RUNNING ?
+        calculateJobProgress(job.getId(), dataTypes) :
+        createJobProgress(jobStatus, dataTypes);
+  }
+
+  private JobProgress calculateJobProgress(String jobId, Set<DownloadDataType> dataTypes) {
+    val taskProgress = dataTypes.stream()
+        .collect(toImmutableMap(dt -> dt, dt -> calculateTaskProgress(jobId, dt)));
+
+    return new JobProgress(JobStatus.RUNNING, taskProgress);
+  }
+
+  private TaskProgress calculateTaskProgress(String jobId, DownloadDataType dataType) {
+    val jobName = DownloadJobs.getJobName(jobId, dataType);
+    log.debug("Calculating job status for job '{}'", jobName);
+    val statusTracker = sparkContext.statusTracker();
+    int[] jobIds = statusTracker.getJobIdsForGroup(jobName);
+    int totalJobs = jobIds.length;
+    log.debug("[{}] Total jobs: {}", jobName, totalJobs);
+
+    if (totalJobs == 0) {
+      throw new NotFoundException("Failed to find job " + jobName);
     }
 
     val completedJobs = calculateCompletedJobs(statusTracker, jobIds);
-    log.debug("[{}] Completed jobs: {}", jobId, completedJobs);
+    log.debug("[{}] Completed jobs: {}", jobName, completedJobs);
 
     val completedPercentage = completedJobs / totalJobs;
-    log.debug("[{}] Completed jobs %: {}", jobId, completedPercentage);
+    log.debug("[{}] Completed jobs %: {}", jobName, completedPercentage);
 
-    val jobsStatus = resolveJobStatus(completedPercentage);
-
-    val response = new JobStatusResponse(jobsStatus, completedPercentage);
-    log.debug("[{}] {}", response);
+    val response = new TaskProgress(completedJobs, totalJobs);
+    log.debug("[{}] {}", jobName, response);
 
     return response;
   }
 
-  private static double calculateCompletedJobs(JavaSparkStatusTracker statusTracker, int[] jobIds) {
-    double completed = 0.0;
+  private static int calculateCompletedJobs(JavaSparkStatusTracker statusTracker, int[] jobIds) {
+    int completed = 0;
 
     for (val jobId : jobIds) {
       val jobInfo = statusTracker.getJobInfo(jobId);
@@ -177,12 +195,6 @@ public class DownloadService {
     }
 
     return completed;
-  }
-
-  private static JobStatus resolveJobStatus(double completedPercentage) {
-    val completed = completedPercentage >= 1;
-
-    return completed ? JobStatus.COMPLETED : JobStatus.RUNNING;
   }
 
   private JobContext createJobContext(String jobId, Set<String> donorIds, Set<DownloadDataType> dataTypes) {
@@ -202,7 +214,7 @@ public class DownloadService {
         .replace(DASH, EMPTY_STRING);
   }
 
-  private Future<String> submitJob(final java.lang.String jobId, JobContext jobContext) {
+  private Future<String> submitJob(final String jobId, JobContext jobContext) {
     return completionService.submit(new Callable<String>() {
 
       @Override
