@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.client.io;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.io.BufferedReader;
@@ -27,17 +28,19 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.zip.GZIPInputStream;
 
+import lombok.Cleanup;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -65,29 +68,57 @@ public class ArchiveOutputStreamTest extends AbstractTest {
   }
 
   @Test
-  @Ignore
   public void testStreamArchiveInTarGz() throws Exception {
     val outputStream = getOutputStream();
     archiveOutputStream.streamArchiveInTarGz(outputStream, DOWNLOAD_ID,
         ImmutableList.of(DownloadDataType.DONOR, DownloadDataType.SPECIMEN));
-    outputStream.close();
-    fail("Finish!");
+
+    @Cleanup
+    val tarStream = readArchiveStream();
+    TarArchiveEntry entry = null;
+    int entriesNum = 0;
+    while ((entry = tarStream.getNextTarEntry()) != null) {
+      assertThat(entry.getSize()).isGreaterThan(100L);
+      switch (entriesNum++) {
+      case 0:
+        assertThat(entry.getName()).isEqualTo("donor.gz");
+        break;
+      case 1:
+        assertThat(entry.getName()).isEqualTo("specimen.gz");
+        break;
+      default:
+        fail("Extra lines");
+      }
+    }
+
   }
 
   @Test
-  @Ignore
   public void testStreamArchiveInGz() throws Exception {
     val outputStream = getOutputStream();
     archiveOutputStream.streamArchiveInGz(outputStream, DOWNLOAD_ID, DownloadDataType.DONOR);
     outputStream.close();
 
-    val inputStream = getReader();
+    val inputStream = getGzipReader();
     String line = null;
+    int lineNum = 0;
     while ((line = inputStream.readLine()) != null) {
       log.info(line);
+      switch (lineNum++) {
+      case 0:
+        assertThat(line).startsWith("icgc_donor_id");
+        break;
+      case 1:
+        assertThat(line).startsWith("DO002");
+        break;
+      case 2:
+        assertThat(line).startsWith("DO001");
+        break;
+      default:
+        fail("Extra lines");
+      }
     }
 
-    fail("Finish!");
   }
 
   @SneakyThrows
@@ -96,9 +127,16 @@ public class ArchiveOutputStreamTest extends AbstractTest {
   }
 
   @SneakyThrows
-  private BufferedReader getReader() {
+  private BufferedReader getGzipReader() {
     return new BufferedReader(
         new InputStreamReader(new GZIPInputStream(new FileInputStream(new File(workingDir, OUT_FILE)))));
+  }
+
+  @SneakyThrows
+  private TarArchiveInputStream readArchiveStream() {
+    val outFile = new File(workingDir, OUT_FILE);
+
+    return new TarArchiveInputStream(new FileInputStream(outFile));
   }
 
 }

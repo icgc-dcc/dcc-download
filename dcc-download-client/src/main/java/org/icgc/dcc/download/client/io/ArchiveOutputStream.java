@@ -63,6 +63,7 @@ public class ArchiveOutputStream {
 
       val entitySizes = resolveDownloadTypesSize(downloadId, downloadedDataTypes, downloadPath);
 
+      @Cleanup
       val tarOutputStream = createTarOutputStream(out);
       for (val dataType : downloadedDataTypes) {
         addArchiveEntry(tarOutputStream, dataType.getId() + GZIP_EXTENSION, entitySizes.get(dataType));
