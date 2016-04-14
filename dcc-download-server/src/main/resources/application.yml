@@ -24,6 +24,11 @@ spring:
 # Spark  
 spark:
   master: "local"
+  
+# Hadoop
+hadoop:
+  properties:
+    fs.defaultFS: file:///
 
 # Mongo
 spring.data.mongodb:

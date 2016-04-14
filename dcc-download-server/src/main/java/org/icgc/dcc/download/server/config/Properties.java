@@ -49,6 +49,12 @@ public class Properties {
     return new DownloadServerProperties();
   }
 
+  @Bean
+  @ConfigurationProperties(prefix = "hadoop")
+  public HadoopProperties hadoopProperties() {
+    return new HadoopProperties();
+  }
+
   @Data
   public static class JobProperties {
 
@@ -69,6 +75,13 @@ public class Properties {
   public static class DownloadServerProperties {
 
     private String recordWeightsFile;
+
+  }
+
+  @Data
+  public static class HadoopProperties {
+
+    private Map<String, String> properties = newLinkedHashMap();
 
   }
 

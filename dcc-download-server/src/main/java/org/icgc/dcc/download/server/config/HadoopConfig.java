@@ -17,20 +17,55 @@
  */
 package org.icgc.dcc.download.server.config;
 
-import lombok.SneakyThrows;
+import java.io.IOException;
+import java.util.Map;
 
+import lombok.NonNull;
+import lombok.val;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.icgc.dcc.download.server.config.Properties.HadoopProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
 
-@Configuration
-public class FileSystemConfig {
+/**
+ * Hadoop configuration.
+ * <p>
+ * See annotation documentation for details.
+ */
+@Lazy
+@org.springframework.context.annotation.Configuration
+public class HadoopConfig {
+
+  /**
+   * Dependencies.
+   */
+  @Value("#{sparkContext.hadoopConfiguration()}")
+  Configuration conf;
+  @Autowired
+  HadoopProperties hadoop;
 
   @Bean
-  @SneakyThrows
-  public FileSystem fileSystem() {
-    // TODO: Externalize configuration
-    return FileSystem.getLocal(new org.apache.hadoop.conf.Configuration());
+  @Primary
+  public Configuration hadoopConf() {
+    setAll(conf, hadoop.getProperties());
+
+    return conf;
+  }
+
+  @Bean
+  public FileSystem fileSystem() throws IOException {
+    return FileSystem.get(hadoopConf());
+  }
+
+  public static void setAll(@NonNull Configuration conf, @NonNull Map<String, String> properties) {
+    for (val entry : properties.entrySet()) {
+      conf.set(entry.getKey(), entry.getValue());
+    }
   }
 
 }
