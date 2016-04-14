@@ -101,7 +101,7 @@ public class DownloadService {
       return;
     }
 
-    // TODO: Check if we need to cancel a job with SparkContext
+    // FIXME: does not actually cancels SparkJob
     future.cancel(true);
 
     val job = jobRepository.findById(jobId);
@@ -147,12 +147,17 @@ public class DownloadService {
     val jobStatus = job.getStatus();
     val dataTypes = job.getDataTypes();
 
+    // FIXME: Fix calculation for running job, which may be submitted, but not yet running because Spark is still
+    // initializing task for it
+
     return jobStatus == JobStatus.RUNNING ?
         calculateJobProgress(job.getId(), dataTypes) :
         createJobProgress(jobStatus, dataTypes);
   }
 
   private JobProgress calculateJobProgress(String jobId, Set<DownloadDataType> dataTypes) {
+    // TODO: Calculate progress in a separate thread and put it to the database.
+
     val taskProgress = dataTypes.stream()
         .collect(toImmutableMap(dt -> dt, dt -> calculateTaskProgress(jobId, dt)));
 

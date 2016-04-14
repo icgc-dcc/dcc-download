@@ -66,9 +66,9 @@ public class ArchiveOutputStreamTest extends AbstractTest {
 
   @Test
   @Ignore
-  public void testStreamArchiveInGzTar() throws Exception {
+  public void testStreamArchiveInTarGz() throws Exception {
     val outputStream = getOutputStream();
-    archiveOutputStream.streamArchiveInGzTar(outputStream, DOWNLOAD_ID,
+    archiveOutputStream.streamArchiveInTarGz(outputStream, DOWNLOAD_ID,
         ImmutableList.of(DownloadDataType.DONOR, DownloadDataType.SPECIMEN));
     outputStream.close();
     fail("Finish!");

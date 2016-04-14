@@ -18,9 +18,11 @@
 package org.icgc.dcc.download.server.service;
 
 import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionService;
@@ -33,6 +35,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobStatus;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.job.core.DownloadJob;
 import org.icgc.dcc.download.job.core.JobContext;
@@ -99,6 +102,28 @@ public class DownloadServiceTest extends AbstractSparkTest {
 
     log.info("Press any button to exit.");
     System.in.read();
+  }
+
+  @Test
+  public void testGetJobsStatus() throws Exception {
+    val submitRequest = createSubmitJobRequest(singleton("1"), singleton(DownloadDataType.DONOR));
+    val jobId = downloadService.submitJob(submitRequest);
+
+    when(jobRepository.findById(jobId)).thenReturn(job);
+    when(job.getStatus()).thenReturn(JobStatus.SUCCEEDED);
+    when(job.getDataTypes()).thenReturn(singleton(DownloadDataType.DONOR));
+
+    val statuses = downloadService.getJobsStatus(Collections.singleton(jobId));
+    log.info("{}", statuses);
+
+    assertThat(statuses).hasSize(1);
+    val status = statuses.get(jobId);
+    assertThat(status.getStatus()).isEqualTo(JobStatus.SUCCEEDED);
+    val taskProgresses = status.getTaskProgress();
+    assertThat(taskProgresses).hasSize(1);
+    val donorProgress = taskProgresses.get(DownloadDataType.DONOR);
+    assertThat(donorProgress.getNumerator()).isEqualTo(1L);
+    assertThat(donorProgress.getDenominator()).isEqualTo(1L);
   }
 
   private SubmitJobRequest createSubmitJobRequest(Set<String> donorIds, Set<DownloadDataType> dataTypes) {

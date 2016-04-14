@@ -80,6 +80,7 @@ public class CompleteJobUpdater implements Runnable {
         log.debug("Job was cancelled: ", e);
       } catch (ExecutionException e) {
         log.error("Encountered an error while executing job.\n", e);
+        // TODO: update that job has failed and remove from submitted jobs
       } catch (InterruptedException e) {
         log.info("Job was cancelled: ", e);
       }

@@ -29,7 +29,7 @@ import lombok.NoArgsConstructor;
 public class JobInfo {
 
   String filter;
-  boolean hasEmail;
+  String email;
   boolean isControlled;
   long startTime;
   String uiQueryStr;

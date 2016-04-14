@@ -29,12 +29,4 @@ public class TaskProgress {
   private long numerator;
   private long denominator;
 
-  public boolean isCompleted() {
-    return getPercentage() < 1.0;
-  }
-
-  public double getPercentage() {
-    return (numerator == 0.0 && denominator == 0.0) ? 1.0 : numerator / denominator;
-  }
-
 }

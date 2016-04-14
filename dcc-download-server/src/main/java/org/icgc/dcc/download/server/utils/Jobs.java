@@ -44,7 +44,7 @@ public final class Jobs {
 
   public static Job completeJob(@NonNull Job job) {
     job.setCompletionDate(getDateAsMillis());
-    job.setStatus(JobStatus.COMPLETED);
+    job.setStatus(JobStatus.SUCCEEDED);
 
     return job;
   }
@@ -62,7 +62,7 @@ public final class Jobs {
   }
 
   public static Job unsetActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.COMPLETED);
+    job.setStatus(JobStatus.SUCCEEDED);
 
     return job;
   }

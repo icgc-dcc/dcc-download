@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.core.model;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 
 import java.util.Collections;
@@ -26,8 +27,11 @@ import java.util.Set;
 
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.val;
 
 import org.icgc.dcc.common.core.model.Identifiable;
+import org.icgc.dcc.common.core.util.Separators;
+import org.icgc.dcc.common.core.util.stream.Streams;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -213,6 +217,8 @@ public enum DownloadDataType implements Identifiable {
   MIRNA,
   METH;
 
+  private static final String CONTROLLED_SUFFIX = "_controlled";
+
   public static final Set<DownloadDataType> CLINICAL = ImmutableSet.of(DONOR, DONOR_FAMILY, DONOR_THERAPY,
       DONOR_EXPOSURE, SPECIMEN, SAMPLE);
 
@@ -236,8 +242,12 @@ public enum DownloadDataType implements Identifiable {
     return name().toLowerCase();
   }
 
+  public String getCanonicalName() {
+    return isControlled() ? getId().replace(CONTROLLED_SUFFIX, Separators.EMPTY_STRING) : getId();
+  }
+
   public boolean isControlled() {
-    return getId().endsWith("_controlled");
+    return getId().endsWith(CONTROLLED_SUFFIX);
   }
 
   public List<String> getDownloadFileds() {
@@ -249,6 +259,16 @@ public enum DownloadDataType implements Identifiable {
   public static boolean hasClinicalDataTypes(Set<DownloadDataType> dataTypes) {
     return Sets.intersection(CLINICAL, dataTypes)
         .isEmpty() == false;
+  }
+
+  public static DownloadDataType from(String name, boolean controlled) {
+    val dataTypes = Streams.stream(values())
+        .filter(dt -> dt.getCanonicalName().equals(name) && dt.isControlled() == controlled)
+        .collect(toImmutableList());
+    checkState(dataTypes.size() == 1, "Failed to resolve DownloadDataType from name '%s' and controlled '%s'. "
+        + "Found data types: %s", name, controlled, dataTypes);
+
+    return dataTypes.get(0);
   }
 
 }

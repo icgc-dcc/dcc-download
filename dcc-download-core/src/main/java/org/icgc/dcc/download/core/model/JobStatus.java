@@ -21,10 +21,10 @@ import org.icgc.dcc.common.core.model.Identifiable;
 
 public enum JobStatus implements Identifiable {
 
-  SUBMITTED,
   RUNNING,
-  COMPLETED,
+  SUCCEEDED,
   CANCELLED,
+  FAILED,
   ACTIVE_DOWNLOAD,
   EXPIRED;
 

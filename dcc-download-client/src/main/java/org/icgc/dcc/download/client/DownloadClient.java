@@ -28,9 +28,26 @@ public class DownloadClient {
   @NonNull
   private final HttpDownloadClient httpClient;
 
+  // TODO: Externalize
+  public String defaultEmail = "";
+
   public boolean isServiceAvailable() {
     // TODO: Implement!
-    throw new UnsupportedOperationException();
+    return true;
+  }
+
+  public String submitJob(
+      @NonNull Set<String> donorIds,
+      @NonNull Set<DownloadDataType> dataTypes,
+      @NonNull JobInfo jobInfo) {
+    val submitJobRequest = SubmitJobRequest.builder()
+        .donorIds(donorIds)
+        .dataTypes(dataTypes)
+        .jobInfo(jobInfo)
+        .userEmailAddress(defaultEmail)
+        .build();
+
+    return httpClient.submitJob(submitJobRequest);
   }
 
   public String submitJob(
@@ -91,7 +108,7 @@ public class DownloadClient {
     @Cleanup
     val managedOut = out;
 
-    return outputStream.streamArchiveInGzTar(managedOut, downloadId, downloadDataTypes);
+    return outputStream.streamArchiveInTarGz(managedOut, downloadId, downloadDataTypes);
   }
 
 }

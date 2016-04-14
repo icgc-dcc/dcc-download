@@ -45,7 +45,7 @@ public class HttpDownloadClientIntegrationTest {
     val requestBody = SubmitJobRequest.builder()
         .donorIds(ImmutableSet.of("DO001"))
         .dataTypes(ImmutableSet.of(DownloadDataType.DONOR))
-        .jobInfo(new JobInfo("", false, false, 1L, ""))
+        .jobInfo(new JobInfo("", "", false, 1L, ""))
         .userEmailAddress("")
         .build();
 
@@ -58,7 +58,7 @@ public class HttpDownloadClientIntegrationTest {
     val requestBody = SubmitJobRequest.builder()
         .donorIds(ImmutableSet.of("DO001"))
         .dataTypes(ImmutableSet.of(DownloadDataType.DONOR))
-        .jobInfo(new JobInfo("", false, false, 1L, ""))
+        .jobInfo(new JobInfo("", "", false, 1L, ""))
         .userEmailAddress("")
         .build();
     client.submitJob(requestBody);

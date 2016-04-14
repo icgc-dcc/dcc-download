@@ -89,7 +89,7 @@ public class RecordsStatsServiceConfig {
   private static void readRecordStats(BufferedReader reader, Table<String, DownloadDataType, Long> statsTable) {
     String line = null;
     while ((line = reader.readLine()) != null) {
-      log.info("Parsing line: {}", line);
+      log.debug("Parsing line: {}", line);
       val parts = Splitters.TAB.splitToList(line);
       ensureStatsFileFormat(parts);
 

@@ -53,7 +53,7 @@ public class ArchiveOutputStream {
   @NonNull
   private final FileSystem fileSystem;
 
-  public boolean streamArchiveInGzTar(OutputStream out, String downloadId, List<DownloadDataType> downloadedDataTypes) {
+  public boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadedDataTypes) {
     try {
       val downloadPath = new Path(dynamicDownloadPath, downloadId);
       FileStatus[] downloadTypes = fileSystem.listStatus(downloadPath);
