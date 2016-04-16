@@ -15,60 +15,36 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.test;
+package org.icgc.dcc.download.job.core;
 
-import java.io.File;
+import java.util.Set;
 
-import lombok.SneakyThrows;
-import lombok.val;
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.task.TaskContext;
+import org.icgc.dcc.download.test.AbstractSparkTest;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.icgc.dcc.download.test.io.TestFiles;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+public abstract class AbstractSparkJobTest extends AbstractSparkTest {
 
-public abstract class AbstractSparkTest {
+  protected JobContext createJobContext(String jobId, Set<String> donorIds, Set<DownloadDataType> dataTypes) {
+    return new JobContext(
+        jobId,
+        donorIds,
+        dataTypes,
+        sparkContext,
+        fileSystem,
+        INPUT_TEST_FIXTURES_DIR,
+        workingDir.getAbsolutePath());
+  }
 
-	/**
-	 * Constants.
-	 */
-	protected static final String TEST_FIXTURES_DIR = "src/test/resources/fixtures";
-	protected static final String INPUT_TEST_FIXTURES_DIR = TEST_FIXTURES_DIR + "/input";
-	protected static final String OUTPUT_TEST_FIXTURES_DIR = TEST_FIXTURES_DIR + "/output";
-
-	/**
-	 * Collaborators.
-	 */
-	protected JavaSparkContext sparkContext;
-	protected FileSystem fileSystem;
-	protected File workingDir;
-
-	/**
-	 * State.
-	 */
-	@Rule
-	public TemporaryFolder tmp = new TemporaryFolder();
-
-	@Before
-	@SneakyThrows
-	public void setUp() {
-		val sparkConf = new SparkConf().setAppName("test").setMaster("local");
-		sparkConf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-		sparkConf.set("spark.task.maxFailures", "0");
-
-		this.sparkContext = new JavaSparkContext(sparkConf);
-		this.fileSystem = FileSystem.getLocal(new Configuration());
-		this.workingDir = tmp.newFolder("working");
-	}
-
-	protected void prepareInput() {
-		val srcDir = new File(INPUT_TEST_FIXTURES_DIR);
-		val destDir = workingDir;
-		TestFiles.copyDirectory(srcDir, destDir);
-	}
+  protected TaskContext createTaskContext(String jobId, Set<String> donorIds, Set<DownloadDataType> dataTypes) {
+    return TaskContext.builder()
+        .jobId(jobId)
+        .inputDir(workingDir.getAbsolutePath())
+        .outputDir(workingDir.getAbsolutePath())
+        .donorIds(donorIds)
+        .dataTypes(dataTypes)
+        .sparkContext(sparkContext)
+        .build();
+  }
 
 }

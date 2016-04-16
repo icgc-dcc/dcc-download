@@ -25,14 +25,12 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.test.AbstractSparkTest;
-import org.icgc.dcc.download.test.io.TestFiles;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
 @Slf4j
-public class DefaultDownloadJobTest extends AbstractSparkTest {
+public class DefaultDownloadJobTest extends AbstractSparkJobTest {
 
   private static final String JOB_ID = "job123";
 
@@ -51,21 +49,8 @@ public class DefaultDownloadJobTest extends AbstractSparkTest {
     assertThat(outputFile.exists()).isTrue();
   }
 
-  private void prepareInput() {
-    val srcDir = new File(INPUT_TEST_FIXTURES_DIR);
-    val destDir = workingDir;
-    TestFiles.copyDirectory(srcDir, destDir);
-  }
-
   private JobContext createJobContext() {
-    return new JobContext(
-        JOB_ID,
-        ImmutableSet.of("DO001", "DO002"),
-        DownloadDataType.CLINICAL,
-        sparkContext,
-        fileSystem,
-        INPUT_TEST_FIXTURES_DIR,
-        workingDir.getAbsolutePath());
+    return createJobContext(JOB_ID, ImmutableSet.of("DO001", "DO002"), DownloadDataType.CLINICAL);
   }
 
 }
