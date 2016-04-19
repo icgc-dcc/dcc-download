@@ -51,7 +51,6 @@ import org.icgc.dcc.download.core.util.DownloadJobs;
 import org.icgc.dcc.download.job.core.DownloadJob;
 import org.icgc.dcc.download.job.core.JobContext;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
-import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.icgc.dcc.download.server.utils.Jobs;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -173,7 +172,8 @@ public class DownloadService {
     log.debug("[{}] Total jobs: {}", jobName, totalJobs);
 
     if (totalJobs == 0) {
-      throw new NotFoundException("Failed to find job " + jobName);
+      // Most probably this job was recently submitted and Spark has not created tasks for it yet.
+      return new TaskProgress(0, 1);
     }
 
     val completedJobs = calculateCompletedJobs(statusTracker, jobIds);
