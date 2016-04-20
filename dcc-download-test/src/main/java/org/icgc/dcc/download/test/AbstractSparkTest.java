@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.icgc.dcc.download.test.io.TestFiles;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -63,6 +64,12 @@ public abstract class AbstractSparkTest {
 		this.sparkContext = new JavaSparkContext(sparkConf);
 		this.fileSystem = FileSystem.getLocal(new Configuration());
 		this.workingDir = tmp.newFolder("working");
+	}
+
+	@After
+	public void tearDown() {
+		sparkContext.close();
+		sparkContext = null;
 	}
 
 	protected void prepareInput() {

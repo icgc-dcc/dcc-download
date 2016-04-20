@@ -126,7 +126,7 @@ public class DownloadClient {
     val sizes = getSizes(donorIds);
 
     return submitDataTypes.stream()
-        .filter(dt -> sizes.get(dt) > 0L)
+        .filter(dt -> sizes.get(dt) != null && sizes.get(dt) > 0L)
         .collect(toImmutableSet());
   }
 
