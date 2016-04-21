@@ -17,13 +17,26 @@
  */
 package org.icgc.dcc.download.job.core;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.job.task.TaskContext;
+import org.icgc.dcc.download.job.util.FileTests;
 import org.icgc.dcc.download.test.AbstractSparkTest;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
+@Slf4j
 public abstract class AbstractSparkJobTest extends AbstractSparkTest {
+
+  protected static final String JOB_ID = "job123";
 
   protected JobContext createJobContext(String jobId, Set<String> donorIds, Set<DownloadDataType> dataTypes) {
     return new JobContext(
@@ -45,6 +58,42 @@ public abstract class AbstractSparkJobTest extends AbstractSparkTest {
         .dataTypes(dataTypes)
         .sparkContext(sparkContext)
         .build();
+  }
+
+  protected List<File> getDataTypeDirs() {
+    val jobDir = new File(workingDir, JOB_ID);
+    File[] files = jobDir.listFiles(f -> f.isDirectory());
+
+    return ImmutableList.copyOf(files);
+  }
+
+  protected String getExpectedFile(DownloadDataType dataType) {
+    return OUTPUT_TEST_FIXTURES_DIR + "/" + dataType.getId() + ".tsv.gz";
+  }
+
+  protected void prepareVerificationFiles() {
+    getDataTypeDirs().stream()
+        .forEach(dir -> FileTests.concatenatePartFiles(dir));
+
+  }
+
+  protected void verifyDataTypeOutput(DownloadDataType dataType) {
+    log.info("Verifyging {}", dataType);
+    val expectedFile = getExpectedFile(dataType);
+    val actualFile = getActualFile(dataType);
+    FileTests.compareFiles(expectedFile, actualFile);
+  }
+
+  protected String getActualFile(DownloadDataType dataType) {
+    val jobDir = new File(workingDir, JOB_ID);
+    val dataTypeDir = new File(jobDir, dataType.getId());
+
+    return new File(dataTypeDir, dataType.getId() + ".gz").getAbsolutePath();
+  }
+
+  protected TaskContext createTaskContext(DownloadDataType dataType) {
+    return createTaskContext(JOB_ID, ImmutableSet.of("DO001", "DO002"),
+        Collections.singleton(dataType));
   }
 
 }

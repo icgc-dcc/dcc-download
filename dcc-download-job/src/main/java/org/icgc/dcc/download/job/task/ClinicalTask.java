@@ -29,7 +29,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.job.function.ConvertDonor;
-import org.icgc.dcc.download.job.function.ConvertNestedDonor;
+import org.icgc.dcc.download.job.function.ConvertNestedValues;
 import org.icgc.dcc.download.job.function.PairByDonorProject;
 import org.icgc.dcc.download.job.function.PairByDonorProjectSpecimen;
 import org.icgc.dcc.download.job.function.UnwindRow;
@@ -71,7 +71,7 @@ public class ClinicalTask extends Task {
       writeSample(taskContext, donors);
     }
 
-    donors.unpersist();
+    donors.unpersist(false);
   }
 
   private void writeDonors(TaskContext taskContext, JavaRDD<Row> donors) {
@@ -89,7 +89,7 @@ public class ClinicalTask extends Task {
         .flatMapValues(new UnwindRow(ImmutableList.of(unwindPath)));
 
     val header = getHeader(taskContext.getSparkContext(), dataType);
-    val records = donorNestedType.map(new ConvertNestedDonor(dataType));
+    val records = donorNestedType.map(new ConvertNestedValues(dataType));
     val output = header.union(records);
 
     writeOutput(dataType, taskContext, output);
@@ -103,7 +103,7 @@ public class ClinicalTask extends Task {
         .flatMapValues(new UnwindRow(ImmutableList.of(DONOR_SAMPLE)));
 
     val header = getHeader(taskContext.getSparkContext(), dataType);
-    val records = sample.map(new ConvertNestedDonor(dataType));
+    val records = sample.map(new ConvertNestedValues(dataType));
     val output = header.union(records);
 
     writeOutput(dataType, taskContext, output);
@@ -116,7 +116,7 @@ public class ClinicalTask extends Task {
     return nestedName.replace(donorName + UNDERSCORE, EMPTY_STRING);
   }
 
-  private DataFrame readInput(TaskContext taskContext) {
+  private static DataFrame readInput(TaskContext taskContext) {
     val sparkContext = taskContext.getSparkContext();
     val sqlContext = new SQLContext(sparkContext);
     val inputPath = taskContext.getInputDir() + "/" + DownloadDataType.DONOR.getId();

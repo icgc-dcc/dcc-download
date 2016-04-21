@@ -17,31 +17,53 @@
  */
 package org.icgc.dcc.download.job.function;
 
+import static org.icgc.dcc.download.job.utils.Rows.getObjectValue;
+import static org.icgc.dcc.download.job.utils.Rows.getValue;
+
+import java.util.Collection;
 import java.util.Map;
 
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Row;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.utils.Rows;
 
 import scala.Tuple2;
 
-public final class ConvertNestedDonor implements Function<Tuple2<Map<String, String>, Row>, String> {
+import com.google.common.collect.ImmutableMap;
 
-  private final ConvertRow converter;
+/**
+ * Creates a tuple of the following structure: {@code Tuple2<Tuple2<Map<String,String>, Map<String,Object>>, Row>}.<br>
+ * The key part of the first tuple is <b>{@code Tuple2<Map<String,String>, Map<String,Object>>}</b>, where <b>
+ * {@code Map<String,String>}</b> contains resolved field-value pairs and <b>{@code Map<String,Object>}</b> contains
+ * unresolved field-value pairs.<br>
+ * The above structure is used to allow an arbitrary unrolling of the nested Rows
+ */
+@Slf4j
+@RequiredArgsConstructor
+public final class PairByFields implements PairFunction<Row, Tuple2<Map<String, String>, Map<String, Object>>, Row> {
 
-  public ConvertNestedDonor(@NonNull DownloadDataType dataType) {
-    this.converter = new ConvertRow(dataType);
-  }
+  private final Collection<String> keyFields;
 
   @Override
-  public String call(Tuple2<Map<String, String>, Row> tuple) throws Exception {
-    val resolvedValues = tuple._1;
-    val row = tuple._2;
+  public Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row> call(Row row) {
+    val resolvedValues = ImmutableMap.<String, String> builder();
+    val unresolvedValues = ImmutableMap.<String, Object> builder();
 
-    return converter.convert(row, resolvedValues);
+    for (val field : keyFields) {
+      if (Rows.canBeResolved(row, field)) {
+        resolvedValues.put(field, getValue(row, field));
+      } else {
+        log.debug("Unresolved value: Key - {}, Value - {}", field, row);
+        unresolvedValues.put(field, getObjectValue(row, field));
+      }
+    }
+
+    val key = new Tuple2<Map<String, String>, Map<String, Object>>(resolvedValues.build(), unresolvedValues.build());
+    return new Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row>(key, row);
   }
 
 }

@@ -48,7 +48,7 @@ public final class Rows {
     return getValue(row, field);
   }
 
-  public static String getValue(@NonNull Row row, @NonNull String field) {
+  public static Object getObjectValue(@NonNull Row row, @NonNull String field) {
     Object value = null;
     try {
       val fieldIndex = row.fieldIndex(field);
@@ -56,6 +56,12 @@ public final class Rows {
     } catch (IllegalArgumentException e) {
       log.warn("Field {} doesn't exist in row {}", field, row);
     }
+
+    return value;
+  }
+
+  public static String getValue(@NonNull Row row, @NonNull String field) {
+    val value = getObjectValue(row, field);
 
     return value == null ? Separators.EMPTY_STRING : String.valueOf(value);
   }
@@ -68,9 +74,24 @@ public final class Rows {
   }
 
   public static List<Row> getValueAsList(Row source, String field) {
-    WrappedArray<Row> values = source.getAs(field);
+    log.debug("Getting value of '{}' from row: {}", field, source);
+    val values = source.getAs(field);
 
-    return values == null ? Collections.emptyList() : asJavaList(values);
+    return values == null ? Collections.emptyList() : convertToList(values);
+  }
+
+  public static List<Row> convertToList(@NonNull Object rawValue) {
+    @SuppressWarnings("unchecked")
+    val values = (WrappedArray<Row>) rawValue;
+
+    return asJavaList(values);
+  }
+
+  public static boolean canBeResolved(Row row, String field) {
+    val value = row.getAs(field);
+
+    // Spark reads Parquet collections in WrappedArray<Row>
+    return !(value instanceof WrappedArray<?>);
   }
 
 }

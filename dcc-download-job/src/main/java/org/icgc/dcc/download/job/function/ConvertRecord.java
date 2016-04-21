@@ -15,49 +15,54 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.task;
+package org.icgc.dcc.download.job.function;
 
-import static com.google.common.base.Preconditions.checkState;
-import lombok.NoArgsConstructor;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+
+import java.util.List;
+import java.util.Map;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.util.Joiners;
+import org.icgc.dcc.download.job.utils.Rows;
 
-@NoArgsConstructor
-public class GenericTask extends Task {
+import scala.Tuple2;
+
+import com.google.common.base.Joiner;
+
+@RequiredArgsConstructor
+public final class ConvertRecord implements
+    Function<Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row>, String> {
+
+  /**
+   * Dependencies.
+   */
+  private static final Joiner JOINER = Joiners.TAB;
+
+  /**
+   * Configuration.
+   */
+  @NonNull
+  private final List<String> fields;
 
   @Override
-  public void execute(TaskContext taskContext) {
-    val dataTypes = taskContext.getDataTypes();
-    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
-    val dataType = dataTypes.iterator().next();
+  public String call(Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row> tuple) throws Exception {
+    val resolvedValues = tuple._1._1;
+    val row = tuple._2;
 
-    val input = readInput(taskContext, dataType);
-    val filteredInput = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
+    val values = fields.stream()
+        .map(field -> getValue(resolvedValues, row, field))
+        .collect(toImmutableList());
 
-    val records = process(filteredInput, dataType);
-
-    val header = getHeader(taskContext.getSparkContext(), dataType);
-    val output = header.union(records);
-
-    writeOutput(dataType, taskContext, output);
+    return JOINER.join(values);
   }
 
-  protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertGenericRow(dataType.getDownloadFileds()));
+  private static String getValue(Map<String, String> resolvedValues, Row row, String field) {
+    return resolvedValues.containsKey(field) ? resolvedValues.get(field) : Rows.getValue(row, field);
   }
-
-  private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + dataType.getCanonicalName();
-
-    return sqlContext.read().parquet(inputPath);
-  }
-
 }

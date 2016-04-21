@@ -15,49 +15,41 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.task;
+package org.icgc.dcc.download.job.function;
 
 import static com.google.common.base.Preconditions.checkState;
-import lombok.NoArgsConstructor;
+
+import java.util.Collection;
+import java.util.Map;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.model.FieldNames;
+import org.icgc.dcc.common.core.model.Marking;
+import org.icgc.dcc.download.job.utils.Rows;
 
-@NoArgsConstructor
-public class GenericTask extends Task {
+import scala.Tuple2;
+
+@RequiredArgsConstructor
+public final class FilterSsm implements
+    Function<Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row>, Boolean> {
+
+  @NonNull
+  private final Collection<Marking> access;
 
   @Override
-  public void execute(TaskContext taskContext) {
-    val dataTypes = taskContext.getDataTypes();
-    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
-    val dataType = dataTypes.iterator().next();
+  public Boolean call(Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row> tuple) throws Exception {
+    val row = tuple._2;
+    val markingValue = Rows.getValue(row, FieldNames.NormalizerFieldNames.NORMALIZER_MARKING);
 
-    val input = readInput(taskContext, dataType);
-    val filteredInput = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
+    val resolvedMarking = Marking.from(markingValue);
+    checkState(resolvedMarking.isPresent(), "Failed to resolve marking from value '%s'", markingValue);
 
-    val records = process(filteredInput, dataType);
-
-    val header = getHeader(taskContext.getSparkContext(), dataType);
-    val output = header.union(records);
-
-    writeOutput(dataType, taskContext, output);
-  }
-
-  protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertGenericRow(dataType.getDownloadFileds()));
-  }
-
-  private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + dataType.getCanonicalName();
-
-    return sqlContext.read().parquet(inputPath);
+    return access.contains(resolvedMarking.get());
   }
 
 }

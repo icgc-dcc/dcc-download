@@ -17,47 +17,29 @@
  */
 package org.icgc.dcc.download.job.task;
 
-import static com.google.common.base.Preconditions.checkState;
-import lombok.NoArgsConstructor;
 import lombok.val;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.core.AbstractSparkJobTest;
+import org.junit.Test;
 
-@NoArgsConstructor
-public class GenericTask extends Task {
+public class GenericTaskTest extends AbstractSparkJobTest {
 
-  @Override
-  public void execute(TaskContext taskContext) {
-    val dataTypes = taskContext.getDataTypes();
-    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
-    val dataType = dataTypes.iterator().next();
+  GenericTask task;
 
-    val input = readInput(taskContext, dataType);
-    val filteredInput = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
-
-    val records = process(filteredInput, dataType);
-
-    val header = getHeader(taskContext.getSparkContext(), dataType);
-    val output = header.union(records);
-
-    writeOutput(dataType, taskContext, output);
+  @Test
+  public void testExecute_cnsm() throws Exception {
+    testExecute(DownloadDataType.CNSM);
   }
 
-  protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertGenericRow(dataType.getDownloadFileds()));
-  }
+  private void testExecute(DownloadDataType dataType) {
+    task = new GenericTask();
+    prepareInput();
+    val taskContext = createTaskContext(dataType);
+    task.execute(taskContext);
 
-  private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + dataType.getCanonicalName();
-
-    return sqlContext.read().parquet(inputPath);
+    prepareVerificationFiles();
+    verifyDataTypeOutput(dataType);
   }
 
 }

@@ -15,49 +15,18 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.task;
+package org.icgc.dcc.download.job.utils;
 
-import static com.google.common.base.Preconditions.checkState;
+import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
-import lombok.val;
+import scala.Tuple2;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+// TODO: Move to commons
+@NoArgsConstructor(access = PRIVATE)
+public final class Tuples {
 
-@NoArgsConstructor
-public class GenericTask extends Task {
-
-  @Override
-  public void execute(TaskContext taskContext) {
-    val dataTypes = taskContext.getDataTypes();
-    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
-    val dataType = dataTypes.iterator().next();
-
-    val input = readInput(taskContext, dataType);
-    val filteredInput = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
-
-    val records = process(filteredInput, dataType);
-
-    val header = getHeader(taskContext.getSparkContext(), dataType);
-    val output = header.union(records);
-
-    writeOutput(dataType, taskContext, output);
-  }
-
-  protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertGenericRow(dataType.getDownloadFileds()));
-  }
-
-  private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + dataType.getCanonicalName();
-
-    return sqlContext.read().parquet(inputPath);
+  public static <K, V> Tuple2<K, V> tuple(K key, V value) {
+    return new Tuple2<K, V>(key, value);
   }
 
 }

@@ -19,6 +19,10 @@ package org.icgc.dcc.download.core.model;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_CONTROLLED_FIELDS;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_CONTROLLED_REMOVE_FIELDS;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_FIRST_LEVEL_FIELDS;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_SECOND_LEVEL_FIELDS;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,8 +35,10 @@ import lombok.val;
 
 import org.icgc.dcc.common.core.model.Identifiable;
 import org.icgc.dcc.common.core.util.Separators;
+import org.icgc.dcc.common.core.util.stream.Collectors;
 import org.icgc.dcc.common.core.util.stream.Streams;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -198,7 +204,45 @@ public enum DownloadDataType implements Identifiable {
       .put("seq_coverage", "seq_coverage")
       .put("raw_data_repository", "raw_data_repository")
       .put("raw_data_accession", "raw_data_accession")
-      .build()),
+      .build(),
+
+      ImmutableList.<String> builder()
+          .add("_donor_id")
+          .add("_project_id")
+          .add("_specimen_id")
+          .add("_sample_id")
+          .add("_matched_sample_id")
+          .add("analyzed_sample_id")
+          .add("matched_sample_id")
+          .add("mutation_type")
+          .add("copy_number")
+          .add("segment_mean")
+          .add("segment_median")
+          .add("chromosome")
+          .add("chromosome_start")
+          .add("chromosome_end")
+          .add("assembly_version")
+          .add("chromosome_start_range")
+          .add("chromosome_end_range")
+          .add("start_probe_id")
+          .add("end_probe_id")
+          .add("sequencing_strategy")
+          .add("quality_score")
+          .add("probability")
+          .add("is_annotated")
+          .add("verification_status")
+          .add("verification_platform")
+          .add("platform")
+          .add("experimental_protocol")
+          .add("base_calling_algorithm")
+          .add("alignment_algorithm")
+          .add("variation_calling_algorithm")
+          .add("other_analysis_algorithm")
+          .add("seq_coverage")
+          .add("raw_data_repository")
+          .add("raw_data_accession")
+          .add("consequence") // Unwind field
+          .build()),
 
   JCN,
   METH_SEQ,
@@ -208,8 +252,8 @@ public enum DownloadDataType implements Identifiable {
   PEXP,
   EXP_SEQ,
   EXP_ARRAY,
-  SSM_OPEN,
-  SSM_CONTROLLED,
+  SSM_OPEN(getSsmOpenFields(), SSM_FIRST_LEVEL_FIELDS, getSsmOpenSecondLevelFields()),
+  SSM_CONTROLLED(SSM_CONTROLLED_FIELDS, SSM_FIRST_LEVEL_FIELDS, SSM_SECOND_LEVEL_FIELDS),
   SGV_CONTROLLED,
 
   // For backward compatible only (remove when no longer use these names)
@@ -218,6 +262,7 @@ public enum DownloadDataType implements Identifiable {
   METH;
 
   private static final String CONTROLLED_SUFFIX = "_controlled";
+  private static final String OPEN_SUFFIX = "_open";
 
   public static final Set<DownloadDataType> CLINICAL = ImmutableSet.of(DONOR, DONOR_FAMILY, DONOR_THERAPY,
       DONOR_EXPOSURE, SPECIMEN, SAMPLE);
@@ -229,12 +274,31 @@ public enum DownloadDataType implements Identifiable {
    */
   private final Map<String, String> fields;
 
+  /**
+   * Rows in the parquet files have a nested structure. The processing logic 'unwinds' nested fields to make the row
+   * flat. Field levels represent which fields should be used first for projection.<br>
+   * E.g. {@code firstLevelFields} are non-nested fields. {@code secondLevelFields} are first nested fields
+   */
+  private List<String> firstLevelFields;
+  private List<String> secondLevelFields;
+
   private DownloadDataType() {
     this(Collections.emptyMap());
   }
 
   private DownloadDataType(@NonNull Map<String, String> fields) {
+    this(fields, Collections.emptyList(), Collections.emptyList());
+  }
+
+  private DownloadDataType(@NonNull Map<String, String> fields, List<String> firstLevelFields) {
+    this(fields, firstLevelFields, Collections.emptyList());
+  }
+
+  private DownloadDataType(@NonNull Map<String, String> fields, List<String> firstLevelFields,
+      List<String> secondLevelFields) {
     this.fields = fields;
+    this.firstLevelFields = firstLevelFields;
+    this.secondLevelFields = secondLevelFields;
   }
 
   @Override
@@ -243,11 +307,22 @@ public enum DownloadDataType implements Identifiable {
   }
 
   public String getCanonicalName() {
-    return isControlled() ? getId().replace(CONTROLLED_SUFFIX, Separators.EMPTY_STRING) : getId();
+    String name = getId();
+    if (isControlled()) {
+      name = name.replace(CONTROLLED_SUFFIX, Separators.EMPTY_STRING);
+    } else if (isOpen()) {
+      name = name.replace(OPEN_SUFFIX, Separators.EMPTY_STRING);
+    }
+
+    return name;
   }
 
   public boolean isControlled() {
     return getId().endsWith(CONTROLLED_SUFFIX);
+  }
+
+  public boolean isOpen() {
+    return getId().endsWith(OPEN_SUFFIX);
   }
 
   public List<String> getDownloadFileds() {
@@ -269,6 +344,18 @@ public enum DownloadDataType implements Identifiable {
         + "Found data types: %s", name, controlled, dataTypes);
 
     return dataTypes.get(0);
+  }
+
+  private static Map<String, String> getSsmOpenFields() {
+    return SSM_CONTROLLED_FIELDS.entrySet().stream()
+        .filter(e -> !SSM_CONTROLLED_REMOVE_FIELDS.contains(e.getKey()))
+        .collect(Collectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+  }
+
+  private static List<String> getSsmOpenSecondLevelFields() {
+    return SSM_SECOND_LEVEL_FIELDS.stream()
+        .filter(e -> !SSM_CONTROLLED_REMOVE_FIELDS.contains(e))
+        .collect(toImmutableList());
   }
 
 }

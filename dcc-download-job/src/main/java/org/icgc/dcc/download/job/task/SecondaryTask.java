@@ -17,47 +17,24 @@
  */
 package org.icgc.dcc.download.job.task;
 
-import static com.google.common.base.Preconditions.checkState;
-import lombok.NoArgsConstructor;
-import lombok.val;
-
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
+import org.icgc.dcc.common.core.model.FieldNames;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.function.ConvertRecord;
+import org.icgc.dcc.download.job.function.PairByFields;
+import org.icgc.dcc.download.job.function.UnwindRow;
 
-@NoArgsConstructor
-public class GenericTask extends Task {
+import com.google.common.collect.ImmutableList;
+
+public class SecondaryTask extends GenericTask {
 
   @Override
-  public void execute(TaskContext taskContext) {
-    val dataTypes = taskContext.getDataTypes();
-    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
-    val dataType = dataTypes.iterator().next();
-
-    val input = readInput(taskContext, dataType);
-    val filteredInput = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
-
-    val records = process(filteredInput, dataType);
-
-    val header = getHeader(taskContext.getSparkContext(), dataType);
-    val output = header.union(records);
-
-    writeOutput(dataType, taskContext, output);
-  }
-
   protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertGenericRow(dataType.getDownloadFileds()));
-  }
-
-  private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + dataType.getCanonicalName();
-
-    return sqlContext.read().parquet(inputPath);
+    return input
+        .mapToPair(new PairByFields(dataType.getFirstLevelFields()))
+        .flatMapValues(new UnwindRow(ImmutableList.of(FieldNames.LoaderFieldNames.CONSEQUENCE_ARRAY_NAME)))
+        .map(new ConvertRecord(dataType.getDownloadFileds()));
   }
 
 }

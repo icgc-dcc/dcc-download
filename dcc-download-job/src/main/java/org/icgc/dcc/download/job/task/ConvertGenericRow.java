@@ -17,47 +17,38 @@
  */
 package org.icgc.dcc.download.job.task;
 
-import static com.google.common.base.Preconditions.checkState;
-import lombok.NoArgsConstructor;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+
+import java.util.List;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.util.Joiners;
+import org.icgc.dcc.download.job.utils.Rows;
 
-@NoArgsConstructor
-public class GenericTask extends Task {
+import com.google.common.base.Joiner;
+
+@RequiredArgsConstructor
+public final class ConvertGenericRow implements Function<Row, String> {
+
+  /**
+   * Dependencies.
+   */
+  private static final Joiner JOINER = Joiners.TAB;
+
+  @NonNull
+  private final List<String> fields;
 
   @Override
-  public void execute(TaskContext taskContext) {
-    val dataTypes = taskContext.getDataTypes();
-    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
-    val dataType = dataTypes.iterator().next();
+  public String call(Row row) throws Exception {
+    val values = fields.stream()
+        .map(field -> Rows.getValue(row, field))
+        .collect(toImmutableList());
 
-    val input = readInput(taskContext, dataType);
-    val filteredInput = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
-
-    val records = process(filteredInput, dataType);
-
-    val header = getHeader(taskContext.getSparkContext(), dataType);
-    val output = header.union(records);
-
-    writeOutput(dataType, taskContext, output);
+    return JOINER.join(values);
   }
-
-  protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertGenericRow(dataType.getDownloadFileds()));
-  }
-
-  private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + dataType.getCanonicalName();
-
-    return sqlContext.read().parquet(inputPath);
-  }
-
 }
