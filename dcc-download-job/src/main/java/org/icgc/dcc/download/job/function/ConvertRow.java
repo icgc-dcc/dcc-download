@@ -17,55 +17,26 @@
  */
 package org.icgc.dcc.download.job.function;
 
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-import static org.icgc.dcc.download.job.utils.Rows.getValue;
-
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.icgc.dcc.common.core.util.Joiners;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.utils.RecordConverter;
 
-import com.google.common.base.Joiner;
+public final class ConvertRow implements Function<Row, String> {
 
-@Slf4j
-public final class ConvertRow implements Serializable {
+  private RecordConverter recordConverter;
 
-  /**
-   * Configuration.
-   */
-  private final List<String> downloadFields;
-
-  /**
-   * Dependencies.
-   */
-  private static final Joiner JOINER = Joiners.TAB;
-
-  public ConvertRow(@NonNull DownloadDataType dataType) {
-    this.downloadFields = dataType.getDownloadFileds();
+  public ConvertRow(@NonNull List<String> fields) {
+    this.recordConverter = new RecordConverter(fields);
   }
 
-  public String convert(@NonNull Row row) {
-    return convert(row, Collections.emptyMap());
-  }
-
-  public String convert(@NonNull Row row, @NonNull Map<String, String> resolvedValues) {
-    log.debug("Processing row: {}", row);
-    val values = downloadFields.stream()
-        .map(field -> getValue(row, resolvedValues, field))
-        .collect(toImmutableList());
-
-    val result = JOINER.join(values);
-    log.debug("Converted: {}", result);
-
-    return result;
+  @Override
+  public String call(Row row) throws Exception {
+    return recordConverter.convert(Collections.emptyMap(), row);
   }
 
 }

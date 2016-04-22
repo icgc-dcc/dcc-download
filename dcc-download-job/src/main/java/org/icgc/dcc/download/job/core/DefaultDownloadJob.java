@@ -30,14 +30,18 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.spark.api.java.JavaSparkContext;
+import org.icgc.dcc.common.core.model.Marking;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.util.DownloadJobs;
 import org.icgc.dcc.download.job.task.ClinicalTask;
 import org.icgc.dcc.download.job.task.GenericTask;
+import org.icgc.dcc.download.job.task.SecondaryTask;
+import org.icgc.dcc.download.job.task.SsmTask;
 import org.icgc.dcc.download.job.task.Task;
 import org.icgc.dcc.download.job.task.TaskContext;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -77,19 +81,32 @@ public class DefaultDownloadJob implements DownloadJob {
       tasks.put(createClinical(jobContext));
     }
 
-    tasks.putAll(createGenericTasks(jobContext));
-
-    // TODO: finish SSM
+    tasks.putAll(createNonClinicalTasks(jobContext));
 
     return tasks.build();
   }
 
-  private static Map<? extends Task, TaskContext> createGenericTasks(JobContext jobContext) {
-    val dataTypes = filterGenericDataTypes(jobContext.getDataTypes());
-    val genericTask = new GenericTask();
+  private static Map<? extends Task, TaskContext> createNonClinicalTasks(JobContext jobContext) {
+    val dataTypes = filterOutClinicalDataTypes(jobContext.getDataTypes());
 
     return dataTypes.stream()
-        .collect(toImmutableMap(dt -> genericTask, dt -> createTaskContext(jobContext, singleton(dt))));
+        .collect(toImmutableMap(dt -> getTask(dt), dt -> createTaskContext(jobContext, singleton(dt))));
+  }
+
+  private static Task getTask(DownloadDataType dataType) {
+    if (dataType == DownloadDataType.SSM_OPEN) {
+      return new SsmTask(ImmutableSet.of(Marking.OPEN, Marking.MASKED));
+    }
+
+    if (dataType == DownloadDataType.SSM_CONTROLLED) {
+      return new SsmTask(ImmutableSet.of(Marking.OPEN, Marking.CONTROLLED));
+    }
+
+    if (dataType.getFirstLevelFields().isEmpty() == false) {
+      return new SecondaryTask();
+    }
+
+    return new GenericTask();
   }
 
   private static Entry<? extends Task, ? extends TaskContext> createClinical(JobContext jobContext) {
@@ -103,11 +120,9 @@ public class DefaultDownloadJob implements DownloadJob {
     return Sets.intersection(CLINICAL, dataTypes);
   }
 
-  private static Set<DownloadDataType> filterGenericDataTypes(Set<DownloadDataType> dataTypes) {
+  private static Set<DownloadDataType> filterOutClinicalDataTypes(Set<DownloadDataType> dataTypes) {
     val genericDataTypes = Sets.newHashSet(dataTypes);
     genericDataTypes.removeAll(CLINICAL);
-    genericDataTypes.remove(DownloadDataType.SSM_OPEN);
-    genericDataTypes.remove(DownloadDataType.SSM_CONTROLLED);
 
     return genericDataTypes;
   }

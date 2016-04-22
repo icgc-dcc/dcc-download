@@ -28,8 +28,8 @@ public class GenericTaskTest extends AbstractSparkJobTest {
   GenericTask task;
 
   @Test
-  public void testExecute_cnsm() throws Exception {
-    testExecute(DownloadDataType.CNSM);
+  public void testExecute_methArray() throws Exception {
+    testExecute(DownloadDataType.METH_ARRAY);
   }
 
   private void testExecute(DownloadDataType dataType) {

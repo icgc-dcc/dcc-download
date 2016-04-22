@@ -26,6 +26,7 @@ import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.function.ConvertRow;
 
 @NoArgsConstructor
 public class GenericTask extends Task {
@@ -49,7 +50,7 @@ public class GenericTask extends Task {
   }
 
   protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertGenericRow(dataType.getDownloadFileds()));
+    return input.map(new ConvertRow(dataType.getDownloadFileds()));
   }
 
   private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {

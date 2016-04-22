@@ -17,52 +17,36 @@
  */
 package org.icgc.dcc.download.job.function;
 
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-
 import java.util.List;
 import java.util.Map;
 
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.icgc.dcc.common.core.util.Joiners;
-import org.icgc.dcc.download.job.utils.Rows;
+import org.icgc.dcc.download.job.utils.RecordConverter;
 
 import scala.Tuple2;
 
-import com.google.common.base.Joiner;
-
-@RequiredArgsConstructor
 public final class ConvertRecord implements
     Function<Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row>, String> {
 
   /**
-   * Dependencies.
-   */
-  private static final Joiner JOINER = Joiners.TAB;
-
-  /**
    * Configuration.
    */
-  @NonNull
-  private final List<String> fields;
+  private final RecordConverter recordConverter;
+
+  public ConvertRecord(@NonNull List<String> fields) {
+    this.recordConverter = new RecordConverter(fields);
+  }
 
   @Override
   public String call(Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row> tuple) throws Exception {
     val resolvedValues = tuple._1._1;
     val row = tuple._2;
 
-    val values = fields.stream()
-        .map(field -> getValue(resolvedValues, row, field))
-        .collect(toImmutableList());
-
-    return JOINER.join(values);
+    return recordConverter.convert(resolvedValues, row);
   }
 
-  private static String getValue(Map<String, String> resolvedValues, Row row, String field) {
-    return resolvedValues.containsKey(field) ? resolvedValues.get(field) : Rows.getValue(row, field);
-  }
 }

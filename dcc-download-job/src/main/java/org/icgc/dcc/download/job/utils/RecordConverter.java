@@ -15,33 +15,46 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.function;
+package org.icgc.dcc.download.job.utils;
 
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+
+import java.util.List;
 import java.util.Map;
 
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.util.Joiners;
 
-import scala.Tuple2;
+import com.google.common.base.Joiner;
 
-public final class ConvertNestedValues implements Function<Tuple2<Map<String, String>, Row>, String> {
+@RequiredArgsConstructor
+public class RecordConverter {
 
-  private final ConvertRow converter;
+  /**
+   * Dependencies.
+   */
+  private static final Joiner JOINER = Joiners.TAB;
 
-  public ConvertNestedValues(@NonNull DownloadDataType dataType) {
-    this.converter = new ConvertRow(dataType);
+  /**
+   * Configuration.
+   */
+  @NonNull
+  private final List<String> fields;
+
+  public String convert(Map<String, String> resolvedValues, Row row) throws Exception {
+    val values = fields.stream()
+        .map(field -> getValue(resolvedValues, row, field))
+        .collect(toImmutableList());
+
+    return JOINER.join(values);
   }
 
-  @Override
-  public String call(Tuple2<Map<String, String>, Row> tuple) throws Exception {
-    val resolvedValues = tuple._1;
-    val row = tuple._2;
-
-    return converter.convert(row, resolvedValues);
+  private static String getValue(Map<String, String> resolvedValues, Row row, String field) {
+    return resolvedValues.containsKey(field) ? resolvedValues.get(field) : Rows.getValue(row, field);
   }
 
 }

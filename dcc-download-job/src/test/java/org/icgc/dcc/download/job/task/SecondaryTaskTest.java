@@ -15,40 +15,31 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.function;
-
-import static org.icgc.dcc.common.core.model.FieldNames.DONOR_SPECIMEN_ID;
-import static org.icgc.dcc.common.core.model.FieldNames.SubmissionFieldNames.SUBMISSION_SPECIMEN_ID;
-
-import java.util.Map;
+package org.icgc.dcc.download.job.task;
 
 import lombok.val;
 
-import org.apache.spark.api.java.function.PairFunction;
-import org.apache.spark.sql.Row;
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.core.AbstractSparkJobTest;
+import org.junit.Test;
 
-import scala.Tuple2;
+public class SecondaryTaskTest extends AbstractSparkJobTest {
 
-import com.google.common.collect.ImmutableMap;
+  SecondaryTask task;
 
-public final class PairByDonorProjectSpecimen implements
-    PairFunction<Tuple2<Map<String, String>, Row>, Map<String, String>, Row> {
+  @Test
+  public void testExecute_cnsm() throws Exception {
+    testExecute(DownloadDataType.CNSM);
+  }
 
-  @Override
-  public Tuple2<Map<String, String>, Row> call(Tuple2<Map<String, String>, Row> tuple)
-      throws Exception {
-    val row = tuple._2;
-    String specimenId = row.getAs(DONOR_SPECIMEN_ID);
-    String submissionSpecimenId = row.getAs(SUBMISSION_SPECIMEN_ID);
+  private void testExecute(DownloadDataType dataType) {
+    task = new SecondaryTask();
+    prepareInput();
+    val taskContext = createTaskContext(dataType);
+    task.execute(taskContext);
 
-    val resolvedValues = tuple._1;
-    val specimenResolvedValues = ImmutableMap.<String, String> builder()
-        .putAll(resolvedValues)
-        .put(DONOR_SPECIMEN_ID, specimenId)
-        .put(SUBMISSION_SPECIMEN_ID, submissionSpecimenId)
-        .build();
-
-    return new Tuple2<Map<String, String>, Row>(specimenResolvedValues, row);
+    prepareVerificationFiles();
+    verifyDataTypeOutput(dataType);
   }
 
 }

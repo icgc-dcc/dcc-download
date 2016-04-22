@@ -46,7 +46,7 @@ import com.google.common.io.ByteStreams;
 public class ArchiveOutputStream {
 
   // TODO: Add to common Extensions
-  private static final String GZIP_EXTENSION = "tsv.gz";
+  private static final String GZIP_EXTENSION = ".tsv.gz";
 
   @NonNull
   private final Path dynamicDownloadPath;

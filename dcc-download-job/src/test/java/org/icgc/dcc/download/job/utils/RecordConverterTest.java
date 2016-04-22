@@ -15,40 +15,37 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.task;
+package org.icgc.dcc.download.job.utils;
 
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-
-import java.util.List;
-
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.download.job.util.TestRows.createExposureSchema;
+import static org.icgc.dcc.download.job.util.TestRows.createRow;
 import lombok.val;
 
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.Row;
 import org.icgc.dcc.common.core.util.Joiners;
-import org.icgc.dcc.download.job.utils.Rows;
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.junit.Test;
 
-import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 
-@RequiredArgsConstructor
-public final class ConvertGenericRow implements Function<Row, String> {
+public class RecordConverterTest {
 
-  /**
-   * Dependencies.
-   */
-  private static final Joiner JOINER = Joiners.TAB;
+  RecordConverter converter;
 
-  @NonNull
-  private final List<String> fields;
+  @Test
+  public void testConvert() throws Exception {
+    val exposureRow =
+        createRow(createExposureSchema(), "alco_hist", "alco_hist_int", 1, "exp_notes", "exp_type", null, 2);
+    val resolvedValues = ImmutableMap.of(
+        "_donor_id", "DO1",
+        "_project_id", "DCC-TEST",
+        "donor_id", "DID123");
 
-  @Override
-  public String call(Row row) throws Exception {
-    val values = fields.stream()
-        .map(field -> Rows.getValue(row, field))
-        .collect(toImmutableList());
-
-    return JOINER.join(values);
+    converter = new RecordConverter(DownloadDataType.DONOR_EXPOSURE.getDownloadFileds());
+    val actualValue = converter.convert(resolvedValues, exposureRow);
+    val expectedValue = Joiners.TAB.join("DO1", "DCC-TEST", "DID123", "exp_type", 1, "", 2, "alco_hist",
+        "alco_hist_int");
+    assertThat(actualValue).isEqualTo(expectedValue);
   }
+
 }

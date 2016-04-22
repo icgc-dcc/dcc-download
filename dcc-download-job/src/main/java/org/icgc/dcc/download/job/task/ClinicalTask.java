@@ -17,8 +17,13 @@
  */
 package org.icgc.dcc.download.job.task;
 
+import static org.icgc.dcc.common.core.model.FieldNames.DONOR_ID;
 import static org.icgc.dcc.common.core.model.FieldNames.DONOR_SAMPLE;
 import static org.icgc.dcc.common.core.model.FieldNames.DONOR_SPECIMEN;
+import static org.icgc.dcc.common.core.model.FieldNames.DONOR_SPECIMEN_ID;
+import static org.icgc.dcc.common.core.model.FieldNames.PROJECT_ID;
+import static org.icgc.dcc.common.core.model.FieldNames.SubmissionFieldNames.SUBMISSION_DONOR_ID;
+import static org.icgc.dcc.common.core.model.FieldNames.SubmissionFieldNames.SUBMISSION_SPECIMEN_ID;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.Separators.UNDERSCORE;
 import lombok.val;
@@ -28,15 +33,20 @@ import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.job.function.ConvertDonor;
-import org.icgc.dcc.download.job.function.ConvertNestedValues;
-import org.icgc.dcc.download.job.function.PairByDonorProject;
-import org.icgc.dcc.download.job.function.PairByDonorProjectSpecimen;
+import org.icgc.dcc.download.job.function.AddFieldsToKey;
+import org.icgc.dcc.download.job.function.ConvertRow;
+import org.icgc.dcc.download.job.function.ConvertRecord;
+import org.icgc.dcc.download.job.function.PairByFields;
 import org.icgc.dcc.download.job.function.UnwindRow;
 
 import com.google.common.collect.ImmutableList;
 
 public class ClinicalTask extends Task {
+
+  /**
+   * 
+   */
+  private static final ImmutableList<String> DONOR_FIELDS = ImmutableList.of(DONOR_ID, PROJECT_ID, SUBMISSION_DONOR_ID);
 
   @Override
   public void execute(TaskContext taskContext) {
@@ -77,7 +87,7 @@ public class ClinicalTask extends Task {
   private void writeDonors(TaskContext taskContext, JavaRDD<Row> donors) {
     val dataType = DownloadDataType.DONOR;
     val header = getHeader(taskContext.getSparkContext(), dataType);
-    val records = donors.map(new ConvertDonor());
+    val records = donors.map(new ConvertRow(dataType.getDownloadFileds()));
     val output = header.union(records);
 
     writeOutput(dataType, taskContext, output);
@@ -85,25 +95,30 @@ public class ClinicalTask extends Task {
 
   private void writeDonorNestedType(TaskContext taskContext, JavaRDD<Row> donors, DownloadDataType dataType) {
     val unwindPath = resolveDonorNestedPath(dataType);
-    val donorNestedType = donors.mapToPair(new PairByDonorProject())
-        .flatMapValues(new UnwindRow(ImmutableList.of(unwindPath)));
+
+    val records = donors.mapToPair(new PairByFields(DONOR_FIELDS))
+        .flatMapValues(new UnwindRow(ImmutableList.of(unwindPath)))
+        .map(new ConvertRecord(dataType.getDownloadFileds()));
 
     val header = getHeader(taskContext.getSparkContext(), dataType);
-    val records = donorNestedType.map(new ConvertNestedValues(dataType));
     val output = header.union(records);
 
     writeOutput(dataType, taskContext, output);
   }
 
   private void writeSample(TaskContext taskContext, JavaRDD<Row> donors) {
+    val donorFields = DONOR_FIELDS;
+    val specimenFields = ImmutableList.of(DONOR_SPECIMEN_ID, SUBMISSION_SPECIMEN_ID);
+
     val dataType = DownloadDataType.SAMPLE;
-    val sample = donors.mapToPair(new PairByDonorProject())
+
+    val records = donors.mapToPair(new PairByFields(donorFields))
         .flatMapValues(new UnwindRow(ImmutableList.of(DONOR_SPECIMEN)))
-        .mapToPair(new PairByDonorProjectSpecimen())
-        .flatMapValues(new UnwindRow(ImmutableList.of(DONOR_SAMPLE)));
+        .mapToPair(new AddFieldsToKey(specimenFields))
+        .flatMapValues(new UnwindRow(ImmutableList.of(DONOR_SAMPLE)))
+        .map(new ConvertRecord(dataType.getDownloadFileds()));
 
     val header = getHeader(taskContext.getSparkContext(), dataType);
-    val records = sample.map(new ConvertNestedValues(dataType));
     val output = header.union(records);
 
     writeOutput(dataType, taskContext, output);
