@@ -23,7 +23,7 @@ public enum JobStatus implements Identifiable {
 
   RUNNING,
   SUCCEEDED,
-  CANCELLED,
+  KILLED,
   FAILED,
   ACTIVE_DOWNLOAD,
   EXPIRED;

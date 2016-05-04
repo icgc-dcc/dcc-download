@@ -35,7 +35,7 @@ import org.icgc.dcc.download.core.model.TaskProgress;
 public final class JobProgresses {
 
   public static JobProgress createJobProgress(@NonNull JobStatus status, @NonNull Set<DownloadDataType> dataTypes) {
-    return status == JobStatus.CANCELLED ?
+    return status == JobStatus.KILLED ?
         new JobProgress(status, createTaskProgress(dataTypes, 0)) :
         new JobProgress(status, createTaskProgress(dataTypes, 1));
   }

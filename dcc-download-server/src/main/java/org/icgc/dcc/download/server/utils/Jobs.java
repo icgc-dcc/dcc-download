@@ -78,7 +78,7 @@ public final class Jobs {
   }
 
   public static Job cancelJob(@NonNull Job job) {
-    job.setStatus(JobStatus.CANCELLED);
+    job.setStatus(JobStatus.KILLED);
 
     return job;
   }

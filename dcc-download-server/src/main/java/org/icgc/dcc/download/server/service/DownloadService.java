@@ -18,14 +18,15 @@
 package org.icgc.dcc.download.server.service;
 
 import static com.google.common.collect.Maps.immutableEntry;
-import static org.apache.spark.JobExecutionStatus.FAILED;
-import static org.apache.spark.JobExecutionStatus.SUCCEEDED;
+import static java.util.Arrays.stream;
 import static org.icgc.dcc.common.core.util.Separators.DASH;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 import static org.icgc.dcc.download.server.utils.JobProgresses.createJobProgress;
 import static org.icgc.dcc.download.server.utils.Responses.verifyJobExistance;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -100,11 +101,10 @@ public class DownloadService {
       return;
     }
 
-    // FIXME: does not actually cancels SparkJob
-    future.cancel(true);
-
     val job = jobRepository.findById(jobId);
     verifyJobExistance(job, jobId);
+    future.cancel(true);
+    cancelSparkJobs(jobId, job.getDataTypes());
     val cancelledJob = Jobs.cancelJob(job);
     jobRepository.save(cancelledJob);
   }
@@ -146,21 +146,27 @@ public class DownloadService {
     val jobStatus = job.getStatus();
     val dataTypes = job.getDataTypes();
 
-    // FIXME: Fix calculation for running job, which may be submitted, but not yet running because Spark is still
-    // initializing task for it
-
     return jobStatus == JobStatus.RUNNING ?
         calculateJobProgress(job.getId(), dataTypes) :
         createJobProgress(jobStatus, dataTypes);
   }
 
   private JobProgress calculateJobProgress(String jobId, Set<DownloadDataType> dataTypes) {
-    // TODO: Calculate progress in a separate thread and put it to the database.
-
     val taskProgress = dataTypes.stream()
         .collect(toImmutableMap(dt -> dt, dt -> calculateTaskProgress(jobId, dt)));
 
     return new JobProgress(JobStatus.RUNNING, taskProgress);
+  }
+
+  private void cancelSparkJobs(String jobId, Set<DownloadDataType> dataTypes) {
+    dataTypes.stream()
+        .forEach(type -> cancelSparkJob(jobId, type));
+  }
+
+  private void cancelSparkJob(String jobId, DownloadDataType dataType) {
+    val jobName = DownloadJobs.getJobName(jobId, dataType);
+    log.info("Cancelling job group '{}'", jobName);
+    sparkContext.cancelJobGroup(jobName);
   }
 
   private TaskProgress calculateTaskProgress(String jobId, DownloadDataType dataType) {
@@ -171,35 +177,37 @@ public class DownloadService {
     int totalJobs = jobIds.length;
     log.debug("[{}] Total jobs: {}", jobName, totalJobs);
 
-    if (totalJobs == 0) {
-      // Most probably this job was recently submitted and Spark has not created tasks for it yet.
+    if (totalJobs <= 2) {
+      // It takes 2 Spark jobs just to read parquet files to identify their metadata. These jobs will be just ignored
       return new TaskProgress(0, 1);
     }
 
-    val completedJobs = calculateCompletedJobs(statusTracker, jobIds);
-    log.debug("[{}] Completed jobs: {}", jobName, completedJobs);
-
-    val completedPercentage = completedJobs / totalJobs;
-    log.debug("[{}] Completed jobs %: {}", jobName, completedPercentage);
-
-    val response = new TaskProgress(completedJobs, totalJobs);
+    val stages = getStages(statusTracker, jobIds);
+    val totalTasks = getTotalTasks(statusTracker, stages);
+    val completedTasks = getCompletedTasks(statusTracker, stages);
+    val response = new TaskProgress(completedTasks, totalTasks);
     log.debug("[{}] {}", jobName, response);
 
     return response;
   }
 
-  private static int calculateCompletedJobs(JavaSparkStatusTracker statusTracker, int[] jobIds) {
-    int completed = 0;
+  private static List<Integer> getStages(JavaSparkStatusTracker statusTracker, int[] jobIds) {
+    return stream(jobIds)
+        .flatMap(jobId -> stream(statusTracker.getJobInfo(jobId).stageIds()))
+        .boxed()
+        .collect(toImmutableList());
+  }
 
-    for (val jobId : jobIds) {
-      val jobInfo = statusTracker.getJobInfo(jobId);
-      val jobStatus = jobInfo.status();
-      if (jobStatus.equals(SUCCEEDED) || jobStatus.equals(FAILED)) {
-        completed++;
-      }
-    }
+  private static int getTotalTasks(JavaSparkStatusTracker statusTracker, List<Integer> stages) {
+    return stages.stream()
+        .mapToInt(id -> statusTracker.getStageInfo(id).numTasks())
+        .sum();
+  }
 
-    return completed;
+  private static int getCompletedTasks(JavaSparkStatusTracker statusTracker, List<Integer> stages) {
+    return stages.stream()
+        .mapToInt(id -> statusTracker.getStageInfo(id).numCompletedTasks())
+        .sum();
   }
 
   private JobContext createJobContext(String jobId, Set<String> donorIds, Set<DownloadDataType> dataTypes) {
