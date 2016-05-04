@@ -36,11 +36,11 @@ public final class JobProgresses {
 
   public static JobProgress createJobProgress(@NonNull JobStatus status, @NonNull Set<DownloadDataType> dataTypes) {
     return status == JobStatus.CANCELLED ?
-        new JobProgress(status, createTaskProgress(dataTypes, 0L)) :
-        new JobProgress(status, createTaskProgress(dataTypes, 1L));
+        new JobProgress(status, createTaskProgress(dataTypes, 0)) :
+        new JobProgress(status, createTaskProgress(dataTypes, 1));
   }
 
-  private static Map<DownloadDataType, TaskProgress> createTaskProgress(Set<DownloadDataType> dataTypes, long progress) {
+  private static Map<DownloadDataType, TaskProgress> createTaskProgress(Set<DownloadDataType> dataTypes, int progress) {
     return dataTypes.stream()
         .collect(toImmutableMap(dt -> dt, dt -> new TaskProgress(progress, progress)));
   }

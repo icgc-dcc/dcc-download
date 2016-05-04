@@ -17,9 +17,11 @@
  */
 package org.icgc.dcc.download.server.service;
 
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
+
+import java.util.Map;
+
 import lombok.val;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
@@ -27,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Table;
 
@@ -36,7 +39,7 @@ public class RecordStatsServiceTest {
 
   @Before
   public void setUp() {
-    service = new RecordStatsService(defineStatsTable(), singletonMap(DONOR, 2));
+    service = new RecordStatsService(defineStatsTable(), defineRecordWeights());
   }
 
   @Test
@@ -44,7 +47,9 @@ public class RecordStatsServiceTest {
     val donorIds = ImmutableSet.of("DO1", "DO2");
     val sizes = service.getRecordsSizes(donorIds);
     assertThat(sizes).hasSize(1);
-    assertThat(sizes.get(DONOR)).isEqualTo(6L);
+    // DO1: (Donor) 1 * 1 + (Specimen) 2 * 2 + (Sample) 2 * 3 = 12
+    // DO2: (Donor) 1 * 1 = 1
+    assertThat(sizes.get(DONOR)).isEqualTo(13);
 
   }
 
@@ -52,8 +57,14 @@ public class RecordStatsServiceTest {
     Table<String, DownloadDataType, Long> statsTable = HashBasedTable.create();
     statsTable.put("DO1", DownloadDataType.DONOR, 1L);
     statsTable.put("DO2", DownloadDataType.DONOR, 2L);
+    statsTable.put("DO1", DownloadDataType.SPECIMEN, 2L);
+    statsTable.put("DO1", DownloadDataType.SAMPLE, 2L);
 
     return statsTable;
+  }
+
+  private Map<DownloadDataType, Integer> defineRecordWeights() {
+    return ImmutableMap.of(DONOR, 1, DownloadDataType.SPECIMEN, 2, DownloadDataType.SAMPLE, 3);
   }
 
 }

@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TaskProgress {
 
-  private long numerator;
-  private long denominator;
+  private int numerator;
+  private int denominator;
 
 }

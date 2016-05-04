@@ -19,6 +19,7 @@ package org.icgc.dcc.download.job.utils;
 
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +33,7 @@ import org.icgc.dcc.common.core.util.Joiners;
 import com.google.common.base.Joiner;
 
 @RequiredArgsConstructor
-public class RecordConverter {
+public class RecordConverter implements Serializable {
 
   /**
    * Dependencies.

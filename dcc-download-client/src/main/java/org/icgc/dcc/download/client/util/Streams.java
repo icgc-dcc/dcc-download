@@ -15,37 +15,46 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.client.util;
 
-import java.io.OutputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import static lombok.AccessLevel.PRIVATE;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
+import java.io.IOException;
+import java.io.InputStream;
 
-public interface DownloadClient {
+import lombok.NoArgsConstructor;
 
-  void cancelJob(String jobId);
+@NoArgsConstructor(access = PRIVATE)
+public final class Streams {
 
-  Map<String, JobInfo> getJobsInfo(Set<String> jobIds);
+  private static byte[] SKIP_BYTE_BUFFER;
+  private static final int SKIP_BUFFER_SIZE = 2048;
 
-  Map<String, JobProgress> getJobsProgress(Set<String> jobIds);
+  /**
+   * Copied from org.apache.commons.io.IOUtils to remove the dependency on Apache Commons.
+   */
+  public static long skip(InputStream input, long toSkip) throws IOException {
+    if (toSkip < 0) {
+      throw new IllegalArgumentException("Skip count must be non-negative, actual: " + toSkip);
+    }
 
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
-
-  boolean isServiceAvailable();
-
-  void setActiveDownload(String jobId);
-
-  boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
-
-  boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
-
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo, String userEmailAddress);
-
-  void unsetActiveDownload(String jobId);
+    /*
+     * N.B. no need to synchronize this because: - we don't care if the buffer is created multiple times (the data is
+     * ignored) - we always use the same size buffer, so if it it is recreated it will still be OK (if the buffer size
+     * were variable, we would need to synch. to ensure some other thread did not create a smaller one)
+     */
+    if (SKIP_BYTE_BUFFER == null) {
+      SKIP_BYTE_BUFFER = new byte[SKIP_BUFFER_SIZE];
+    }
+    long remain = toSkip;
+    while (remain > 0) {
+      long n = input.read(SKIP_BYTE_BUFFER, 0, (int) Math.min(remain, SKIP_BUFFER_SIZE));
+      if (n < 0) { // EOF
+        break;
+      }
+      remain -= n;
+    }
+    return toSkip - remain;
+  }
 
 }

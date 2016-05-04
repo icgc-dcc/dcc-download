@@ -45,18 +45,18 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DownloadClientTest {
+public class DefaultDownloadClientTest {
 
   @Mock
   ArchiveOutputStream outputStream;
   @Mock
   HttpDownloadClient httpClient;
 
-  DownloadClient downloadClient;
+  DefaultDownloadClient downloadClient;
 
   @Before
   public void setUp() {
-    downloadClient = new DownloadClient(outputStream, httpClient);
+    downloadClient = new DefaultDownloadClient(outputStream, httpClient);
   }
 
   @Test

@@ -17,7 +17,10 @@
  */
 package org.icgc.dcc.download.server.service;
 
+import static com.google.common.base.Preconditions.checkState;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.server.utils.Jobs.completeJob;
+import static org.icgc.dcc.download.server.utils.Jobs.failJob;
 
 import java.util.Map;
 import java.util.concurrent.CancellationException;
@@ -49,6 +52,8 @@ public class CompleteJobUpdater implements Runnable {
   private JobRepository repository;
   @Resource(name = "submittedJobs")
   private Map<String, Future<String>> submittedJobs;
+  @Autowired
+  private ArchiveSizeService archiveSizeService;
 
   @PostConstruct
   public void startDaemon() {
@@ -60,31 +65,78 @@ public class CompleteJobUpdater implements Runnable {
   @Override
   @SneakyThrows
   public void run() {
+    Future<String> result = null;
     while (true) {
-      val result = completionService.take();
+      result = completionService.take();
       try {
-        val jobId = result.get();
-        log.info("Job '{}' is completed.", jobId);
-
-        log.debug("Looking for job to update...");
-        val job = repository.findById(jobId);
-        log.debug("Updating {} ...", job);
-
-        val completedJob = completeJob(job);
-        repository.save(completedJob);
-        log.debug("Update job {}", completedJob);
-
-        submittedJobs.remove(jobId);
-        // TODO: send email
+        processSuccessfulJob(result);
       } catch (CancellationException e) {
         log.debug("Job was cancelled: ", e);
       } catch (ExecutionException e) {
-        log.error("Encountered an error while executing job.\n", e);
-        // TODO: update that job has failed and remove from submitted jobs
+        processFailedJob(result, e);
       } catch (InterruptedException e) {
         log.info("Job was cancelled: ", e);
       }
     }
+  }
+
+  private void processSuccessfulJob(Future<String> result) throws InterruptedException, ExecutionException {
+    val jobId = result.get();
+    log.info("Job '{}' is completed.", jobId);
+
+    val job = findJob(jobId);
+    val archiveSize = archiveSizeService.getArchiveSize(jobId);
+
+    val completedJob = completeJob(job, archiveSize);
+    repository.save(completedJob);
+    log.debug("Updated job {}", completedJob);
+
+    submittedJobs.remove(jobId);
+    // TODO: send email
+  }
+
+  private void processFailedJob(Future<String> result, ExecutionException e) {
+    log.error("Encountered an error while executing job.\n", e);
+    val jobId = getJobIdByFuture(result);
+    if (jobId != null) {
+      val job = findJob(jobId);
+
+      val failedJob = failJob(job);
+      repository.save(failedJob);
+      log.debug("Updated job {}", failedJob);
+
+      submittedJobs.remove(jobId);
+      log.info("Removed failed jobID '{}'", jobId);
+    }
+  }
+
+  private org.icgc.dcc.download.server.model.Job findJob(final java.lang.String jobId) {
+    log.debug("Looking for job to update...");
+    val job = repository.findById(jobId);
+    log.debug("Updating {} ...", job);
+    return job;
+  }
+
+  private String getJobIdByFuture(Future<String> jobResult) {
+    if (jobResult == null) {
+      log.error("Failed to resolve jobId from null future.");
+
+      return null;
+    }
+
+    val jobsIds = submittedJobs.entrySet().stream()
+        .filter(e -> jobResult.equals(e.getValue()))
+        .map(e -> e.getKey())
+        .collect(toImmutableList());
+    checkState(jobsIds.size() < 2, "Resolved more that one failed jobs for the same Future.");
+
+    if (jobsIds.isEmpty()) {
+      log.error("Failed to find jobId in the submitted jobs list.");
+
+      return null;
+    }
+
+    return jobsIds.get(0);
   }
 
 }

@@ -26,26 +26,57 @@ import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.model.JobProgress;
 
-public interface DownloadClient {
+public class NoOpDownloadClient implements DownloadClient {
 
-  void cancelJob(String jobId);
+  @Override
+  public boolean isServiceAvailable() {
+    return false;
+  }
 
-  Map<String, JobInfo> getJobsInfo(Set<String> jobIds);
+  @Override
+  public void cancelJob(String jobId) {
+    throw new UnsupportedOperationException();
+  }
 
-  Map<String, JobProgress> getJobsProgress(Set<String> jobIds);
+  @Override
+  public Map<String, JobInfo> getJobsInfo(Set<String> jobIds) {
+    throw new UnsupportedOperationException();
+  }
 
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
+  @Override
+  public Map<String, JobProgress> getJobsProgress(Set<String> jobIds) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isServiceAvailable();
+  @Override
+  public Map<DownloadDataType, Long> getSizes(Set<String> donorIds) {
+    throw new UnsupportedOperationException();
+  }
 
-  void setActiveDownload(String jobId);
+  @Override
+  public void setActiveDownload(String jobId) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
+  @Override
+  public boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
+  @Override
+  public boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes) {
+    throw new UnsupportedOperationException();
+  }
 
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo, String userEmailAddress);
+  @Override
+  public String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo,
+      String userEmailAddress) {
+    throw new UnsupportedOperationException();
+  }
 
-  void unsetActiveDownload(String jobId);
+  @Override
+  public void unsetActiveDownload(String jobId) {
+    throw new UnsupportedOperationException();
+  }
 
 }

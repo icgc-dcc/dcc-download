@@ -67,6 +67,8 @@ public class RecordsStatsServiceConfig {
   @SneakyThrows
   private Table<String, DownloadDataType, Long> readStatsTable(JobProperties jobProperties, FileSystem fileSystem) {
     val statsPath = new Path(jobProperties.getInputDir(), "stats");
+    log.debug("Reading records stats directory: {}", statsPath);
+
     // TODO: filter only gz-compressed files.
     val statsFiles = HadoopUtils.lsFile(fileSystem, statsPath);
     Table<String, DownloadDataType, Long> statsTable = HashBasedTable.create();

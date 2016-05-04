@@ -15,37 +15,33 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.client.io;
 
-import java.io.OutputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import lombok.NonNull;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
+import org.icgc.dcc.common.core.model.Identifiable;
 
-public interface DownloadClient {
+public enum AccessPermission implements Identifiable {
 
-  void cancelJob(String jobId);
+  UNCHECKED,
+  OPEN,
+  CONTROLLED;
 
-  Map<String, JobInfo> getJobsInfo(Set<String> jobIds);
+  @Override
+  public String getId() {
+    return name().toLowerCase();
+  }
 
-  Map<String, JobProgress> getJobsProgress(Set<String> jobIds);
+  public static AccessPermission from(@NonNull String filename) {
+    if (filename.contains(CONTROLLED.getId())) {
+      return CONTROLLED;
+    }
 
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
+    if (filename.contains(OPEN.getId())) {
+      return OPEN;
+    }
 
-  boolean isServiceAvailable();
-
-  void setActiveDownload(String jobId);
-
-  boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
-
-  boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
-
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo, String userEmailAddress);
-
-  void unsetActiveDownload(String jobId);
+    return UNCHECKED;
+  }
 
 }

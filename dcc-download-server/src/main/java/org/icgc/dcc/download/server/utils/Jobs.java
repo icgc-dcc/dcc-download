@@ -17,34 +17,62 @@
  */
 package org.icgc.dcc.download.server.utils;
 
+import static com.google.common.collect.Sets.difference;
 import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
 
-import java.util.Date;
+import java.time.Duration;
+import java.util.Set;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.val;
 
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.model.JobStatus;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.server.model.Job;
 
+import com.google.common.collect.ImmutableSet;
+
 @NoArgsConstructor(access = PRIVATE)
 public final class Jobs {
+
+  public static final Duration ARCHIVE_TTL = Duration.ofHours(48);
 
   public static Job createJob(@NonNull String jobId, @NonNull SubmitJobRequest request) {
     return Job.builder()
         .id(jobId)
         .donorIds(request.getDonorIds())
-        .dataTypes(request.getDataTypes())
-        .jobInfo(request.getJobInfo())
+        .dataTypes(refineClinicalDataTypes(request.getDataTypes()))
+        .jobInfo(setTtl(request.getJobInfo()))
         .userEmailAddress(request.getUserEmailAddress())
         .status(JobStatus.RUNNING)
         .build();
   }
 
-  public static Job completeJob(@NonNull Job job) {
-    job.setCompletionDate(getDateAsMillis());
+  private static JobInfo setTtl(JobInfo jobInfo) {
+    jobInfo.setTtl((int) ARCHIVE_TTL.toHours());
+
+    return jobInfo;
+  }
+
+  public static Job completeJob(@NonNull Job job, long archiveSize) {
+    val completionDate = getDateAsMillis();
+    job.setCompletionDate(completionDate);
     job.setStatus(JobStatus.SUCCEEDED);
+    val jobInfo = job.getJobInfo();
+    jobInfo.setCompletionTime(completionDate);
+    jobInfo.setFileSize(archiveSize);
+
+    return job;
+  }
+
+  public static Job failJob(@NonNull Job job) {
+    job.setCompletionDate(getDateAsMillis());
+    job.setStatus(JobStatus.FAILED);
 
     return job;
   }
@@ -68,7 +96,16 @@ public final class Jobs {
   }
 
   private static long getDateAsMillis() {
-    return new Date().getTime();
+    return System.currentTimeMillis();
+  }
+
+  private static Set<DownloadDataType> refineClinicalDataTypes(Set<DownloadDataType> dataTypes) {
+    return dataTypes.contains(DownloadDataType.DONOR) == false ?
+        dataTypes :
+        ImmutableSet.<DownloadDataType> builder()
+            .addAll(difference(dataTypes, CLINICAL))
+            .add(DONOR)
+            .build();
   }
 
 }

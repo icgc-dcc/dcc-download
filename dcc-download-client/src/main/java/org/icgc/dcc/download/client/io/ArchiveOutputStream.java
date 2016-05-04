@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.util.Archives;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -96,7 +97,7 @@ public class ArchiveOutputStream {
       if (fileSystem.exists(downloadTypePath)) {
         // The directory name is the data type index name
         log.info("Trying to download data for download ID {} and  Data Type '{}'", downloadId, dataType);
-        val size = calculateDataTypeArchiveSize(fileSystem, downloadTypePath);
+        val size = Archives.calculateDataTypeArchiveSize(fileSystem, downloadTypePath);
         entitySizesBuilder.put(dataType, size);
       }
     }
@@ -113,7 +114,7 @@ public class ArchiveOutputStream {
 
       while (files.hasNext()) {
         val filePath = files.next().getPath();
-        if (isPartFile(filePath)) {
+        if (Archives.isPartFile(filePath)) {
           paths.add(filePath);
         }
       }
@@ -126,21 +127,6 @@ public class ArchiveOutputStream {
     }
 
     return false;
-  }
-
-  @SneakyThrows
-  private long calculateDataTypeArchiveSize(FileSystem fileSystem, Path downloadTypePath) {
-    val files = fileSystem.listFiles(downloadTypePath, false);
-
-    long totalSize = 0L;
-    while (files.hasNext()) {
-      val file = files.next();
-      if (isPartFile(file.getPath())) {
-        totalSize += file.getLen();
-      }
-    }
-
-    return totalSize;
   }
 
   @SneakyThrows
@@ -162,11 +148,6 @@ public class ArchiveOutputStream {
       val in = fs.open(file);
       ByteStreams.copy(in, out);
     }
-  }
-
-  // TODO: move to commons hadoop
-  private static boolean isPartFile(Path path) {
-    return path.getName().startsWith("part-");
   }
 
 }

@@ -684,12 +684,12 @@ public enum DownloadDataType implements Identifiable {
         .collect(toImmutableList());
   }
 
-  public static boolean hasClinicalDataTypes(Set<DownloadDataType> dataTypes) {
+  public static boolean hasClinicalDataTypes(@NonNull Set<DownloadDataType> dataTypes) {
     return Sets.intersection(CLINICAL, dataTypes)
         .isEmpty() == false;
   }
 
-  public static DownloadDataType from(String name, boolean controlled) {
+  public static DownloadDataType from(@NonNull String name, boolean controlled) {
     val dataTypes = Streams.stream(values())
         .filter(dt -> dt.getCanonicalName().equals(name) && dt.isControlled() == controlled)
         .collect(toImmutableList());
@@ -697,6 +697,11 @@ public enum DownloadDataType implements Identifiable {
         + "Found data types: %s", name, controlled, dataTypes);
 
     return dataTypes.get(0);
+  }
+
+  public static boolean canCreateFrom(@NonNull String name) {
+    return Streams.stream(values())
+        .anyMatch(dt -> dt.name().equals(name));
   }
 
   private static Map<String, String> getSsmOpenFields() {

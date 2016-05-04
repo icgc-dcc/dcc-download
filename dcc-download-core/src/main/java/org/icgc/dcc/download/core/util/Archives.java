@@ -15,37 +15,64 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.core.util;
 
-import java.io.OutputStream;
+import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
 
-public interface DownloadClient {
+@Slf4j
+@NoArgsConstructor(access = PRIVATE)
+public final class Archives {
 
-  void cancelJob(String jobId);
+  public static long resolveDownloadSize(@NonNull FileSystem fileSystem, @NonNull Path jobPath) {
+    if (!HadoopUtils.exists(fileSystem, jobPath)) {
+      log.warn("Failed to calculate download size for non-existing path '{}'", jobPath);
 
-  Map<String, JobInfo> getJobsInfo(Set<String> jobIds);
+      return 0;
+    }
 
-  Map<String, JobProgress> getJobsProgress(Set<String> jobIds);
+    return getDataTypePaths(fileSystem, jobPath).stream()
+        .mapToLong(dtPath -> calculateDataTypeArchiveSize(fileSystem, dtPath))
+        .sum();
+  }
 
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
+  private static List<Path> getDataTypePaths(FileSystem fileSystem, Path jobPath) {
+    return HadoopUtils.lsDir(fileSystem, jobPath).stream()
+        .filter(path -> DownloadDataType.canCreateFrom(path.getName().toUpperCase()))
+        .collect(toImmutableList());
+  }
 
-  boolean isServiceAvailable();
+  @SneakyThrows
+  public static long calculateDataTypeArchiveSize(FileSystem fileSystem, Path downloadTypePath) {
+    val files = fileSystem.listFiles(downloadTypePath, false);
 
-  void setActiveDownload(String jobId);
+    long totalSize = 0L;
+    while (files.hasNext()) {
+      val file = files.next();
+      if (isPartFile(file.getPath())) {
+        totalSize += file.getLen();
+      }
+    }
 
-  boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
+    return totalSize;
+  }
 
-  boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
-
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo, String userEmailAddress);
-
-  void unsetActiveDownload(String jobId);
+  // TODO: move to commons hadoop
+  public static boolean isPartFile(Path path) {
+    return path.getName().startsWith("part-");
+  }
 
 }

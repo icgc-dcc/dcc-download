@@ -34,4 +34,12 @@ public class JobInfo {
   long startTime;
   String uiQueryStr;
 
+  long completionTime;
+
+  // In bytes
+  long fileSize;
+
+  // In hours
+  int ttl;
+
 }

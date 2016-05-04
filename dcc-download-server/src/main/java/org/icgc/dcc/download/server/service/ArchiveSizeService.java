@@ -15,37 +15,34 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.server.service;
 
-import java.io.OutputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import lombok.NonNull;
+import lombok.val;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.core.util.Archives;
+import org.icgc.dcc.download.server.config.Properties.JobProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-public interface DownloadClient {
+@Service
+public class ArchiveSizeService {
 
-  void cancelJob(String jobId);
+  private final FileSystem fileSystem;
+  private final String outputDir;
 
-  Map<String, JobInfo> getJobsInfo(Set<String> jobIds);
+  @Autowired
+  public ArchiveSizeService(@NonNull JobProperties jobProperties, @NonNull FileSystem fileSystem) {
+    this.fileSystem = fileSystem;
+    this.outputDir = jobProperties.getOutputDir();
+  }
 
-  Map<String, JobProgress> getJobsProgress(Set<String> jobIds);
+  public long getArchiveSize(@NonNull String jobId) {
+    val downloadPath = new Path(outputDir, jobId);
 
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
-
-  boolean isServiceAvailable();
-
-  void setActiveDownload(String jobId);
-
-  boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
-
-  boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
-
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo, String userEmailAddress);
-
-  void unsetActiveDownload(String jobId);
+    return Archives.resolveDownloadSize(fileSystem, downloadPath);
+  }
 
 }

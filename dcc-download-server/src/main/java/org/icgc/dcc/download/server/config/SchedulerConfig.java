@@ -15,37 +15,11 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.server.config;
 
-import java.io.OutputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
-
-public interface DownloadClient {
-
-  void cancelJob(String jobId);
-
-  Map<String, JobInfo> getJobsInfo(Set<String> jobIds);
-
-  Map<String, JobProgress> getJobsProgress(Set<String> jobIds);
-
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
-
-  boolean isServiceAvailable();
-
-  void setActiveDownload(String jobId);
-
-  boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
-
-  boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
-
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo, String userEmailAddress);
-
-  void unsetActiveDownload(String jobId);
-
-}
+@Configuration
+@EnableScheduling
+public class SchedulerConfig {}

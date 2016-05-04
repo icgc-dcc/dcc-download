@@ -17,6 +17,9 @@
  */
 package org.icgc.dcc.download.server.service;
 
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
+
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -27,6 +30,7 @@ import lombok.val;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 
@@ -42,12 +46,14 @@ public class RecordStatsService {
   private final Map<DownloadDataType, Integer> recordWeights;
 
   public Map<DownloadDataType, Long> getRecordsSizes(@NonNull Set<String> donorIds) {
-    return donorIds.stream()
+    val sizes = donorIds.stream()
         .flatMap(donorId -> statsTable.row(donorId).entrySet().stream())
         .map(e -> convertToBytes(e))
         .collect(() -> Maps.<DownloadDataType, Long> newHashMap(),
             RecordStatsService::accumulate,
             RecordStatsService::combine);
+
+    return combineClinical(sizes);
   }
 
   private Map.Entry<DownloadDataType, Long> convertToBytes(Entry<DownloadDataType, Long> entry) {
@@ -56,6 +62,30 @@ public class RecordStatsService {
     val weigth = recordWeights.get(type);
 
     return Maps.immutableEntry(type, value * weigth);
+  }
+
+  private static Map<DownloadDataType, Long> combineClinical(Map<DownloadDataType, Long> sizes) {
+    val combinedSizes = ImmutableMap.<DownloadDataType, Long> builder();
+    combinedSizes.putAll(filterNonClinical(sizes));
+    val clinicalSize = filterClinical(sizes).entrySet().stream()
+        .mapToLong(e -> e.getValue().longValue())
+        .sum();
+
+    combinedSizes.put(DownloadDataType.DONOR, clinicalSize);
+
+    return combinedSizes.build();
+  }
+
+  private static <V> Map<DownloadDataType, V> filterNonClinical(Map<DownloadDataType, V> dataTypesMap) {
+    return dataTypesMap.entrySet().stream()
+        .filter(e -> CLINICAL.contains(e.getKey()) == false)
+        .collect(toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+  }
+
+  private static <V> Map<DownloadDataType, V> filterClinical(Map<DownloadDataType, V> dataTypesMap) {
+    return dataTypesMap.entrySet().stream()
+        .filter(e -> CLINICAL.contains(e.getKey()))
+        .collect(toImmutableMap(e -> e.getKey(), e -> e.getValue()));
   }
 
   private static void accumulate(Map<DownloadDataType, Long> accumulator, Map.Entry<DownloadDataType, Long> entry) {
