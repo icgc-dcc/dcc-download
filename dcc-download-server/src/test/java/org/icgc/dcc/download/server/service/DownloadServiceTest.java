@@ -35,6 +35,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.model.JobStatus;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.job.core.DownloadJob;
@@ -122,14 +123,15 @@ public class DownloadServiceTest extends AbstractSparkTest {
     val taskProgresses = status.getTaskProgress();
     assertThat(taskProgresses).hasSize(1);
     val donorProgress = taskProgresses.get(DownloadDataType.DONOR);
-    assertThat(donorProgress.getNumerator()).isEqualTo(1L);
-    assertThat(donorProgress.getDenominator()).isEqualTo(1L);
+    assertThat(donorProgress.getNumerator()).isEqualTo(1);
+    assertThat(donorProgress.getDenominator()).isEqualTo(1);
   }
 
   private SubmitJobRequest createSubmitJobRequest(Set<String> donorIds, Set<DownloadDataType> dataTypes) {
     val submitRequest = SubmitJobRequest.builder()
         .donorIds(donorIds)
         .dataTypes(dataTypes)
+        .jobInfo(JobInfo.builder().build())
         .build();
     return submitRequest;
   }
