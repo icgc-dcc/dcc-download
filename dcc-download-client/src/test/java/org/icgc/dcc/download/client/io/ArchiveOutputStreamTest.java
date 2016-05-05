@@ -81,10 +81,10 @@ public class ArchiveOutputStreamTest extends AbstractTest {
       assertThat(entry.getSize()).isGreaterThan(100L);
       switch (entriesNum++) {
       case 0:
-        assertThat(entry.getName()).isEqualTo("donor.gz");
+        assertThat(entry.getName()).isEqualTo("donor.tsv.gz");
         break;
       case 1:
-        assertThat(entry.getName()).isEqualTo("specimen.gz");
+        assertThat(entry.getName()).isEqualTo("specimen.tsv.gz");
         break;
       default:
         fail("Extra lines");
