@@ -17,11 +17,14 @@
  */
 package org.icgc.dcc.download.client.io;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import lombok.Cleanup;
 import lombok.NonNull;
@@ -40,11 +43,15 @@ import org.icgc.dcc.download.core.util.Archives;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import com.google.common.io.ByteStreams;
+import com.google.common.primitives.Ints;
 
 @Slf4j
 @RequiredArgsConstructor
 public class ArchiveOutputStream {
+
+  private static final Pattern PART_FILE_REGEX = Pattern.compile("part-(\\d{5}).*");
 
   // TODO: Add to common Extensions
   private static final String GZIP_EXTENSION = ".tsv.gz";
@@ -119,11 +126,11 @@ public class ArchiveOutputStream {
         }
       }
 
-      concatGZipFiles(fileSystem, out, paths);
+      concatGZipFiles(fileSystem, out, orderingByPartFile().sortedCopy(paths));
 
       return true;
     } catch (Exception e) {
-      log.error("Fail to stream archive. DownloadID: {}.\n{}" + downloadId, e);
+      log.error("Fail to stream archive. DownloadID: " + downloadId, e);
     }
 
     return false;
@@ -150,4 +157,26 @@ public class ArchiveOutputStream {
     }
   }
 
+  private static Ordering<Path> orderingByPartFile() {
+    return new Ordering<Path>() {
+
+      @Override
+      public int compare(Path left, Path right) {
+        val leftIndex = getPartFileIndex(left.getName());
+        val rightIndex = getPartFileIndex(right.getName());
+
+        return Ints.compare(leftIndex, rightIndex);
+      }
+    };
+  }
+
+  private static int getPartFileIndex(String fileName) {
+    log.debug("Extracting part file index from '{}'", fileName);
+    val matcher = PART_FILE_REGEX.matcher(fileName);
+    checkState(matcher.find(), "Failed to resolve part file index from file name '%s'", fileName);
+    val index = matcher.group(1);
+    log.debug("Part file index: {}", index);
+
+    return Integer.parseInt(index);
+  }
 }
