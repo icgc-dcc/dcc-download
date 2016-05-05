@@ -17,86 +17,45 @@
  */
 package org.icgc.dcc.download.server.config;
 
-import static com.google.common.collect.Maps.newLinkedHashMap;
+import java.util.Properties;
 
-import java.util.Map;
+import lombok.val;
 
-import lombok.Data;
-
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.icgc.dcc.download.server.config.Properties.MailProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.thymeleaf.ThymeleafAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
-@Data
+/**
+ * Mail system configuration.
+ * <p>
+ * See {@link ThymeleafAutoConfiguration} for details on mail templating.
+ */
+@Lazy
 @Configuration
-public class Properties {
+public class MailConfig {
+
+  /**
+   * Dependencies.
+   */
+  @Autowired
+  MailProperties mail;
 
   @Bean
-  @ConfigurationProperties(prefix = "job")
-  public JobProperties jobProperties() {
-    return new JobProperties();
-  }
+  @Primary
+  public JavaMailSender javaMailSender() {
+    val properties = new Properties();
+    properties.putAll(mail.getProperties());
 
-  @Bean
-  @ConfigurationProperties(prefix = "spark")
-  public SparkProperties sparkProperties() {
-    return new SparkProperties();
-  }
+    val sender = new JavaMailSenderImpl();
+    sender.setJavaMailProperties(properties);
 
-  @Bean
-  @ConfigurationProperties(prefix = "download.server")
-  public DownloadServerProperties downloadServerProperties() {
-    return new DownloadServerProperties();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "hadoop")
-  public HadoopProperties hadoopProperties() {
-    return new HadoopProperties();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "mail")
-  public MailProperties mailProperties() {
-    return new MailProperties();
-  }
-
-  @Data
-  public static class JobProperties {
-
-    private String inputDir;
-    private String outputDir;
-
-  }
-
-  @Data
-  public static class SparkProperties {
-
-    private String master;
-    private Map<String, String> properties = newLinkedHashMap();
-
-  }
-
-  @Data
-  public static class DownloadServerProperties {
-
-    private String recordWeightsFile;
-
-  }
-
-  @Data
-  public static class HadoopProperties {
-
-    private Map<String, String> properties = newLinkedHashMap();
-
-  }
-
-  @Data
-  public static class MailProperties {
-
-    private String portalUrl;
-    private Map<String, String> properties = newLinkedHashMap();
-
+    return sender;
   }
 
 }

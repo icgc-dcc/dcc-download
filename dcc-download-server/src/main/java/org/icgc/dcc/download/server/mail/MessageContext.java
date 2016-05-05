@@ -15,19 +15,14 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.endpoint;
+package org.icgc.dcc.download.server.mail;
 
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import lombok.Value;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+@Value
+public class MessageContext {
 
-@RestController
-public final class HealthController {
-
-  @RequestMapping(value = "/health", method = GET)
-  public String getHealth() {
-    return "OK";
-  }
+  String id;
+  String url;
 
 }

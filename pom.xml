@@ -82,6 +82,16 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
         <artifactId>spring-boot-starter-data-mongodb</artifactId>
         <version>${spring-boot.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        <version>${spring-boot.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-context-support</artifactId>
+        <version>${spring.version}</version>
+      </dependency>
       
       <!-- Spark -->
       <dependency>
@@ -176,6 +186,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     
     <!-- Spring -->
     <spring-boot.version>1.1.10.RELEASE</spring-boot.version>
+    <spring.version>4.0.8.RELEASE</spring.version>
   
     <!-- SCM -->
     <github.url>scm:git:git@github.com:icgc-dcc/dcc-download.git</github.url>

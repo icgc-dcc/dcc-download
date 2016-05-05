@@ -3,6 +3,12 @@
 # Common
 #
 
+mail:
+  portalUrl: "http://localhost:8080/download/"
+  properties:
+    mail.smtp.host: smtp.res.oicr.on.ca
+    mail.smtp.from: no-reply@oicr.on.ca
+
 ---
 #
 # Production
