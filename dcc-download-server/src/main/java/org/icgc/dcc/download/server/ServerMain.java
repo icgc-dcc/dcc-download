@@ -18,16 +18,13 @@
 package org.icgc.dcc.download.server;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration;
 
 /**
  * Application entry point.
  */
-@Configuration
-@EnableAutoConfiguration
-@ComponentScan("org.icgc.dcc.download.server")
+@SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
 public class ServerMain {
 
   public static void main(String... args) {

@@ -88,6 +88,11 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
         <version>${spring-boot.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
+        <version>${spring-boot.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-context-support</artifactId>
         <version>${spring.version}</version>
@@ -192,8 +197,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     <dcc-common.version>4.0.9</dcc-common.version>
     
     <!-- Spring -->
-    <spring-boot.version>1.1.10.RELEASE</spring-boot.version>
-    <spring.version>4.0.8.RELEASE</spring.version>
+    <spring-boot.version>1.3.3.RELEASE</spring-boot.version>
+    <spring.version>4.2.5.RELEASE</spring.version>
   
     <!-- SCM -->
     <github.url>scm:git:git@github.com:icgc-dcc/dcc-download.git</github.url>
