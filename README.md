@@ -1,14 +1,14 @@
-ICGC DCC - Auth
+ICGC DCC - Data Download
 ===
 
-Parent project of the ICGC DCC Auth system.
+Data Archive and Download component for DCC
 
 Setup
 ---
 
 Clone the repository:
 
-`git clone git@github.com:icgc-dcc/dcc-auth.git`
+`git clone git@github.com:icgc-dcc/dcc-download.git`
 
 Install Maven 3.2.1:
 
@@ -31,5 +31,7 @@ Modules
 ---
 Top level system modules:
 
-- [Server](dcc-auth-server/README.md)
+- [Client](dcc-download-client/README.md)
+- [Job](dcc-download-job/README.md)
+- [Server](dcc-download-server/README.md)
 
