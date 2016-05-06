@@ -20,11 +20,17 @@ package org.icgc.dcc.download.server.repository;
 import static java.time.Instant.now;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.core.model.JobStatus.ACTIVE_DOWNLOAD;
+import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
+import static org.icgc.dcc.download.core.model.JobStatus.FAILED;
+import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
 
 import java.time.Instant;
 
 import lombok.val;
 
+import org.icgc.dcc.download.core.model.JobStatus;
 import org.icgc.dcc.download.server.model.Job;
 import org.junit.After;
 import org.junit.Test;
@@ -36,6 +42,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.mongodb.Mongo;
 
+// TODO: Make it and integration test or use EmbeddedMongo
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = TestMongoConfig.class)
 public class JobRepositoryTest {
@@ -55,24 +62,30 @@ public class JobRepositoryTest {
   }
 
   @Test
-  public void testFindByCompletionDateLessThan() throws Exception {
+  public void testFindByCompletionDateLessThanAndStatusNot() throws Exception {
     // Setup
-    mongoTemplate.save(createJob("1", now().minus(47, HOURS)));
-    mongoTemplate.save(createJob("2", now().minus(49, HOURS)));
-    mongoTemplate.save(createJob("3", now()));
+    mongoTemplate.save(createJob("1", now().minus(47, HOURS), FAILED));
+    mongoTemplate.save(createJob("2", now().minus(49, HOURS), SUCCEEDED));
+    mongoTemplate.save(createJob("3", now().minus(49, HOURS), EXPIRED));
+    mongoTemplate.save(createJob("4", now().minus(49, HOURS), ACTIVE_DOWNLOAD));
+    mongoTemplate.save(createJob("5", now(), SUCCEEDED));
 
     val expirationDate = now().minus(48, HOURS);
-    val allJobs = repository.findByCompletionDateLessThan(expirationDate.toEpochMilli());
+    val allJobs = repository.findByCompletionDateLessThanAndStatusNot(expirationDate.toEpochMilli(), EXPIRED);
 
-    assertThat(allJobs).hasSize(1);
-    val expired = allJobs.get(0);
-    assertThat(expired.getId()).isEqualTo("2");
+    assertThat(allJobs).hasSize(2);
+    val jobIds = allJobs.stream()
+        .map(job -> job.getId())
+        .collect(toImmutableList());
+
+    assertThat(jobIds).containsOnly("2", "4");
   }
 
-  private static Job createJob(String id, Instant completionDate) {
+  private static Job createJob(String id, Instant completionDate, JobStatus status) {
     return Job.builder()
         .id(id)
         .completionDate(completionDate.toEpochMilli())
+        .status(status)
         .build();
   }
 

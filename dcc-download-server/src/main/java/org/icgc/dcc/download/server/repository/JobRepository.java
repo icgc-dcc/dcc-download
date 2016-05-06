@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.repository;
 
 import java.util.List;
 
+import org.icgc.dcc.download.core.model.JobStatus;
 import org.icgc.dcc.download.server.model.Job;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
@@ -26,6 +27,6 @@ public interface JobRepository extends MongoRepository<Job, String> {
 
   Job findById(String id);
 
-  List<Job> findByCompletionDateLessThan(Long date);
+  List<Job> findByCompletionDateLessThanAndStatusNot(Long date, JobStatus status);
 
 }

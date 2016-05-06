@@ -17,79 +17,76 @@
  */
 package org.icgc.dcc.download.server.task;
 
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.core.model.JobStatus.ACTIVE_DOWNLOAD;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
-import static org.icgc.dcc.download.server.utils.Jobs.ARCHIVE_TTL;
+import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.List;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.Job;
 import org.icgc.dcc.download.server.repository.JobRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-@Slf4j
-@Component
-@Profile("production")
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
-public class RemoveExpiredJobs {
+import com.google.common.collect.ImmutableList;
 
-  @NonNull
-  private final FileSystem fileSystem;
-  @NonNull
-  private final JobRepository jobRepository;
-  @NonNull
-  private final String outputDir;
+@RunWith(MockitoJUnitRunner.class)
+public class RemoveExpiredJobsTest {
 
-  // Daily at midnight
-  @Scheduled(cron = "0 0 0 * * *")
-  public void execute() {
-    log.info("Removing expired jobs artifacts...");
-    val expiredJob = getExpiredJobs();
-    log.info("Expired jobs count: {}", expiredJob.size());
+  private static final String OUTPUT_DIR = "/";
 
-    expiredJob.stream()
-        .forEach(job -> deleteJobFiles(job.getId()));
+  @Mock
+  FileSystem fileSystem;
+
+  @Mock
+  JobRepository repository;
+
+  RemoveExpiredJobs task;
+
+  @Before
+  public void setUp() {
+    task = new RemoveExpiredJobs(fileSystem, repository, OUTPUT_DIR);
   }
 
-  List<Job> getExpiredJobs() {
-    return jobRepository.findByCompletionDateLessThanAndStatusNot(getExpirationDate(), EXPIRED).stream()
-        .filter(job -> job.getStatus() != ACTIVE_DOWNLOAD)
-        .collect(toImmutableList());
+  @Test
+  public void testExecute() throws Exception {
+    when(repository.findByCompletionDateLessThanAndStatusNot(anyLong(), eq(EXPIRED)))
+        .thenReturn(defineJobs());
+    val jobPath = new Path(OUTPUT_DIR + "1");
+    when(fileSystem.exists(jobPath)).thenReturn(true);
+
+    task.execute();
+
+    verify(fileSystem, times(1)).delete(jobPath, true);
   }
 
-  private long getExpirationDate() {
-    val expirationDate = Instant.now().minus(ARCHIVE_TTL);
+  @Test
+  public void testGetExpiredJobs() throws Exception {
+    when(repository.findByCompletionDateLessThanAndStatusNot(anyLong(), eq(EXPIRED)))
+        .thenReturn(defineJobs());
 
-    return expirationDate.toEpochMilli();
+    val expiredJobs = task.getExpiredJobs();
+    assertThat(expiredJobs).hasSize(1);
+    assertThat(expiredJobs.get(0).getId()).isEqualTo("1");
   }
 
-  @SneakyThrows
-  private void deleteJobFiles(String jobId) {
-    val path = getPath(jobId);
-    if (HadoopUtils.exists(fileSystem, path)) {
-      fileSystem.delete(path, true);
-      log.info("Removed job '{}' directory.", jobId);
-    } else {
-      log.warn("Failed to clean job '{}'. The job directory does not exist.", jobId);
-    }
-  }
-
-  private Path getPath(String jobId) {
-    return new Path(outputDir, jobId);
+  private static List<Job> defineJobs() {
+    return ImmutableList.of(
+        Job.builder().id("1").status(SUCCEEDED).build(),
+        Job.builder().id("2").status(ACTIVE_DOWNLOAD).build());
   }
 
 }
