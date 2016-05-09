@@ -17,66 +17,18 @@
  */
 package org.icgc.dcc.download.client;
 
-import java.io.OutputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
+@Data
+@Accessors(fluent = true)
+public class DownloadClientConfig {
 
-public class NoOpDownloadClient implements DownloadClient {
+  String baseUrl;
+  String user;
+  String password;
 
-  @Override
-  public boolean isServiceAvailable() {
-    return false;
-  }
-
-  @Override
-  public void cancelJob(String jobId) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Map<String, JobInfo> getJobsInfo(Set<String> jobIds) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Map<String, JobProgress> getJobsProgress(Set<String> jobIds) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Map<DownloadDataType, Long> getSizes(Set<String> donorIds) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setActiveDownload(String jobId) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo,
-      String userEmailAddress) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void unsetActiveDownload(String jobId) {
-    throw new UnsupportedOperationException();
-  }
+  boolean strictSSLCertificates = true;
+  boolean requestLoggingEnabled;
 
 }

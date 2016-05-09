@@ -15,38 +15,69 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.task;
+package org.icgc.dcc.download.client.impl;
 
-import static com.google.common.base.Preconditions.checkState;
-import lombok.NoArgsConstructor;
-import lombok.val;
+import java.io.OutputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.Row;
+import org.icgc.dcc.download.client.DownloadClient;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.job.function.ConvertRow;
+import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.model.JobProgress;
 
-@NoArgsConstructor
-public class GenericTask extends Task {
+public class NoOpDownloadClient implements DownloadClient {
 
   @Override
-  public void execute(TaskContext taskContext) {
-    val dataTypes = taskContext.getDataTypes();
-    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
-    val dataType = dataTypes.iterator().next();
-
-    val filteredInput = readInput(taskContext, dataType).javaRDD();
-
-    val records = process(filteredInput, dataType);
-
-    val header = getHeader(taskContext.getSparkContext(), dataType);
-    val output = header.union(records);
-
-    writeOutput(dataType, taskContext, output);
+  public boolean isServiceAvailable() {
+    return false;
   }
 
-  protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertRow(dataType.getDownloadFileds()));
+  @Override
+  public void cancelJob(String jobId) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Map<String, JobInfo> getJobsInfo(Set<String> jobIds) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Map<String, JobProgress> getJobsProgress(Set<String> jobIds) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Map<DownloadDataType, Long> getSizes(Set<String> donorIds) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void setActiveDownload(String jobId) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo,
+      String userEmailAddress) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void unsetActiveDownload(String jobId) {
+    throw new UnsupportedOperationException();
   }
 
 }

@@ -26,16 +26,20 @@ import static org.icgc.dcc.common.core.model.FieldNames.SubmissionFieldNames.SUB
 import static org.icgc.dcc.common.core.model.FieldNames.SubmissionFieldNames.SUBMISSION_SPECIMEN_ID;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.Separators.UNDERSCORE;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_EXPOSURE;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_FAMILY;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_THERAPY;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SAMPLE;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SPECIMEN;
 import lombok.val;
 
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.job.function.AddFieldsToKey;
-import org.icgc.dcc.download.job.function.ConvertRow;
 import org.icgc.dcc.download.job.function.ConvertRecord;
+import org.icgc.dcc.download.job.function.ConvertRow;
 import org.icgc.dcc.download.job.function.PairByFields;
 import org.icgc.dcc.download.job.function.UnwindRow;
 
@@ -43,41 +47,36 @@ import com.google.common.collect.ImmutableList;
 
 public class ClinicalTask extends Task {
 
-  /**
-   * 
-   */
   private static final ImmutableList<String> DONOR_FIELDS = ImmutableList.of(DONOR_ID, PROJECT_ID, SUBMISSION_DONOR_ID);
 
   @Override
   public void execute(TaskContext taskContext) {
-    val input = readInput(taskContext);
-    val donors = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
+    val donors = readInput(taskContext, DONOR).javaRDD();
 
     donors.cache();
 
     val dataTypes = taskContext.getDataTypes();
-    if (dataTypes.contains(DownloadDataType.DONOR)) {
+    if (dataTypes.contains(DONOR)) {
       writeDonors(taskContext, donors);
     }
 
-    if (dataTypes.contains(DownloadDataType.DONOR_EXPOSURE)) {
-      writeDonorNestedType(taskContext, donors, DownloadDataType.DONOR_EXPOSURE);
+    if (dataTypes.contains(DONOR_EXPOSURE)) {
+      writeDonorNestedType(taskContext, donors, DONOR_EXPOSURE);
     }
 
-    if (dataTypes.contains(DownloadDataType.DONOR_FAMILY)) {
-      writeDonorNestedType(taskContext, donors, DownloadDataType.DONOR_FAMILY);
+    if (dataTypes.contains(DONOR_FAMILY)) {
+      writeDonorNestedType(taskContext, donors, DONOR_FAMILY);
     }
 
-    if (dataTypes.contains(DownloadDataType.DONOR_THERAPY)) {
-      writeDonorNestedType(taskContext, donors, DownloadDataType.DONOR_THERAPY);
+    if (dataTypes.contains(DONOR_THERAPY)) {
+      writeDonorNestedType(taskContext, donors, DONOR_THERAPY);
     }
 
-    if (dataTypes.contains(DownloadDataType.SPECIMEN)) {
-      writeDonorNestedType(taskContext, donors, DownloadDataType.SPECIMEN);
+    if (dataTypes.contains(SPECIMEN)) {
+      writeDonorNestedType(taskContext, donors, SPECIMEN);
     }
 
-    if (dataTypes.contains(DownloadDataType.SAMPLE)) {
+    if (dataTypes.contains(SAMPLE)) {
       writeSample(taskContext, donors);
     }
 
@@ -85,7 +84,7 @@ public class ClinicalTask extends Task {
   }
 
   private void writeDonors(TaskContext taskContext, JavaRDD<Row> donors) {
-    val dataType = DownloadDataType.DONOR;
+    val dataType = DONOR;
     val header = getHeader(taskContext.getSparkContext(), dataType);
     val records = donors.map(new ConvertRow(dataType.getDownloadFileds()));
     val output = header.union(records);
@@ -129,14 +128,6 @@ public class ClinicalTask extends Task {
     val donorName = DownloadDataType.DONOR.getId();
 
     return nestedName.replace(donorName + UNDERSCORE, EMPTY_STRING);
-  }
-
-  private static DataFrame readInput(TaskContext taskContext) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + DownloadDataType.DONOR.getId();
-
-    return sqlContext.read().parquet(inputPath);
   }
 
 }

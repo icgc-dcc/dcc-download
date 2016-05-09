@@ -15,7 +15,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.client.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import lombok.val;
 
+import org.icgc.dcc.download.client.impl.DefaultDownloadClient;
 import org.icgc.dcc.download.client.io.ArchiveOutputStream;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;

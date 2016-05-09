@@ -19,6 +19,7 @@ package org.icgc.dcc.download.client;
 
 import lombok.val;
 
+import org.icgc.dcc.download.client.impl.HttpDownloadClient;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;

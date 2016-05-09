@@ -49,6 +49,7 @@ public final class RecordsStatsController {
     }
 
     val recordsSizes = recordStatsService.getRecordsSizes(request.getDonorIds());
+    log.debug("Record sizes: {}", recordsSizes);
 
     return new DataTypeSizesResponse(recordsSizes);
   }
