@@ -15,7 +15,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client.io;
+package org.icgc.dcc.download.client.fs;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,9 +30,9 @@ import lombok.val;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.download.client.util.Streams;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteStreams;
 
 @RequiredArgsConstructor
 public class DownloadFileSystem {
@@ -67,9 +67,9 @@ public class DownloadFileSystem {
     try {
       fis.seek(offset);
     } catch (IOException e) {
-      // seek fails when the offset requested passes the file length,
+      // Seek fails when the offset requested passes the file length,
       // this line guarantee we are positioned at the end of the file
-      Streams.skip(fis, offset);
+      ByteStreams.skipFully(fis, offset);
     }
 
     return fis;
@@ -101,7 +101,7 @@ public class DownloadFileSystem {
 
   public List<File> listFiles(@NonNull File relativePath) throws IOException {
     val files = ImmutableList.<File> builder();
-    // add release to the root
+    // Add release to the root
     if (relativePath.getPath().equals(SEPARATOR)) {
       files.add(new File(releaseSymlink.getSymlink()));
     }

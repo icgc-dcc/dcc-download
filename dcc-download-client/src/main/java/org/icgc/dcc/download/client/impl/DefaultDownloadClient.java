@@ -33,7 +33,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 
 import org.icgc.dcc.download.client.DownloadClient;
-import org.icgc.dcc.download.client.io.ArchiveOutputStream;
+import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.model.JobProgress;

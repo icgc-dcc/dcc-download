@@ -30,15 +30,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import lombok.val;
 
-import org.icgc.dcc.download.client.impl.DefaultDownloadClient;
-import org.icgc.dcc.download.client.io.ArchiveOutputStream;
+import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
@@ -53,12 +52,8 @@ public class DefaultDownloadClientTest {
   @Mock
   HttpDownloadClient httpClient;
 
+  @InjectMocks
   DefaultDownloadClient downloadClient;
-
-  @Before
-  public void setUp() {
-    downloadClient = new DefaultDownloadClient(outputStream, httpClient);
-  }
 
   @Test
   public void testSubmitClinicalJob() throws Exception {

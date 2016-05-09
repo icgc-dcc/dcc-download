@@ -84,7 +84,7 @@ public final class Jobs {
   }
 
   public static Job setActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.ACTIVE_DOWNLOAD);
+    job.setStatus(JobStatus.TRANSFERRING);
 
     return job;
   }

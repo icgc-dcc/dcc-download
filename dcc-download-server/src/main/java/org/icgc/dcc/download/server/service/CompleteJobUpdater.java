@@ -35,6 +35,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.download.server.mail.Mailer;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,8 @@ public class CompleteJobUpdater implements Runnable {
   private Map<String, Future<String>> submittedJobs;
   @Autowired
   private ArchiveSizeService archiveSizeService;
+  @Autowired
+  private Mailer mailer;
 
   @PostConstruct
   public void startDaemon() {
@@ -92,7 +95,7 @@ public class CompleteJobUpdater implements Runnable {
     log.debug("Updated job {}", completedJob);
 
     submittedJobs.remove(jobId);
-    // TODO: send email
+    mailer.sendSuccessful(jobId, job.getUserEmailAddress());
   }
 
   private void processFailedJob(Future<String> result, ExecutionException e) {
@@ -107,6 +110,7 @@ public class CompleteJobUpdater implements Runnable {
 
       submittedJobs.remove(jobId);
       log.info("Removed failed jobID '{}'", jobId);
+      mailer.sendFailed(jobId, job.getUserEmailAddress());
     }
   }
 

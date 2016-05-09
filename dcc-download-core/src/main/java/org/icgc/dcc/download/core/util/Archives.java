@@ -19,6 +19,7 @@ package org.icgc.dcc.download.core.util;
 
 import static lombok.AccessLevel.PRIVATE;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isPartFile;
 
 import java.util.List;
 
@@ -49,14 +50,8 @@ public final class Archives {
         .sum();
   }
 
-  private static List<Path> getDataTypePaths(FileSystem fileSystem, Path jobPath) {
-    return HadoopUtils.lsDir(fileSystem, jobPath).stream()
-        .filter(path -> DownloadDataType.canCreateFrom(path.getName().toUpperCase()))
-        .collect(toImmutableList());
-  }
-
   @SneakyThrows
-  public static long calculateDataTypeArchiveSize(FileSystem fileSystem, Path downloadTypePath) {
+  public static long calculateDataTypeArchiveSize(@NonNull FileSystem fileSystem, @NonNull Path downloadTypePath) {
     val files = fileSystem.listFiles(downloadTypePath, false);
 
     long totalSize = 0L;
@@ -70,9 +65,10 @@ public final class Archives {
     return totalSize;
   }
 
-  // TODO: move to commons hadoop
-  public static boolean isPartFile(Path path) {
-    return path.getName().startsWith("part-");
+  private static List<Path> getDataTypePaths(FileSystem fileSystem, Path jobPath) {
+    return HadoopUtils.lsDir(fileSystem, jobPath).stream()
+        .filter(path -> DownloadDataType.canCreateFrom(path.getName().toUpperCase()))
+        .collect(toImmutableList());
   }
 
 }

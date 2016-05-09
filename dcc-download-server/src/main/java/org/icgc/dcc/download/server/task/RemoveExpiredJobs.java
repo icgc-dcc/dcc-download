@@ -18,7 +18,7 @@
 package org.icgc.dcc.download.server.task;
 
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-import static org.icgc.dcc.download.core.model.JobStatus.ACTIVE_DOWNLOAD;
+import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
 import static org.icgc.dcc.download.server.utils.Jobs.ARCHIVE_TTL;
 
@@ -67,7 +67,7 @@ public class RemoveExpiredJobs {
 
   List<Job> getExpiredJobs() {
     return jobRepository.findByCompletionDateLessThanAndStatusNot(getExpirationDate(), EXPIRED).stream()
-        .filter(job -> job.getStatus() != ACTIVE_DOWNLOAD)
+        .filter(job -> job.getStatus() != TRANSFERRING)
         .collect(toImmutableList());
   }
 

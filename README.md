@@ -8,7 +8,9 @@ Setup
 
 Clone the repository:
 
-`git clone git@github.com:icgc-dcc/dcc-download.git`
+```shell
+git clone git@github.com:icgc-dcc/dcc-download.git
+```
 
 Install Maven 3.2.1:
 
@@ -19,7 +21,9 @@ Build
 
 To build, test and install _all_ modules in the system:
 
-`mvn`
+```shell
+mvn
+```
 
 
 Run

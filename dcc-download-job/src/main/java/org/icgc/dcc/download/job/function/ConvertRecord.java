@@ -33,7 +33,7 @@ public final class ConvertRecord implements
     Function<Tuple2<Tuple2<Map<String, String>, Map<String, Object>>, Row>, String> {
 
   /**
-   * Configuration.
+   * Dependencies.
    */
   private final RecordConverter recordConverter;
 

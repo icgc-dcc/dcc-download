@@ -78,3 +78,32 @@ download.server:
   recordWeightsFile: src/main/resources/record_weights.txt
 
 ---
+
+# Spring
+spring:
+  profiles: remote
+
+# Spark  
+spark:
+  master: "local"
+
+# Hadoop
+hadoop:
+  properties:
+    fs.defaultFS: hdfs://hnn1-dcc.res.oicr.on.ca
+
+# Mongo
+spring.data.mongodb:
+  uri: mongodb://localhost/dcc-download
+
+# Spark Job configuration
+job:
+  # The inputDir is configured to be used in Eclipse
+  inputDir: /tmp/export-test
+  outputDir: /tmp/export-out-test
+
+download.server:
+  hdfsUri: "hdfs://hnn1-dcc.res.oicr.on.ca"
+  recordWeightsFile: src/main/resources/record_weights.txt
+  
+---

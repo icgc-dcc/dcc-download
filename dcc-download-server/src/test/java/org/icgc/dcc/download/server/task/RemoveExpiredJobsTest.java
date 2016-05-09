@@ -18,7 +18,7 @@
 package org.icgc.dcc.download.server.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.JobStatus.ACTIVE_DOWNLOAD;
+import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
 import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
 import static org.mockito.Matchers.anyLong;
@@ -86,7 +86,7 @@ public class RemoveExpiredJobsTest {
   private static List<Job> defineJobs() {
     return ImmutableList.of(
         Job.builder().id("1").status(SUCCEEDED).build(),
-        Job.builder().id("2").status(ACTIVE_DOWNLOAD).build());
+        Job.builder().id("2").status(TRANSFERRING).build());
   }
 
 }

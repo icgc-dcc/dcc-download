@@ -4,7 +4,6 @@ A Spark job which is submitted to a Spark cluster and prepares files for a downl
 
 ## Building
 
-`$ mvn -am -pl dcc-download-job package`
-
-
-
+```shell
+$ mvn -am -pl dcc-download-job package
+```

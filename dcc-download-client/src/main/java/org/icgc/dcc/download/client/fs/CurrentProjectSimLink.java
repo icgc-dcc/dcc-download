@@ -15,7 +15,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client.io;
+package org.icgc.dcc.download.client.fs;
 
 import lombok.NonNull;
 import lombok.Value;
@@ -29,7 +29,6 @@ public class CurrentProjectSimLink {
   public String resolveSymlink(@NonNull String relativePath) {
     if (relativePath.startsWith(symlink)) {
       relativePath = relativePath.replaceFirst(symlink, actualPath);
-      // relativePath = StringUtils.replaceOnce(relativePath, symlink, actualPath);
     }
 
     return relativePath;

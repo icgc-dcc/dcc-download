@@ -21,7 +21,7 @@ import static java.time.Instant.now;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-import static org.icgc.dcc.download.core.model.JobStatus.ACTIVE_DOWNLOAD;
+import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
 import static org.icgc.dcc.download.core.model.JobStatus.FAILED;
 import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
@@ -67,7 +67,7 @@ public class JobRepositoryTest {
     mongoTemplate.save(createJob("1", now().minus(47, HOURS), FAILED));
     mongoTemplate.save(createJob("2", now().minus(49, HOURS), SUCCEEDED));
     mongoTemplate.save(createJob("3", now().minus(49, HOURS), EXPIRED));
-    mongoTemplate.save(createJob("4", now().minus(49, HOURS), ACTIVE_DOWNLOAD));
+    mongoTemplate.save(createJob("4", now().minus(49, HOURS), TRANSFERRING));
     mongoTemplate.save(createJob("5", now(), SUCCEEDED));
 
     val expirationDate = now().minus(48, HOURS);

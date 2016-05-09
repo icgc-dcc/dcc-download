@@ -15,9 +15,10 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client.io;
+package org.icgc.dcc.download.client.fs;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isPartFile;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -121,7 +122,7 @@ public class ArchiveOutputStream {
 
       while (files.hasNext()) {
         val filePath = files.next().getPath();
-        if (Archives.isPartFile(filePath)) {
+        if (isPartFile(filePath)) {
           paths.add(filePath);
         }
       }

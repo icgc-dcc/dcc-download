@@ -4,6 +4,8 @@ DCC Download core library.
 
 ## Building
 
-`$ mvn -am -pl dcc-download-core package`
+```shell
+$ mvn -am -pl dcc-download-core package
+```
 
 

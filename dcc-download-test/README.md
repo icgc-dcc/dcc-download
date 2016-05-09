@@ -4,6 +4,8 @@ DCC Download test libraries.
 
 ## Building
 
-`$ mvn -am -pl dcc-download-test package`
+```shell
+$ mvn -am -pl dcc-download-test package
+```
 
 

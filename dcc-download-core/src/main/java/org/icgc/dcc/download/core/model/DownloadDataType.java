@@ -18,13 +18,17 @@
 package org.icgc.dcc.download.core.model;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.common.core.util.stream.Streams.stream;
 import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_CONTROLLED_FIELDS;
 import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_CONTROLLED_REMOVE_FIELDS;
 import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_FIRST_LEVEL_FIELDS;
 import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_SECOND_LEVEL_FIELDS;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,9 +38,6 @@ import lombok.NonNull;
 import lombok.val;
 
 import org.icgc.dcc.common.core.model.Identifiable;
-import org.icgc.dcc.common.core.util.Separators;
-import org.icgc.dcc.common.core.util.stream.Collectors;
-import org.icgc.dcc.common.core.util.stream.Streams;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -632,19 +633,19 @@ public enum DownloadDataType implements Identifiable {
    * flat. Field levels represent which fields should be used first for projection.<br>
    * E.g. {@code firstLevelFields} are non-nested fields. {@code secondLevelFields} are first nested fields
    */
-  private List<String> firstLevelFields;
-  private List<String> secondLevelFields;
+  private final List<String> firstLevelFields;
+  private final List<String> secondLevelFields;
 
   private DownloadDataType() {
-    this(Collections.emptyMap());
+    this(emptyMap());
   }
 
   private DownloadDataType(@NonNull Map<String, String> fields) {
-    this(fields, Collections.emptyList(), Collections.emptyList());
+    this(fields, emptyList(), emptyList());
   }
 
   private DownloadDataType(@NonNull Map<String, String> fields, List<String> firstLevelFields) {
-    this(fields, firstLevelFields, Collections.emptyList());
+    this(fields, firstLevelFields, emptyList());
   }
 
   private DownloadDataType(@NonNull Map<String, String> fields, List<String> firstLevelFields,
@@ -662,9 +663,9 @@ public enum DownloadDataType implements Identifiable {
   public String getCanonicalName() {
     String name = getId();
     if (isControlled()) {
-      name = name.replace(CONTROLLED_SUFFIX, Separators.EMPTY_STRING);
+      name = name.replace(CONTROLLED_SUFFIX, EMPTY_STRING);
     } else if (isOpen()) {
-      name = name.replace(OPEN_SUFFIX, Separators.EMPTY_STRING);
+      name = name.replace(OPEN_SUFFIX, EMPTY_STRING);
     }
 
     return name;
@@ -690,7 +691,7 @@ public enum DownloadDataType implements Identifiable {
   }
 
   public static DownloadDataType from(@NonNull String name, boolean controlled) {
-    val dataTypes = Streams.stream(values())
+    val dataTypes = stream(values())
         .filter(dt -> dt.getCanonicalName().equals(name) && dt.isControlled() == controlled)
         .collect(toImmutableList());
     checkState(dataTypes.size() == 1, "Failed to resolve DownloadDataType from name '%s' and controlled '%s'. "
@@ -700,14 +701,14 @@ public enum DownloadDataType implements Identifiable {
   }
 
   public static boolean canCreateFrom(@NonNull String name) {
-    return Streams.stream(values())
+    return stream(values())
         .anyMatch(dt -> dt.name().equals(name));
   }
 
   private static Map<String, String> getSsmOpenFields() {
     return SSM_CONTROLLED_FIELDS.entrySet().stream()
         .filter(e -> !SSM_CONTROLLED_REMOVE_FIELDS.contains(e.getKey()))
-        .collect(Collectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+        .collect(toImmutableMap(e -> e.getKey(), e -> e.getValue()));
   }
 
   private static List<String> getSsmOpenSecondLevelFields() {

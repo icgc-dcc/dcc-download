@@ -44,7 +44,7 @@ public enum JobStatus implements Identifiable {
   /**
    * Files of the job are currently being downloaded. Don't remove them yet.
    */
-  ACTIVE_DOWNLOAD,
+  TRANSFERRING,
 
   /**
    * The job is expired and its files have been removed.

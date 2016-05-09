@@ -29,6 +29,7 @@ import org.icgc.dcc.download.core.request.GetJobsInfoRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.JobInfoResponse;
 import org.icgc.dcc.download.core.response.JobsProgressResponse;
+import org.icgc.dcc.download.server.mail.Mailer;
 import org.icgc.dcc.download.server.service.DownloadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +46,8 @@ public final class JobController {
 
   @NonNull
   private final DownloadService downloadService;
+  @NonNull
+  private final Mailer mailer;
 
   @RequestMapping(method = POST)
   public String submitJob(@RequestBody SubmitJobRequest request) {
@@ -55,6 +58,7 @@ public final class JobController {
     }
 
     val jobId = downloadService.submitJob(request);
+    mailer.sendStart(jobId, request.getUserEmailAddress());
 
     return jobId;
   }
