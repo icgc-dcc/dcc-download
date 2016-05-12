@@ -33,6 +33,8 @@ mail:
     mail.smtp.host: smtp.res.oicr.on.ca
     mail.smtp.from: no-reply@oicr.on.ca
 
+management.security.enabled: false
+
 ---
 #
 # Production
@@ -105,5 +107,21 @@ job:
 download.server:
   hdfsUri: "hdfs://hnn1-dcc.res.oicr.on.ca"
   recordWeightsFile: src/main/resources/record_weights.txt
+  user: user
+  password: pass
   
+---
+
+# Spring
+spring:
+  profiles: secure
+  
+download.server:
+  user: user
+  password: pass
+  adminUser: admin
+  adminPassword: secret
+  
+management.security.enabled: true
+
 ---
