@@ -77,7 +77,7 @@ job:
   outputDir: /tmp/dcc-download
 
 download.server:
-  recordWeightsFile: src/main/resources/record_weights.txt
+  recordWeightsFile: src/main/resources/record-weights.txt
 
 ---
 
@@ -106,7 +106,7 @@ job:
 
 download.server:
   hdfsUri: "hdfs://hnn1-dcc.res.oicr.on.ca"
-  recordWeightsFile: src/main/resources/record_weights.txt
+  recordWeightsFile: src/main/resources/record-weights.txt
   user: user
   password: pass
   

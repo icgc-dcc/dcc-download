@@ -15,11 +15,11 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.client.impl;
 
 import lombok.val;
 
-import org.icgc.dcc.download.client.impl.HttpDownloadClient;
+import org.icgc.dcc.download.client.impl.HttpClient;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
@@ -29,15 +29,15 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-public class HttpDownloadClientIntegrationTest {
+public class HttpClientIntegrationTest {
 
   private static final String BASE_URL = "http://localhost:8080";
 
-  HttpDownloadClient client;
+  HttpClient client;
 
   @Before
   public void setUp() {
-    client = new HttpDownloadClient(BASE_URL);
+    client = new HttpClient(BASE_URL);
   }
 
   @Test

@@ -17,177 +17,133 @@
  */
 package org.icgc.dcc.download.client.impl;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
-import static com.google.common.net.MediaType.JSON_UTF_8;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
+import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
 
+import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-
+import lombok.Cleanup;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
-import org.icgc.dcc.common.core.security.DumbX509TrustManager;
-import org.icgc.dcc.download.client.DownloadClientConfig;
-import org.icgc.dcc.download.client.response.HealthResponse;
+import org.icgc.dcc.download.client.DownloadClient;
+import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.model.JobProgress;
-import org.icgc.dcc.download.core.request.GetJobsInfoRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
-import org.icgc.dcc.download.core.response.JobInfoResponse;
-import org.icgc.dcc.download.core.response.JobsProgressResponse;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import com.sun.jersey.api.client.filter.LoggingFilter;
-import com.sun.jersey.api.json.JSONConfiguration;
-import com.sun.jersey.client.urlconnection.HTTPSProperties;
+import com.google.common.collect.ImmutableSet;
 
-@Slf4j
-public class HttpDownloadClient {
+@RequiredArgsConstructor
+public class HttpDownloadClient implements DownloadClient {
 
-  private static final String JOBS_PATH = "/jobs";
-  private static final String STATS_PATH = "/stats";
-  private static final String HEALTH_PATH = "/health";
+  /**
+   * Dependencies.
+   */
+  @NonNull
+  private final ArchiveOutputStream outputStream;
+  @NonNull
+  private final HttpClient httpClient;
 
-  private WebResource resource;
-
-  public HttpDownloadClient(@NonNull String baseUrl) {
-    val jerseyClient = Client.create(getClientConfig());
-    // TODO: externalize
-    jerseyClient.addFilter(new LoggingFilter());
-    this.resource = jerseyClient.resource(baseUrl);
-  }
-
-  public HttpDownloadClient(@NonNull DownloadClientConfig config) {
-    val jerseyClient = configureHttpClient(config);
-    this.resource = jerseyClient.resource(config.baseUrl());
-  }
-
-  private Client configureHttpClient(DownloadClientConfig config) {
-    ClientConfig clientConfig = getClientConfig();
-
-    // Configure SSL
-    clientConfig = config.strictSSLCertificates() ? configureSSLCertificatesHandling(clientConfig) : clientConfig;
-
-    val jerseyClient = Client.create(clientConfig);
-    // Configure auth
-    if (isAuthEnabled(config)) {
-      jerseyClient.addFilter(new HTTPBasicAuthFilter(config.user(), config.password()));
-    }
-
-    // Configure logging
-    if (config.requestLoggingEnabled()) {
-      jerseyClient.addFilter(new LoggingFilter());
-    }
-
-    return jerseyClient;
-  }
-
-  private static boolean isAuthEnabled(DownloadClientConfig config) {
-    return !isNullOrEmpty(config.user());
-  }
-
-  public String submitJob(@NonNull SubmitJobRequest requestBody) {
-    return resource.path(JOBS_PATH)
-        .header(CONTENT_TYPE, JSON_UTF_8)
-        .post(String.class, requestBody);
-  }
-
-  public void cancelJob(@NonNull String jobId) {
-    resource.path(JOBS_PATH).path(jobId)
-        .delete();
-  }
-
-  public Map<String, JobProgress> getJobsProgress(@NonNull Set<String> jobIds) {
-    val requestBody = new GetJobsInfoRequest(jobIds);
-    val response = resource.path(JOBS_PATH).path("progress")
-        .header(CONTENT_TYPE, JSON_UTF_8)
-        .post(JobsProgressResponse.class, requestBody);
-
-    return response.getJobProgress();
-  }
-
-  public Map<String, JobInfo> getJobsInfo(@NonNull Set<String> jobIds) {
-    val requestBody = new GetJobsInfoRequest(jobIds);
-    val response = resource.path(JOBS_PATH).path("info")
-        .header(CONTENT_TYPE, JSON_UTF_8)
-        .post(JobInfoResponse.class, requestBody);
-
-    return response.getInfo();
-  }
-
-  public void setActiveDownload(@NonNull String jobId) {
-    resource.path(JOBS_PATH).path(jobId).path("active")
-        .post();
-  }
-
-  public void unsetActiveDownload(@NonNull String jobId) {
-    resource.path(JOBS_PATH).path(jobId).path("active")
-        .delete();
-  }
-
-  public Map<DownloadDataType, Long> getSizes(@NonNull SubmitJobRequest requestBody) {
-    val response = resource.path(STATS_PATH)
-        .header(CONTENT_TYPE, JSON_UTF_8)
-        .post(DataTypeSizesResponse.class, requestBody);
-
-    return response.getSizes();
-  }
-
+  @Override
   public boolean isServiceAvailable() {
-    HealthResponse response;
-    try {
-      response = resource.path(HEALTH_PATH)
-          .header(CONTENT_TYPE, JSON_UTF_8)
-          .get(HealthResponse.class);
-    } catch (Exception e) {
-      log.error("Exception during the health check:\n", e);
-
-      return false;
-    }
-
-    return response.isAlive();
+    return httpClient.isServiceAvailable();
   }
 
-  private static ClientConfig getClientConfig() {
-    ClientConfig cc = new DefaultClientConfig();
-    cc.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-    cc.getClasses().add(JacksonJsonProvider.class);
+  @Override
+  public String submitJob(
+      @NonNull Set<String> donorIds,
+      @NonNull Set<DownloadDataType> dataTypes,
+      @NonNull JobInfo jobInfo,
+      @NonNull String userEmailAddress) {
+    val submitDataTypes = resolveDataTypes(donorIds, dataTypes);
+    val submitJobRequest = SubmitJobRequest.builder()
+        .donorIds(donorIds)
+        .dataTypes(submitDataTypes)
+        .jobInfo(jobInfo)
+        .userEmailAddress(userEmailAddress)
+        .build();
 
-    return cc;
+    return httpClient.submitJob(submitJobRequest);
   }
 
+  @Override
+  public void cancelJob(@NonNull String jobId) {
+    httpClient.cancelJob(jobId);
+  }
+
+  @Override
+  public Map<String, JobProgress> getJobsProgress(@NonNull Set<String> jobIds) {
+    return httpClient.getJobsProgress(jobIds);
+  }
+
+  @Override
+  public Map<String, JobInfo> getJobsInfo(@NonNull Set<String> jobIds) {
+    return httpClient.getJobsInfo(jobIds);
+  }
+
+  @Override
+  public void setActiveDownload(@NonNull String jobId) {
+    httpClient.setActiveDownload(jobId);
+  }
+
+  @Override
+  public void unsetActiveDownload(@NonNull String jobId) {
+    httpClient.unsetActiveDownload(jobId);
+  }
+
+  @Override
+  public Map<DownloadDataType, Long> getSizes(@NonNull Set<String> donorIds) {
+    val requestBody = SubmitJobRequest.builder()
+        .donorIds(donorIds)
+        .build();
+
+    return httpClient.getSizes(requestBody);
+  }
+
+  @Override
   @SneakyThrows
-  private static ClientConfig configureSSLCertificatesHandling(ClientConfig config) {
-    val context = SSLContext.getInstance("TLS");
-    context.init(null, new TrustManager[] { new DumbX509TrustManager() }, null);
+  public boolean streamArchiveInGz(@NonNull OutputStream out, @NonNull String downloadId,
+      @NonNull DownloadDataType dataType) {
+    @Cleanup
+    val managedOut = out;
 
-    config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(
-        new HostnameVerifier() {
+    return outputStream.streamArchiveInGz(managedOut, downloadId, dataType);
+  }
 
-          @Override
-          public boolean verify(String hostname, SSLSession sslSession) {
-            return true;
-          }
+  @Override
+  @SneakyThrows
+  public boolean streamArchiveInTarGz(@NonNull OutputStream out, @NonNull String downloadId,
+      @NonNull List<DownloadDataType> downloadDataTypes) {
+    @Cleanup
+    val managedOut = out;
 
-        }, context
-        ));
+    return outputStream.streamArchiveInTarGz(managedOut, downloadId, downloadDataTypes);
+  }
 
-    return config;
+  private Set<DownloadDataType> resolveDataTypes(Set<String> donorIds, Set<DownloadDataType> dataTypes) {
+    val submitDataTypes = resolveSubmitDataTypes(dataTypes);
+    val sizes = getSizes(donorIds);
+
+    return submitDataTypes.stream()
+        .filter(dt -> sizes.get(dt) != null && sizes.get(dt) > 0L)
+        .collect(toImmutableSet());
+  }
+
+  private static Set<DownloadDataType> resolveSubmitDataTypes(Set<DownloadDataType> dataTypes) {
+    return dataTypes.contains(DONOR) ?
+        ImmutableSet.<DownloadDataType> builder()
+            .addAll(dataTypes)
+            .addAll(CLINICAL)
+            .build() :
+        dataTypes;
   }
 
 }

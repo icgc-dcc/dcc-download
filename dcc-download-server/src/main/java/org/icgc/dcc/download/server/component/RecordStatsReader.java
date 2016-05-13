@@ -25,7 +25,7 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import lombok.Cleanup;
@@ -46,7 +46,6 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 
 @Slf4j
@@ -64,8 +63,7 @@ public class RecordStatsReader {
     val statsPath = new Path(properties.jobProperties().getInputDir(), "stats");
     log.debug("Reading records stats directory: {}", statsPath);
 
-    // TODO: filter only gz-compressed files.
-    val statsFiles = HadoopUtils.lsFile(fileSystem, statsPath);
+    val statsFiles = HadoopUtils.lsFile(fileSystem, statsPath, Pattern.compile("*.gz"));
     Table<String, DownloadDataType, Long> statsTable = HashBasedTable.create();
     for (val file : statsFiles) {
       log.info("Reading record statistics file: {}", file);
@@ -80,6 +78,17 @@ public class RecordStatsReader {
     }
 
     return statsTable;
+  }
+
+  @SneakyThrows
+  public Map<DownloadDataType, Integer> resolveRecordWeights() {
+    val recordWeightsFile = properties.downloadServerProperties().getRecordWeightsFile();
+    @Cleanup
+    val fileReader = createrRecordWeightsFileReader(recordWeightsFile);
+    val props = new java.util.Properties();
+    props.load(fileReader);
+
+    return convertProperties(props);
   }
 
   @SneakyThrows
@@ -113,27 +122,13 @@ public class RecordStatsReader {
     return new BufferedReader(new InputStreamReader(gzip));
   }
 
-  @SneakyThrows
-  public Map<DownloadDataType, Integer> resolveRecordWeights() {
-    val recordWeightsFile = properties.downloadServerProperties().getRecordWeightsFile();
-    val fileReader = createrRecordWeightsFileReader(recordWeightsFile);
-    String line = null;
+  private static Map<DownloadDataType, Integer> convertProperties(java.util.Properties properties) {
     val recordWeights = ImmutableMap.<DownloadDataType, Integer> builder();
-    while ((line = fileReader.readLine()) != null) {
-      recordWeights.put(parseEntry(line));
+    for (val name : properties.stringPropertyNames()) {
+      recordWeights.put(DownloadDataType.valueOf(name), Integer.valueOf(properties.getProperty(name)));
     }
 
     return recordWeights.build();
-  }
-
-  private static Entry<? extends DownloadDataType, ? extends Integer> parseEntry(String line) {
-    val parts = Splitters.TAB.splitToList(line);
-    val partsNum = parts.size();
-    checkState(partsNum == 2, "Malformed records weights file. Expected 2 columns, but got %s", partsNum);
-    val type = DownloadDataType.valueOf(parts.get(0));
-    val weight = Integer.valueOf(parts.get(1));
-
-    return Maps.immutableEntry(type, weight);
   }
 
   @SneakyThrows
