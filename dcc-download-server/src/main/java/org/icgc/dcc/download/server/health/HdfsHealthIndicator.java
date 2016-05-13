@@ -15,18 +15,40 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.model;
+package org.icgc.dcc.download.server.health;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class TaskProgress {
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.stereotype.Component;
 
-  private int completedCount;
-  private int totalCount;
+@Slf4j
+@Component
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+public class HdfsHealthIndicator implements HealthIndicator {
+
+  private static final Path ROOT_PATH = new Path("/");
+
+  @NonNull
+  private final FileSystem fileSystem;
+
+  @Override
+  public Health health() {
+    try {
+      HadoopUtils.lsDir(fileSystem, ROOT_PATH);
+    } catch (Exception e) {
+      log.error("Failed to check Spark health: \n", e);
+      return Health.down().build();
+    }
+
+    return Health.up().build();
+  }
 
 }

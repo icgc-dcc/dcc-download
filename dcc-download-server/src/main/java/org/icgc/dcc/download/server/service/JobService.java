@@ -38,11 +38,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.icgc.dcc.download.server.mail.Mailer;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class CompleteJobUpdater implements Runnable {
+public class JobService {
 
   /**
    * Dependencies.
@@ -54,18 +55,16 @@ public class CompleteJobUpdater implements Runnable {
   @Resource(name = "submittedJobs")
   private Map<String, Future<String>> submittedJobs;
   @Autowired
-  private ArchiveSizeService archiveSizeService;
+  private ArchiveService archiveSizeService;
   @Autowired
   private Mailer mailer;
 
   @PostConstruct
-  public void startDaemon() {
-    val thread = new Thread(this);
-    thread.setDaemon(true);
-    thread.start();
+  public void startService() {
+    run();
   }
 
-  @Override
+  @Async
   @SneakyThrows
   public void run() {
     Future<String> result = null;

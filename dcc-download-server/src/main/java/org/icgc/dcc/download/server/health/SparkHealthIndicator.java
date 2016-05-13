@@ -15,34 +15,36 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.service;
+package org.icgc.dcc.download.server.health;
 
 import lombok.NonNull;
-import lombok.val;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.download.core.util.Archives;
-import org.icgc.dcc.download.server.config.Properties.JobProperties;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.stereotype.Component;
 
-@Service
-public class ArchiveSizeService {
+@Slf4j
+@Component
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+public class SparkHealthIndicator implements HealthIndicator {
 
-  private final FileSystem fileSystem;
-  private final String outputDir;
+  @NonNull
+  private final JavaSparkContext sparkContext;
 
-  @Autowired
-  public ArchiveSizeService(@NonNull JobProperties jobProperties, @NonNull FileSystem fileSystem) {
-    this.fileSystem = fileSystem;
-    this.outputDir = jobProperties.getOutputDir();
-  }
+  @Override
+  public Health health() {
+    try {
+      sparkContext.statusTracker().getActiveJobIds();
+    } catch (Exception e) {
+      log.error("Failed to check Spark health: \n", e);
+      return Health.down().build();
+    }
 
-  public long getArchiveSize(@NonNull String jobId) {
-    val downloadPath = new Path(outputDir, jobId);
-
-    return Archives.resolveDownloadSize(fileSystem, downloadPath);
+    return Health.up().build();
   }
 
 }

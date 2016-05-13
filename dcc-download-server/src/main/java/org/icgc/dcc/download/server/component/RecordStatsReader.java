@@ -15,7 +15,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.config;
+package org.icgc.dcc.download.server.component;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -29,6 +29,8 @@ import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
 
 import lombok.Cleanup;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -38,11 +40,9 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.server.config.Properties.JobProperties;
-import org.icgc.dcc.download.server.service.RecordStatsService;
+import org.icgc.dcc.download.server.config.Properties;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
@@ -50,23 +50,18 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 
 @Slf4j
-@Configuration
-public class RecordsStatsServiceConfig {
+@Component
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+public class RecordStatsReader {
 
-  @Autowired
-  Properties properties;
-  @Autowired
-  FileSystem fileSystem;
-
-  @Bean
-  public RecordStatsService recordStatsService() {
-    return new RecordStatsService(readStatsTable(properties.jobProperties(), fileSystem),
-        resolveRecordWeights(properties.downloadServerProperties().getRecordWeightsFile()));
-  }
+  @NonNull
+  private final Properties properties;
+  @NonNull
+  private final FileSystem fileSystem;
 
   @SneakyThrows
-  private Table<String, DownloadDataType, Long> readStatsTable(JobProperties jobProperties, FileSystem fileSystem) {
-    val statsPath = new Path(jobProperties.getInputDir(), "stats");
+  public Table<String, DownloadDataType, Long> readStatsTable() {
+    val statsPath = new Path(properties.jobProperties().getInputDir(), "stats");
     log.debug("Reading records stats directory: {}", statsPath);
 
     // TODO: filter only gz-compressed files.
@@ -119,7 +114,8 @@ public class RecordsStatsServiceConfig {
   }
 
   @SneakyThrows
-  private static Map<DownloadDataType, Integer> resolveRecordWeights(String recordWeightsFile) {
+  public Map<DownloadDataType, Integer> resolveRecordWeights() {
+    val recordWeightsFile = properties.downloadServerProperties().getRecordWeightsFile();
     val fileReader = createrRecordWeightsFileReader(recordWeightsFile);
     String line = null;
     val recordWeights = ImmutableMap.<DownloadDataType, Integer> builder();

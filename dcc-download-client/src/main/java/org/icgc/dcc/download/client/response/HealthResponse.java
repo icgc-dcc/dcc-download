@@ -15,51 +15,17 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.config;
+package org.icgc.dcc.download.client.response;
 
-import java.util.Map;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import lombok.Value;
 
-import lombok.NonNull;
-import lombok.val;
+@Value
+public class HealthResponse {
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.icgc.dcc.download.job.core.DefaultDownloadJob;
-import org.icgc.dcc.download.server.config.Properties.JobProperties;
-import org.icgc.dcc.download.server.repository.JobRepository;
-import org.icgc.dcc.download.server.service.DownloadService;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+  String status;
 
-import com.google.common.collect.Maps;
-
-@Configuration
-public class CompletionServiceConfig {
-
-  // TODO: Externalize
-  private static final int THREADS_NUM = 2;
-
-  @Bean
-  public CompletionService<String> completionService() {
-    val executor = Executors.newFixedThreadPool(THREADS_NUM);
-
-    return new ExecutorCompletionService<String>(executor);
-  }
-
-  @Bean
-  public Map<String, Future<String>> submittedJobs() {
-    return Maps.newConcurrentMap();
-  }
-
-  @Bean
-  public DownloadService downloadService(@NonNull JavaSparkContext sparkContext, @NonNull FileSystem fileSystem,
-      @NonNull JobProperties jobProperties, @NonNull JobRepository repository) {
-    return new DownloadService(sparkContext, fileSystem, jobProperties, completionService(), repository,
-        submittedJobs(), new DefaultDownloadJob());
+  public boolean isAlive() {
+    return "UP".equals(status);
   }
 
 }

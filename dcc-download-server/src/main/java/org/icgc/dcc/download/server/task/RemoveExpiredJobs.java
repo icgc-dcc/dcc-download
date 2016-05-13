@@ -18,8 +18,8 @@
 package org.icgc.dcc.download.server.task;
 
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
+import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
 import static org.icgc.dcc.download.server.utils.Jobs.ARCHIVE_TTL;
 
 import java.time.Instant;
@@ -71,12 +71,6 @@ public class RemoveExpiredJobs {
         .collect(toImmutableList());
   }
 
-  private long getExpirationDate() {
-    val expirationDate = Instant.now().minus(ARCHIVE_TTL);
-
-    return expirationDate.toEpochMilli();
-  }
-
   @SneakyThrows
   private void deleteJobFiles(String jobId) {
     val path = getPath(jobId);
@@ -90,6 +84,12 @@ public class RemoveExpiredJobs {
 
   private Path getPath(String jobId) {
     return new Path(outputDir, jobId);
+  }
+
+  private static long getExpirationDate() {
+    val expirationDate = Instant.now().minus(ARCHIVE_TTL);
+
+    return expirationDate.toEpochMilli();
   }
 
 }

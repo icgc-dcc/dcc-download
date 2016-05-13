@@ -15,60 +15,58 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.util;
+package org.icgc.dcc.download.server.config;
 
-import static lombok.AccessLevel.PRIVATE;
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isPartFile;
+import java.util.Map;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-import java.util.List;
-
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.icgc.dcc.download.job.core.DefaultDownloadJob;
+import org.icgc.dcc.download.server.component.RecordStatsReader;
+import org.icgc.dcc.download.server.config.Properties.JobProperties;
+import org.icgc.dcc.download.server.repository.JobRepository;
+import org.icgc.dcc.download.server.service.DownloadService;
+import org.icgc.dcc.download.server.service.RecordStatsService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class Archives {
+import com.google.common.collect.Maps;
 
-  public static long calculateArchiveSize(@NonNull FileSystem fileSystem, @NonNull Path jobPath) {
-    if (!HadoopUtils.exists(fileSystem, jobPath)) {
-      log.warn("Failed to calculate download size for non-existing path '{}'", jobPath);
+@Configuration
+public class ServiceConfig {
 
-      return 0;
-    }
+  // TODO: Externalize
+  private static final int THREADS_NUM = 2;
 
-    return getDataTypePaths(fileSystem, jobPath).stream()
-        .mapToLong(dtPath -> calculateDataTypeArchiveSize(fileSystem, dtPath))
-        .sum();
+  @Bean
+  public RecordStatsService recordStatsService(@NonNull RecordStatsReader statsReader) {
+    return new RecordStatsService(statsReader.readStatsTable(), statsReader.resolveRecordWeights());
   }
 
-  @SneakyThrows
-  public static long calculateDataTypeArchiveSize(@NonNull FileSystem fileSystem, @NonNull Path downloadTypePath) {
-    val files = fileSystem.listFiles(downloadTypePath, false);
+  @Bean
+  public CompletionService<String> completionService() {
+    val executor = Executors.newFixedThreadPool(THREADS_NUM);
 
-    long totalSize = 0L;
-    while (files.hasNext()) {
-      val file = files.next();
-      if (isPartFile(file.getPath())) {
-        totalSize += file.getLen();
-      }
-    }
-
-    return totalSize;
+    return new ExecutorCompletionService<String>(executor);
   }
 
-  private static List<Path> getDataTypePaths(FileSystem fileSystem, Path jobPath) {
-    return HadoopUtils.lsDir(fileSystem, jobPath).stream()
-        .filter(path -> DownloadDataType.canCreateFrom(path.getName().toUpperCase()))
-        .collect(toImmutableList());
+  @Bean
+  public Map<String, Future<String>> submittedJobs() {
+    return Maps.newConcurrentMap();
+  }
+
+  @Bean
+  public DownloadService downloadService(@NonNull JavaSparkContext sparkContext, @NonNull FileSystem fileSystem,
+      @NonNull JobProperties jobProperties, @NonNull JobRepository repository) {
+    return new DownloadService(sparkContext, fileSystem, jobProperties, completionService(), repository,
+        submittedJobs(), new DefaultDownloadJob());
   }
 
 }

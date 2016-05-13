@@ -54,8 +54,7 @@ public class DefaultDownloadClient implements DownloadClient {
 
   @Override
   public boolean isServiceAvailable() {
-    // TODO: Implement!
-    return true;
+    return httpClient.isServiceAvailable();
   }
 
   @Override

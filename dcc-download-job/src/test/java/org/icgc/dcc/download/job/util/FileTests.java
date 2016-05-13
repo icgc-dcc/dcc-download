@@ -177,10 +177,14 @@ public class FileTests {
 
   public static void concatenatePartFiles(File partFilesDir) {
     log.info("Concatenating 'part' files in {} ...", partFilesDir);
-    File[] partFiles = partFilesDir.listFiles((dir, name) -> name.startsWith("part-"));
+    File[] partFiles = partFilesDir.listFiles((dir, name) -> isPartFile(name));
 
     concatenateFiles(of(getDataTypeFile(partFilesDir).getAbsolutePath()),
         ImmutableList.copyOf(partFiles));
+  }
+
+  private static boolean isPartFile(String name) {
+    return name.startsWith("part-");
   }
 
 }

@@ -53,12 +53,6 @@ public final class Jobs {
         .build();
   }
 
-  private static JobInfo setTtl(JobInfo jobInfo) {
-    jobInfo.setTtl((int) ARCHIVE_TTL.toHours());
-
-    return jobInfo;
-  }
-
   public static Job completeJob(@NonNull Job job, long archiveSize) {
     val completionDate = getDateAsMillis();
     job.setCompletionDate(completionDate);
@@ -106,6 +100,12 @@ public final class Jobs {
             .addAll(difference(dataTypes, CLINICAL))
             .add(DONOR)
             .build();
+  }
+
+  private static JobInfo setTtl(JobInfo jobInfo) {
+    jobInfo.setTtl((int) ARCHIVE_TTL.toHours());
+
+    return jobInfo;
   }
 
 }

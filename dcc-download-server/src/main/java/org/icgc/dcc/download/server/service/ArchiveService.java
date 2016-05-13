@@ -15,18 +15,34 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.model;
+package org.icgc.dcc.download.server.service;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import static org.icgc.dcc.download.core.util.Archives.calculateArchiveSize;
+import lombok.NonNull;
+import lombok.val;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class TaskProgress {
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.server.config.Properties.JobProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-  private int completedCount;
-  private int totalCount;
+@Service
+public class ArchiveService {
+
+  private final FileSystem fileSystem;
+  private final String outputDir;
+
+  @Autowired
+  public ArchiveService(@NonNull JobProperties jobProperties, @NonNull FileSystem fileSystem) {
+    this.fileSystem = fileSystem;
+    this.outputDir = jobProperties.getOutputDir();
+  }
+
+  public long getArchiveSize(@NonNull String jobId) {
+    val downloadPath = new Path(outputDir, jobId);
+
+    return calculateArchiveSize(fileSystem, downloadPath);
+  }
 
 }

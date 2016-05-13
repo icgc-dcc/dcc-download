@@ -18,19 +18,17 @@
 package org.icgc.dcc.download.job.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.common.core.util.Joiners.TAB;
 import static org.icgc.dcc.download.job.util.TestRows.createExposureSchema;
 import static org.icgc.dcc.download.job.util.TestRows.createRow;
 import lombok.val;
 
-import org.icgc.dcc.common.core.util.Joiners;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
 public class RecordConverterTest {
-
-  RecordConverter converter;
 
   @Test
   public void testConvert() throws Exception {
@@ -41,9 +39,9 @@ public class RecordConverterTest {
         "_project_id", "DCC-TEST",
         "donor_id", "DID123");
 
-    converter = new RecordConverter(DownloadDataType.DONOR_EXPOSURE.getDownloadFileds());
+    val converter = new RecordConverter(DownloadDataType.DONOR_EXPOSURE.getDownloadFileds());
     val actualValue = converter.convert(resolvedValues, exposureRow);
-    val expectedValue = Joiners.TAB.join("DO1", "DCC-TEST", "DID123", "exp_type", 1, "", 2, "alco_hist",
+    val expectedValue = TAB.join("DO1", "DCC-TEST", "DID123", "exp_type", 1, "", 2, "alco_hist",
         "alco_hist_int");
     assertThat(actualValue).isEqualTo(expectedValue);
   }

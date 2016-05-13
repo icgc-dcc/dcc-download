@@ -15,18 +15,21 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.model;
+package org.icgc.dcc.download.server.config;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class TaskProgress {
+import org.springframework.boot.actuate.health.MongoHealthIndicator;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
-  private int completedCount;
-  private int totalCount;
+@Configuration
+public class HealthConfig {
+
+  @Bean
+  public MongoHealthIndicator mongoHealthIndicator(@NonNull MongoTemplate mongoTemplate) {
+    return new MongoHealthIndicator(mongoTemplate);
+  }
 
 }

@@ -123,8 +123,8 @@ public class DownloadServiceTest extends AbstractSparkTest {
     val taskProgresses = status.getTaskProgress();
     assertThat(taskProgresses).hasSize(1);
     val donorProgress = taskProgresses.get(DownloadDataType.DONOR);
-    assertThat(donorProgress.getNumerator()).isEqualTo(1);
-    assertThat(donorProgress.getDenominator()).isEqualTo(1);
+    assertThat(donorProgress.getCompletedCount()).isEqualTo(1);
+    assertThat(donorProgress.getTotalCount()).isEqualTo(1);
   }
 
   private SubmitJobRequest createSubmitJobRequest(Set<String> donorIds, Set<DownloadDataType> dataTypes) {

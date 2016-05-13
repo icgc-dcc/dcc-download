@@ -32,10 +32,12 @@ import javax.net.ssl.TrustManager;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import org.icgc.dcc.common.core.security.DumbX509TrustManager;
 import org.icgc.dcc.download.client.DownloadClientConfig;
+import org.icgc.dcc.download.client.response.HealthResponse;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobInfo;
 import org.icgc.dcc.download.core.model.JobProgress;
@@ -54,10 +56,12 @@ import com.sun.jersey.api.client.filter.LoggingFilter;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
+@Slf4j
 public class HttpDownloadClient {
 
   private static final String JOBS_PATH = "/jobs";
   private static final String STATS_PATH = "/stats";
+  private static final String HEALTH_PATH = "/health";
 
   private WebResource resource;
 
@@ -142,7 +146,21 @@ public class HttpDownloadClient {
         .post(DataTypeSizesResponse.class, requestBody);
 
     return response.getSizes();
+  }
 
+  public boolean isServiceAvailable() {
+    HealthResponse response;
+    try {
+      response = resource.path(HEALTH_PATH)
+          .header(CONTENT_TYPE, JSON_UTF_8)
+          .get(HealthResponse.class);
+    } catch (Exception e) {
+      log.error("Exception during the health check:\n", e);
+
+      return false;
+    }
+
+    return response.isAlive();
   }
 
   private static ClientConfig getClientConfig() {
