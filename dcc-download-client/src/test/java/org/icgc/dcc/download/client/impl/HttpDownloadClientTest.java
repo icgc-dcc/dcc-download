@@ -17,71 +17,97 @@
  */
 package org.icgc.dcc.download.client.impl;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
+import static com.google.common.net.MediaType.JSON_UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
-import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_EXPOSURE;
-import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_FAMILY;
-import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_THERAPY;
 import static org.icgc.dcc.download.core.model.DownloadDataType.SAMPLE;
 import static org.icgc.dcc.download.core.model.DownloadDataType.SPECIMEN;
 import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_CONTROLLED;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import lombok.val;
 
+import java.util.Collections;
+
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+import org.icgc.dcc.download.client.DownloadClientConfig;
 import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.client.util.AbstractHttpTest;
+import org.icgc.dcc.download.core.model.JobUiInfo;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+@Slf4j
 @RunWith(MockitoJUnitRunner.class)
-public class HttpDownloadClientTest {
+public class HttpDownloadClientTest extends AbstractHttpTest {
+
+  private static final String JOB_ID = "job123";
 
   @Mock
   ArchiveOutputStream outputStream;
-  @Mock
-  HttpClient httpClient;
 
-  @InjectMocks
   HttpDownloadClient downloadClient;
+
+  @Before
+  public void setUp() {
+    val config = new DownloadClientConfig().baseUrl(getServerUrl()).requestLoggingEnabled(true);
+    downloadClient = new HttpDownloadClient(outputStream, config);
+  }
 
   @Test
   public void testSubmitClinicalJob() throws Exception {
     // Setup
-    when(httpClient.getSizes(any(SubmitJobRequest.class)))
-        .thenReturn(ImmutableMap.<DownloadDataType, Long> builder()
-            .put(DONOR, 1L)
-            .put(SPECIMEN, 1L)
-            .put(SAMPLE, 0L)
-            .put(DONOR_EXPOSURE, 1L)
-            .put(DONOR_FAMILY, 0L)
-            .put(DONOR_THERAPY, 0L)
-            .put(SSM_CONTROLLED, 1L)
-            .build());
+    stubGetSizesRequest();
+    stubSubmitJobRequest();
 
     // Run
-    downloadClient.submitJob(
+    val jobId = downloadClient.submitJob(
         ImmutableSet.of("DO1"),
         ImmutableSet.of(DONOR, SSM_CONTROLLED),
-        JobInfo.builder().build(),
-        "test@example.com");
+        JobUiInfo.builder().build());
 
     // Verify
-    val argument = ArgumentCaptor.forClass(SubmitJobRequest.class);
-    verify(httpClient).submitJob(argument.capture());
+    assertThat(jobId).isEqualTo(JOB_ID);
+  }
 
-    val submitRequest = argument.getValue();
-    assertThat(submitRequest.getDataTypes()).containsOnly(DONOR, SSM_CONTROLLED, SPECIMEN, DONOR_EXPOSURE);
+  @Test
+  public void testGetSizes() throws Exception {
+    stubGetSizesRequest();
+
+    val sizes = downloadClient.getSizes(Collections.singleton("DO1"));
+    log.info("{}", sizes);
+    assertThat(sizes).isEqualTo(ImmutableMap.of(DONOR, 1L, SSM_CONTROLLED, 2L, SAMPLE, 0L, SPECIMEN, 1L));
+  }
+
+  private static void stubSubmitJobRequest() {
+    stubFor(post(urlEqualTo("/jobs"))
+        .withRequestBody(equalToJson("{\"dataTypes\":[\"DONOR\",\"SSM_CONTROLLED\",\"SPECIMEN\"],"
+            + "\"donorIds\":[\"DO1\"],"
+            + "\"jobInfo\":{\"email\":null,\"uiQueryStr\":null,\"controlled\":false,\"filter\":null},"
+            + "\"submissionTime\":0}"))
+        .willReturn(aResponse()
+            .withBody(JOB_ID)
+        ));
+  }
+
+  private static void stubGetSizesRequest() {
+    stubFor(get(urlEqualTo("/stats?id=DO1"))
+        .willReturn(aResponse()
+            .withBody("{\"sizes\":{\"DONOR\":1,\"SSM_CONTROLLED\":2,\"SAMPLE\":0,\"SPECIMEN\":1}}")
+            .withHeader(CONTENT_TYPE, JSON_UTF_8.toString())
+        ));
   }
 
 }

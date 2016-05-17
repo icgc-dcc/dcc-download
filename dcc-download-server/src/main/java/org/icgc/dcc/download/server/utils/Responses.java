@@ -17,11 +17,22 @@
  */
 package org.icgc.dcc.download.server.utils;
 
+import static com.google.common.collect.Iterables.contains;
+import static com.google.common.collect.Sets.difference;
+import static java.util.Arrays.stream;
 import static lombok.AccessLevel.PRIVATE;
-import lombok.NoArgsConstructor;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
 
+import java.util.Set;
+
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.val;
+
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
-import org.icgc.dcc.download.server.model.Job;
+
+import com.google.common.collect.ImmutableSet;
 
 @NoArgsConstructor(access = PRIVATE)
 public final class Responses {
@@ -34,6 +45,45 @@ public final class Responses {
 
   public static void throwJobNotFoundException(String jobId) {
     throw new NotFoundException("Failed to find job with ID " + jobId);
+  }
+
+  public static Job createJobResponse(Job job, Iterable<String> fieldsProjection) {
+    val allFields = getJobFields();
+    val keepFields = convertProjectionFields(fieldsProjection);
+    val removeFields = difference(allFields, keepFields);
+
+    return unsetFields(job, removeFields);
+  }
+
+  private static Job unsetFields(Job job, Set<String> removeFields) {
+    removeFields.stream()
+        .forEach(field -> unsetField(job, field));
+
+    return job;
+  }
+
+  @SneakyThrows
+  private static void unsetField(Job job, String field) {
+    val f = Job.class.getDeclaredField(field);
+    f.setAccessible(true);
+    f.set(job, null);
+  }
+
+  private static Set<String> convertProjectionFields(Iterable<String> fieldsProjection) {
+    val fields = ImmutableSet.<String> builder();
+    fields.addAll(fieldsProjection);
+    // The 'id' field should never be removed.
+    if (!contains(fieldsProjection, "id")) {
+      fields.add("id");
+    }
+
+    return fields.build();
+  }
+
+  private static Set<String> getJobFields() {
+    return stream(Job.class.getDeclaredFields())
+        .map(field -> field.getName())
+        .collect(toImmutableSet());
   }
 
 }

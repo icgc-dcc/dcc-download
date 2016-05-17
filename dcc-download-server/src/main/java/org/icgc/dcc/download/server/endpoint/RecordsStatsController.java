@@ -17,18 +17,19 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.icgc.dcc.download.server.utils.Requests.splitValues;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
 import org.icgc.dcc.download.server.service.RecordStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -40,22 +41,18 @@ public final class RecordsStatsController {
   @NonNull
   private final RecordStatsService recordStatsService;
 
-  @RequestMapping(method = POST)
-  public DataTypeSizesResponse estimateRecordsSizes(@RequestBody SubmitJobRequest request) {
-    log.debug("Received get records sizes request. {}", request);
-    if (isEmpty(request)) {
-      log.info("Empty get records sizes request. Skipping... {}", request);
+  @RequestMapping(method = GET)
+  public DataTypeSizesResponse estimateRecordsSizes(@RequestParam String id) {
+    log.debug("Received get records sizes request for ids: '{}'", id);
+    if (isNullOrEmpty(id)) {
+      log.info("Empty get records sizes request. Skipping...");
       throw new BadRequestException("Empty get records sizes request");
     }
 
-    val recordsSizes = recordStatsService.getRecordsSizes(request.getDonorIds());
+    val recordsSizes = recordStatsService.getRecordsSizes(splitValues(id));
     log.debug("Record sizes: {}", recordsSizes);
 
     return new DataTypeSizesResponse(recordsSizes);
-  }
-
-  private static boolean isEmpty(SubmitJobRequest request) {
-    return request.getDonorIds().isEmpty();
   }
 
 }

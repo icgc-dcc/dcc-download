@@ -15,54 +15,21 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client.impl;
+package org.icgc.dcc.download.client.util;
 
-import lombok.val;
+import org.junit.Rule;
 
-import org.icgc.dcc.download.client.impl.HttpClient;
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 
-import com.google.common.collect.ImmutableSet;
+public abstract class AbstractHttpTest {
 
-public class HttpClientIntegrationTest {
+  protected static final int SERVER_PORT = 22223;
 
-  private static final String BASE_URL = "http://localhost:8080";
+  @Rule
+  public WireMockRule wireMockRule = new WireMockRule(SERVER_PORT);
 
-  HttpClient client;
-
-  @Before
-  public void setUp() {
-    client = new HttpClient(BASE_URL);
-  }
-
-  @Test
-  @Ignore
-  public void testGetSizes() throws Exception {
-    val requestBody = SubmitJobRequest.builder()
-        .donorIds(ImmutableSet.of("DO001"))
-        .dataTypes(ImmutableSet.of(DownloadDataType.DONOR))
-        .jobInfo(JobInfo.builder().build())
-        .userEmailAddress("")
-        .build();
-
-    client.getSizes(requestBody);
-  }
-
-  @Test
-  @Ignore
-  public void testSubmitJob() throws Exception {
-    val requestBody = SubmitJobRequest.builder()
-        .donorIds(ImmutableSet.of("DO001"))
-        .dataTypes(ImmutableSet.of(DownloadDataType.DONOR))
-        .jobInfo(JobInfo.builder().build())
-        .userEmailAddress("")
-        .build();
-    client.submitJob(requestBody);
+  protected String getServerUrl() {
+    return "http://localhost:" + SERVER_PORT;
   }
 
 }

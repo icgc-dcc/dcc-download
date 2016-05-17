@@ -182,6 +182,14 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
         <version>${jersey.version}</version>
       </dependency>
 
+      <!-- Test - HTTP -->
+      <dependency>
+        <groupId>com.github.tomakehurst</groupId>
+        <artifactId>wiremock</artifactId>
+        <version>${wiremock.version}</version>
+        <scope>test</scope>
+        <classifier>standalone</classifier>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -223,6 +231,9 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     
     <!-- REST -->
     <jersey.version>1.17.1</jersey.version>
+    
+    <!-- HTTP - Test -->
+    <wiremock.version>1.57</wiremock.version>
   </properties>
 
 </project>

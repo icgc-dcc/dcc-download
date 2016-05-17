@@ -19,178 +19,235 @@ package org.icgc.dcc.download.server.service;
 
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.spark.SparkJobInfo;
+import org.apache.spark.SparkStageInfo;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.JavaSparkStatusTracker;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobStatus;
+import org.icgc.dcc.download.core.model.JobUiInfo;
+import org.icgc.dcc.download.core.model.TaskProgress;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.job.core.DownloadJob;
-import org.icgc.dcc.download.job.core.JobContext;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
-import org.icgc.dcc.download.server.model.Job;
 import org.icgc.dcc.download.server.repository.JobRepository;
-import org.icgc.dcc.download.test.AbstractSparkTest;
-import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import scala.Tuple2;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 
 @Slf4j
 @RunWith(MockitoJUnitRunner.class)
-public class DownloadServiceTest extends AbstractSparkTest {
+public class DownloadServiceTest {
+
+  private static final String JOB_ID = "123";
+  private static final String SPARK_JOB_NAME = JOB_ID + "-DONOR";
+
+  @Mock
+  JavaSparkContext sparkContext;
+  @Mock
+  JavaSparkStatusTracker statusTracker;
+  @Mock
+  SparkJobInfo sparkJobInfo1;
+  @Mock
+  SparkJobInfo sparkJobInfo2;
+  @Mock
+  SparkJobInfo sparkJobInfo3;
+  @Mock
+  SparkStageInfo sparkStageInfo;
+  @Mock
+  SparkStageInfo uncompleteSparkStageInfo;
+  @Mock
+  FileSystem fs;
 
   @Mock
   JobProperties jobProperties;
   @Mock
   JobRepository jobRepository;
-  @Mock
-  Job job;
 
-  CompletionService<String> completionService = createCompletionService();
-  Map<String, Future<String>> submittedJobs = Maps.newHashMap();
+  @Mock
+  DownloadJob downloadJob;
+  @Mock
+  Future<String> jobFuture;
+
+  @Mock
+  CompletionService<String> completionService;
+  @Mock
+  Map<String, Future<String>> submittedJobs;
 
   DownloadService downloadService;
 
-  @Override
+  @Before
   public void setUp() {
-    super.setUp();
-    this.downloadService = new DownloadService(sparkContext, fileSystem, jobProperties, completionService,
-        jobRepository, submittedJobs, new TestArchiveJob());
+    this.downloadService = new DownloadService(sparkContext, fs, jobProperties, completionService,
+        jobRepository, submittedJobs, downloadJob);
   }
 
   @Test
-  @Ignore
-  public void testCancelJob() throws Exception {
+  public void testSubmitJob() throws Exception {
     val submitRequest1 = createSubmitJobRequest(singleton("1"), singleton(DownloadDataType.DONOR));
     val jobId = downloadService.submitJob(submitRequest1);
-    when(jobRepository.findById(jobId)).thenReturn(job);
-    log.warn("Job ID: {}", jobId);
-    downloadService.cancelJob(jobId);
-    fail("Finish!");
+
+    assertThat(jobId).isNotNull();
+    verify(submittedJobs, times(1)).put(eq(jobId), any());
+    verify(jobRepository, times(1)).save(any(Job.class));
+    verify(completionService, times(1)).submit(Matchers.<Callable<String>> any());
   }
 
   @Test
-  @Ignore("For manual tests only")
-  public void testWaitJob() throws Exception {
-    val submitRequest1 = createSubmitJobRequest(singleton("1"), singleton(DownloadDataType.DONOR));
-    val submitRequest2 = createSubmitJobRequest(singleton("2"), singleton(DownloadDataType.DONOR));
+  public void testCancelJob() throws Exception {
+    when(submittedJobs.remove(JOB_ID)).thenReturn(jobFuture);
+    when(jobRepository.findById(JOB_ID)).thenReturn(createTestJob(JobStatus.RUNNING));
 
-    downloadService.submitJob(submitRequest1);
-    downloadService.submitJob(submitRequest2);
+    downloadService.cancelJob(JOB_ID);
 
-    Thread.sleep(5_000L);
-    reportStats();
-
-    log.info("Press any button to exit.");
-    System.in.read();
+    verify(jobFuture).cancel(true);
+    verify(sparkContext).cancelJobGroup(SPARK_JOB_NAME);
+    val expecrtedJob = createTestJob(JobStatus.RUNNING);
+    expecrtedJob.setStatus(JobStatus.KILLED);
+    verify(jobRepository, times(1)).save(expecrtedJob);
   }
 
   @Test
-  public void testGetJobsStatus() throws Exception {
-    val submitRequest = createSubmitJobRequest(singleton("1"), singleton(DownloadDataType.DONOR));
-    val jobId = downloadService.submitJob(submitRequest);
+  public void testSetActiveDownload() throws Exception {
+    when(jobRepository.findById(JOB_ID)).thenReturn(createTestJob(JobStatus.RUNNING));
 
-    when(jobRepository.findById(jobId)).thenReturn(job);
-    when(job.getStatus()).thenReturn(JobStatus.SUCCEEDED);
-    when(job.getDataTypes()).thenReturn(singleton(DownloadDataType.DONOR));
+    downloadService.setActiveDownload(JOB_ID);
 
-    val statuses = downloadService.getJobsStatus(Collections.singleton(jobId));
-    log.info("{}", statuses);
+    val expecrtedJob = createTestJob(JobStatus.RUNNING);
+    expecrtedJob.setStatus(JobStatus.TRANSFERRING);
+    verify(jobRepository, times(1)).save(expecrtedJob);
+  }
 
-    assertThat(statuses).hasSize(1);
-    val status = statuses.get(jobId);
-    assertThat(status.getStatus()).isEqualTo(JobStatus.SUCCEEDED);
-    val taskProgresses = status.getTaskProgress();
-    assertThat(taskProgresses).hasSize(1);
-    val donorProgress = taskProgresses.get(DownloadDataType.DONOR);
-    assertThat(donorProgress.getCompletedCount()).isEqualTo(1);
-    assertThat(donorProgress.getTotalCount()).isEqualTo(1);
+  @Test
+  public void testUnsetActiveDownload() throws Exception {
+    when(jobRepository.findById(JOB_ID)).thenReturn(createTestJob(JobStatus.RUNNING));
+
+    downloadService.unsetActiveDownload(JOB_ID);
+
+    val expecrtedJob = createTestJob(JobStatus.RUNNING);
+    expecrtedJob.setStatus(JobStatus.SUCCEEDED);
+    verify(jobRepository, times(1)).save(expecrtedJob);
+  }
+
+  @Test
+  public void testGetJob_notFound() throws Exception {
+    val job = downloadService.getJob("", false);
+    assertThat(job).isNull();
+  }
+
+  @Test
+  public void testGetJob_noProgress() throws Exception {
+    val job = createTestJob(null);
+    when(jobRepository.findById(JOB_ID)).thenReturn(job);
+    val actualJob = downloadService.getJob(JOB_ID, false);
+    assertThat(actualJob).isEqualTo(job);
+  }
+
+  @Test
+  public void testGetJob_progress_completed() throws Exception {
+    val dbJob = createTestJob(JobStatus.SUCCEEDED);
+    when(jobRepository.findById(JOB_ID)).thenReturn(dbJob);
+
+    val actualJob = downloadService.getJob(JOB_ID, true);
+    val expectedJob = createTestJob(JobStatus.SUCCEEDED);
+    expectedJob.setProgress(ImmutableMap.of(DONOR, new TaskProgress(1, 1)));
+
+    log.info("Actual job: {}", actualJob);
+    assertThat(actualJob).isEqualTo(expectedJob);
+  }
+
+  @Test
+  public void testGetJob_progress_failed() throws Exception {
+    val dbJob = createTestJob(JobStatus.FAILED);
+    when(jobRepository.findById(JOB_ID)).thenReturn(dbJob);
+
+    val actualJob = downloadService.getJob(JOB_ID, true);
+    val expectedJob = createTestJob(JobStatus.FAILED);
+    expectedJob.setProgress(ImmutableMap.of(DONOR, new TaskProgress(0, 0)));
+
+    log.info("Actual job: {}", actualJob);
+    assertThat(actualJob).isEqualTo(expectedJob);
+  }
+
+  @Test
+  public void testGetJob_progress_running() throws Exception {
+    val dbJob = createTestJob(JobStatus.RUNNING);
+    when(jobRepository.findById(JOB_ID)).thenReturn(dbJob);
+    mockGetJobStatus();
+
+    val actualJob = downloadService.getJob(JOB_ID, true);
+    val expectedJob = createTestJob(JobStatus.RUNNING);
+    expectedJob.setProgress(ImmutableMap.of(DONOR, new TaskProgress(2, 3)));
+
+    log.info("Actual job: {}", actualJob);
+    assertThat(actualJob).isEqualTo(expectedJob);
+  }
+
+  private void mockGetJobStatus() {
+    when(sparkContext.statusTracker()).thenReturn(statusTracker);
+
+    // 3 Jobs are running
+    when(statusTracker.getJobIdsForGroup(SPARK_JOB_NAME)).thenReturn(new int[] { 1, 2, 3 });
+
+    // mock getStages()
+    when(statusTracker.getJobInfo(1)).thenReturn(sparkJobInfo1);
+    when(sparkJobInfo1.stageIds()).thenReturn(new int[] { 1 });
+    when(statusTracker.getJobInfo(2)).thenReturn(sparkJobInfo2);
+    when(sparkJobInfo2.stageIds()).thenReturn(new int[] { 2 });
+    when(statusTracker.getJobInfo(3)).thenReturn(sparkJobInfo3);
+    when(sparkJobInfo3.stageIds()).thenReturn(new int[] { 3 });
+
+    // mock getTotalTasks()
+    when(statusTracker.getStageInfo(1)).thenReturn(sparkStageInfo);
+    when(sparkStageInfo.numTasks()).thenReturn(1);
+    when(statusTracker.getStageInfo(2)).thenReturn(sparkStageInfo);
+    when(sparkStageInfo.numTasks()).thenReturn(1);
+    when(statusTracker.getStageInfo(3)).thenReturn(uncompleteSparkStageInfo);
+    when(uncompleteSparkStageInfo.numTasks()).thenReturn(1);
+
+    // mock getCompletedTasks()
+    when(sparkStageInfo.numCompletedTasks()).thenReturn(1);
+    when(uncompleteSparkStageInfo.numCompletedTasks()).thenReturn(0);
   }
 
   private SubmitJobRequest createSubmitJobRequest(Set<String> donorIds, Set<DownloadDataType> dataTypes) {
     val submitRequest = SubmitJobRequest.builder()
         .donorIds(donorIds)
         .dataTypes(dataTypes)
-        .jobInfo(JobInfo.builder().build())
+        .jobInfo(JobUiInfo.builder().build())
         .build();
     return submitRequest;
   }
 
-  private void reportStats() {
-    val statusTracker = sparkContext.statusTracker();
-
-    int[] groupJobs = statusTracker.getJobIdsForGroup("test_gr1");
-    log.info("Group job ids: {}", groupJobs);
-
-    for (val activeJob : groupJobs) {
-      val jobInfo = statusTracker.getJobInfo(activeJob);
-      log.info("JobInfo: {}", jobInfo);
-      val status = jobInfo.status();
-      log.info("Job status: {}", status);
-    }
-
-    int[] activeJobs = statusTracker.getActiveJobIds();
-    log.info("Active job ids: {}", activeJobs);
-
-    for (val activeJob : activeJobs) {
-      val jobInfo = statusTracker.getJobInfo(activeJob);
-      log.info("JobInfo: {}", jobInfo);
-      val status = jobInfo.status();
-      log.info("Job status: {}", status);
-    }
-
-  }
-
-  private static CompletionService<String> createCompletionService() {
-    val executor = Executors.newFixedThreadPool(1);
-
-    return new ExecutorCompletionService<String>(executor);
-  }
-
-  public static class TestArchiveJob implements DownloadJob {
-
-    @Override
-    @SneakyThrows
-    public void execute(JobContext jobContext) {
-      val sparkContext = jobContext.getSparkContext();
-      val jobId = jobContext.getJobId();
-      sparkContext.setJobGroup(jobId, jobId);
-
-      val rdd = sparkContext.parallelize(ImmutableList.of(1, 2, 3, 4, 5))
-          .mapToPair(n -> new Tuple2<Integer, Integer>(n, 1));
-      rdd.cache();
-      rdd.count();
-
-      int counter = 0;
-
-      while (counter++ < 2) {
-        Thread.sleep(3_000L);
-        log.info("Running...");
-      }
-
-      log.info("Done");
-    }
-
+  private static Job createTestJob(JobStatus status) {
+    return Job.builder()
+        .id(JOB_ID)
+        .status(status)
+        .dataTypes(singleton(DONOR))
+        .build();
   }
 
 }

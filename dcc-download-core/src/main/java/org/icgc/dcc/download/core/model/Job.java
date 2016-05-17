@@ -15,19 +15,34 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.request;
+package org.icgc.dcc.download.core.model;
 
+import java.util.Map;
 import java.util.Set;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class GetJobsInfoRequest {
+@Builder
+@JsonInclude(Include.NON_NULL)
+public class Job {
 
-  private Set<String> jobIds;
+  private String id;
+  private Set<String> donorIds;
+  private Set<DownloadDataType> dataTypes;
+  private JobStatus status;
+  private Long submissionDate;
+  private Long completionDate;
+
+  private JobUiInfo jobInfo;
+
+  private Long fileSizeBytes;
+  private Integer ttlHours;
+
+  private Map<DownloadDataType, TaskProgress> progress;
 
 }

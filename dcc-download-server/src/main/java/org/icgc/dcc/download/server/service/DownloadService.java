@@ -17,13 +17,11 @@
  */
 package org.icgc.dcc.download.server.service;
 
-import static com.google.common.collect.Maps.immutableEntry;
 import static java.util.Arrays.stream;
 import static org.icgc.dcc.common.core.util.Separators.DASH;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
-import static org.icgc.dcc.download.server.utils.JobProgresses.createJobProgress;
 import static org.icgc.dcc.download.server.utils.Responses.verifyJobExistance;
 
 import java.util.List;
@@ -43,8 +41,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.JavaSparkStatusTracker;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobStatus;
 import org.icgc.dcc.download.core.model.TaskProgress;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
@@ -109,18 +106,25 @@ public class DownloadService {
     jobRepository.save(cancelledJob);
   }
 
-  public Map<String, JobProgress> getJobsStatus(@NonNull Set<String> jobIds) {
-    return jobIds.stream()
-        .map(jobId -> immutableEntry(jobId, getJobStatus(jobId)))
-        .filter(entry -> entry.getValue() != null)
-        .collect(toImmutableMap(e -> e.getKey(), e -> e.getValue()));
-  }
+  public Job getJob(String jobId, boolean includeProgress) {
+    val job = jobRepository.findById(jobId);
+    log.debug("Found job in the DB: {}", job);
+    if (job == null) {
+      return null;
+    }
 
-  public Map<String, JobInfo> getJobsInfo(@NonNull Set<String> jobIds) {
-    return jobIds.stream()
-        .map(jobId -> jobRepository.findById(jobId))
-        .filter(job -> job != null)
-        .collect(toImmutableMap(job -> job.getId(), job -> job.getJobInfo()));
+    if (!includeProgress) {
+      return job;
+    }
+
+    val jobStatus = job.getStatus();
+    val dataTypes = job.getDataTypes();
+    val progress = jobStatus == JobStatus.RUNNING ?
+        calculateJobProgress(job.getId(), dataTypes) :
+        Jobs.createJobProgress(jobStatus, dataTypes);
+    job.setProgress(progress);
+
+    return job;
   }
 
   public void setActiveDownload(@NonNull String jobId) {
@@ -133,29 +137,13 @@ public class DownloadService {
   public void unsetActiveDownload(@NonNull String jobId) {
     val job = jobRepository.findById(jobId);
     verifyJobExistance(job, jobId);
-    val activeJob = Jobs.setActiveDownload(job);
+    val activeJob = Jobs.unsetActiveDownload(job);
     jobRepository.save(activeJob);
   }
 
-  private JobProgress getJobStatus(String jobId) {
-    val job = jobRepository.findById(jobId);
-    if (job == null) {
-      return null;
-    }
-
-    val jobStatus = job.getStatus();
-    val dataTypes = job.getDataTypes();
-
-    return jobStatus == JobStatus.RUNNING ?
-        calculateJobProgress(job.getId(), dataTypes) :
-        createJobProgress(jobStatus, dataTypes);
-  }
-
-  private JobProgress calculateJobProgress(String jobId, Set<DownloadDataType> dataTypes) {
-    val taskProgress = dataTypes.stream()
+  private Map<DownloadDataType, TaskProgress> calculateJobProgress(String jobId, Set<DownloadDataType> dataTypes) {
+    return dataTypes.stream()
         .collect(toImmutableMap(dt -> dt, dt -> calculateTaskProgress(jobId, dt)));
-
-    return new JobProgress(JobStatus.RUNNING, taskProgress);
   }
 
   private void cancelSparkJobs(String jobId, Set<DownloadDataType> dataTypes) {
@@ -191,6 +179,17 @@ public class DownloadService {
     return response;
   }
 
+  private JobContext createJobContext(String jobId, Set<String> donorIds, Set<DownloadDataType> dataTypes) {
+    return new JobContext(
+        jobId,
+        donorIds,
+        dataTypes,
+        sparkContext,
+        fileSystem,
+        jobProperties.getInputDir(),
+        jobProperties.getOutputDir());
+  }
+
   private static List<Integer> getStages(JavaSparkStatusTracker statusTracker, int[] jobIds) {
     return stream(jobIds)
         .flatMap(jobId -> stream(statusTracker.getJobInfo(jobId).stageIds()))
@@ -208,17 +207,6 @@ public class DownloadService {
     return stages.stream()
         .mapToInt(id -> statusTracker.getStageInfo(id).numCompletedTasks())
         .sum();
-  }
-
-  private JobContext createJobContext(String jobId, Set<String> donorIds, Set<DownloadDataType> dataTypes) {
-    return new JobContext(
-        jobId,
-        donorIds,
-        dataTypes,
-        sparkContext,
-        fileSystem,
-        jobProperties.getInputDir(),
-        jobProperties.getOutputDir());
   }
 
   private static String getJobId() {

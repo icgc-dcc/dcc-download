@@ -17,24 +17,34 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static java.util.Collections.emptyList;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.server.utils.Requests.splitValues;
+import static org.icgc.dcc.download.server.utils.Responses.createJobResponse;
+import static org.icgc.dcc.download.server.utils.Responses.verifyJobExistance;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static org.springframework.web.bind.annotation.RequestMethod.PUT;
+
+import java.util.List;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.core.request.GetJobsInfoRequest;
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.icgc.dcc.download.core.response.JobInfoResponse;
-import org.icgc.dcc.download.core.response.JobsProgressResponse;
 import org.icgc.dcc.download.server.mail.Mailer;
 import org.icgc.dcc.download.server.service.DownloadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -43,6 +53,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/jobs")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public final class JobController {
+
+  private static final String PROGRESS_FIELD = "progress";
 
   @NonNull
   private final DownloadService downloadService;
@@ -58,7 +70,7 @@ public final class JobController {
     }
 
     val jobId = downloadService.submitJob(request);
-    mailer.sendStart(jobId, request.getUserEmailAddress());
+    mailer.sendStart(jobId, request.getJobInfo().getEmail());
 
     return jobId;
   }
@@ -69,22 +81,18 @@ public final class JobController {
     downloadService.cancelJob(jobId);
   }
 
-  @RequestMapping(value = "/progress", method = POST)
-  public JobsProgressResponse getJobStatus(@RequestBody GetJobsInfoRequest request) {
-    val response = downloadService.getJobsStatus(request.getJobIds());
+  @RequestMapping(value = "/{jobId:.+}", method = GET)
+  public Job getJob(@PathVariable("jobId") String jobId, @RequestParam(required = false) String field) {
+    log.debug("getJob request: job ID - '{}', field - '{}''", jobId, field);
+    val fields = resolveFields(field);
+    val job = downloadService.getJob(jobId, includeProgress(fields));
+    verifyJobExistance(job, jobId);
 
-    return new JobsProgressResponse(response);
-  }
-
-  @RequestMapping(value = "/info", method = POST)
-  public JobInfoResponse getJobsinfo(@RequestBody GetJobsInfoRequest request) {
-    val info = downloadService.getJobsInfo(request.getJobIds());
-
-    return new JobInfoResponse(info);
+    return createJobResponse(job, project(fields));
   }
 
   @ResponseStatus(OK)
-  @RequestMapping(value = "/{jobId:.+}/active", method = POST)
+  @RequestMapping(value = "/{jobId:.+}/active", method = PUT)
   public void setActiveDownload(@PathVariable("jobId") String jobId) {
     downloadService.setActiveDownload(jobId);
   }
@@ -97,6 +105,22 @@ public final class JobController {
 
   private static boolean isEmpty(SubmitJobRequest request) {
     return request.getDonorIds().isEmpty() || request.getDataTypes().isEmpty();
+  }
+
+  private static List<String> resolveFields(String field) {
+    return isNullOrEmpty(field) ? emptyList() : splitValues(field);
+  }
+
+  private static boolean includeProgress(List<String> fields) {
+    return fields.contains(PROGRESS_FIELD);
+  }
+
+  private static List<String> project(List<String> fields) {
+    return fields.contains(PROGRESS_FIELD) ?
+        fields.stream()
+            .filter(field -> !PROGRESS_FIELD.equals(field))
+            .collect(toImmutableList()) :
+        fields;
   }
 
 }

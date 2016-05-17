@@ -15,31 +15,56 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.model;
+package org.icgc.dcc.download.server.utils;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
+import static org.icgc.dcc.download.server.utils.Responses.createJobResponse;
+import lombok.val;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class JobInfo {
+import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.core.model.JobUiInfo;
+import org.junit.Test;
 
-  String filter;
-  String email;
-  boolean isControlled;
-  long startTime;
-  String uiQueryStr;
+import com.google.common.collect.ImmutableList;
 
-  long completionTime;
+public class ResponsesTest {
 
-  // In bytes
-  long fileSize;
+  @Test
+  public void testCreateJobResponse_empty() throws Exception {
+    val actualJob = createJobResponse(createJob(), emptyList());
+    val expectedJob = Job.builder().id("1").build();
+    assertThat(actualJob).isEqualTo(expectedJob);
+  }
 
-  // In hours
-  int ttl;
+  @Test
+  public void testCreateJobResponse_some() throws Exception {
+    val actualJob = createJobResponse(createJob(), ImmutableList.of("submissionDate", "ttlHours"));
+    val expectedJob = Job.builder()
+        .id("1")
+        .submissionDate(1L)
+        .ttlHours(1)
+        .build();
+    assertThat(actualJob).isEqualTo(expectedJob);
+  }
+
+  private static Job createJob() {
+    return Job.builder()
+        .id("1")
+        .donorIds(singleton("DO1"))
+        .dataTypes(singleton(DONOR))
+        .status(SUCCEEDED)
+        .submissionDate(1L)
+        .completionDate(1L)
+        .jobInfo(JobUiInfo.builder().build())
+        .fileSizeBytes(1L)
+        .ttlHours(1)
+        .progress(emptyMap())
+        .build();
+  }
 
 }

@@ -15,32 +15,22 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.utils;
 
-import java.util.Set;
+import static lombok.AccessLevel.PRIVATE;
 
-import lombok.Builder;
-import lombok.Data;
+import java.util.List;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobStatus;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
-/**
- * DB entity.
- */
-@Data
-@Builder
-public class Job {
+import org.icgc.dcc.common.core.util.Splitters;
 
-  private Set<String> donorIds;
-  private Set<DownloadDataType> dataTypes;
-  private JobInfo jobInfo;
-  private String userEmailAddress;
+@NoArgsConstructor(access = PRIVATE)
+public final class Requests {
 
-  private String id;
-  private JobStatus status;
-  private Long submissionDate;
-  private Long completionDate;
+  public static List<String> splitValues(@NonNull String values) {
+    return Splitters.COMMA.splitToList(values);
+  }
 
 }

@@ -35,6 +35,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.server.mail.Mailer;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +95,7 @@ public class JobService {
     log.debug("Updated job {}", completedJob);
 
     submittedJobs.remove(jobId);
-    mailer.sendSuccessful(jobId, job.getUserEmailAddress());
+    mailer.sendSuccessful(jobId, job.getJobInfo().getEmail());
   }
 
   private void processFailedJob(Future<String> result, ExecutionException e) {
@@ -109,11 +110,11 @@ public class JobService {
 
       submittedJobs.remove(jobId);
       log.info("Removed failed jobID '{}'", jobId);
-      mailer.sendFailed(jobId, job.getUserEmailAddress());
+      mailer.sendFailed(jobId, job.getJobInfo().getEmail());
     }
   }
 
-  private org.icgc.dcc.download.server.model.Job findJob(final java.lang.String jobId) {
+  private Job findJob(String jobId) {
     log.debug("Looking for job to update...");
     val job = repository.findById(jobId);
     log.debug("Updating {} ...", job);

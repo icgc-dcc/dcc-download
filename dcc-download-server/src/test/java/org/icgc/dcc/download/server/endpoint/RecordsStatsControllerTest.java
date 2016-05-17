@@ -15,78 +15,73 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.task;
+package org.icgc.dcc.download.server.endpoint;
 
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
-import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
-import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
-import java.util.List;
+import java.util.Collection;
 
 import lombok.val;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.download.core.model.Job;
-import org.icgc.dcc.download.server.repository.JobRepository;
+import org.icgc.dcc.download.server.service.RecordStatsService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.test.web.servlet.MockMvc;
 
 import com.google.common.collect.ImmutableList;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RemoveExpiredJobsTest {
+public class RecordsStatsControllerTest {
 
-  private static final String OUTPUT_DIR = "/";
-
-  @Mock
-  FileSystem fileSystem;
+  private static final String ENDPOINT_PATH = "/stats";
 
   @Mock
-  JobRepository repository;
+  RecordStatsService recordStatsService;
 
-  RemoveExpiredJobs task;
+  @InjectMocks
+  RecordsStatsController controller;
+
+  @Captor
+  private ArgumentCaptor<Collection<String>> captor;
+
+  MockMvc mockMvc;
 
   @Before
   public void setUp() {
-    task = new RemoveExpiredJobs(fileSystem, repository, OUTPUT_DIR);
+    mockMvc = standaloneSetup(controller).build();
   }
 
   @Test
-  public void testExecute() throws Exception {
-    when(repository.findByCompletionDateLessThanAndStatusNot(anyLong(), eq(EXPIRED)))
-        .thenReturn(defineJobs());
-    val jobPath = new Path(OUTPUT_DIR + "1");
-    when(fileSystem.exists(jobPath)).thenReturn(true);
+  public void testEstimateRecordsSizes() throws Exception {
+    when(recordStatsService.getRecordsSizes(ImmutableList.of("DO1", "DO2"))).thenReturn(singletonMap(DONOR, 1L));
 
-    task.execute();
+    mockMvc.perform(get(ENDPOINT_PATH).param("id", "DO1,DO2"))
+        .andExpect(status().isOk())
+        .andExpect(content().string("{\"sizes\":{\"DONOR\":1}}"));
 
-    verify(fileSystem, times(1)).delete(jobPath, true);
+    verify(recordStatsService).getRecordsSizes(captor.capture());
+    val request = captor.getValue();
+    assertThat(request).containsOnly("DO1", "DO2");
   }
 
   @Test
-  public void testGetExpiredJobs() throws Exception {
-    when(repository.findByCompletionDateLessThanAndStatusNot(anyLong(), eq(EXPIRED)))
-        .thenReturn(defineJobs());
-
-    val expiredJobs = task.getExpiredJobs();
-    assertThat(expiredJobs).hasSize(1);
-    assertThat(expiredJobs.get(0).getId()).isEqualTo("1");
-  }
-
-  private static List<Job> defineJobs() {
-    return ImmutableList.of(
-        Job.builder().id("1").status(SUCCEEDED).build(),
-        Job.builder().id("2").status(TRANSFERRING).build());
+  public void testEstimateRecordsSizes_empty() throws Exception {
+    mockMvc.perform(get(ENDPOINT_PATH).param("id", ""))
+        .andExpect(status().isBadRequest());
   }
 
 }

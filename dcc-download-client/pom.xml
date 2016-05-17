@@ -66,6 +66,13 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
       <groupId>com.sun.jersey</groupId>
       <artifactId>jersey-json</artifactId>
     </dependency>
+    
+    <!-- Test - HTTP -->
+    <dependency>
+      <groupId>com.github.tomakehurst</groupId>
+      <artifactId>wiremock</artifactId>
+      <classifier>standalone</classifier>
+    </dependency>
   </dependencies>
 
   <build>

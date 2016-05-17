@@ -20,9 +20,9 @@ package org.icgc.dcc.download.server.service;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +45,7 @@ public class RecordStatsService {
   @NonNull
   private final Map<DownloadDataType, Integer> recordWeights;
 
-  public Map<DownloadDataType, Long> getRecordsSizes(@NonNull Set<String> donorIds) {
+  public Map<DownloadDataType, Long> getRecordsSizes(@NonNull Collection<String> donorIds) {
     val sizes = donorIds.stream()
         .flatMap(donorId -> statsTable.row(donorId).entrySet().stream())
         .map(e -> convertToBytes(e))

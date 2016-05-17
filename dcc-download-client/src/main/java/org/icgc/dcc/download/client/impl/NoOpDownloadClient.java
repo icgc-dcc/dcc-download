@@ -24,8 +24,8 @@ import java.util.Set;
 
 import org.icgc.dcc.download.client.DownloadClient;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
+import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.core.model.JobUiInfo;
 
 public class NoOpDownloadClient implements DownloadClient {
 
@@ -36,16 +36,6 @@ public class NoOpDownloadClient implements DownloadClient {
 
   @Override
   public void cancelJob(String jobId) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Map<String, JobInfo> getJobsInfo(Set<String> jobIds) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Map<String, JobProgress> getJobsProgress(Set<String> jobIds) {
     throw new UnsupportedOperationException();
   }
 
@@ -70,13 +60,17 @@ public class NoOpDownloadClient implements DownloadClient {
   }
 
   @Override
-  public String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo,
-      String userEmailAddress) {
+  public String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public void unsetActiveDownload(String jobId) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Job getJob(String jobId, Iterable<String> fields) {
     throw new UnsupportedOperationException();
   }
 

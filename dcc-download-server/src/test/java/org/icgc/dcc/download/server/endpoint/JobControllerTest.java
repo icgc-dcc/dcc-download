@@ -15,78 +15,80 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.task;
+package org.icgc.dcc.download.server.endpoint;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
-import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
-import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
-import java.util.List;
+import java.util.Collection;
 
-import lombok.val;
-
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.core.model.Job;
-import org.icgc.dcc.download.server.repository.JobRepository;
+import org.icgc.dcc.download.server.mail.Mailer;
+import org.icgc.dcc.download.server.service.DownloadService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import com.google.common.collect.ImmutableList;
+import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RemoveExpiredJobsTest {
+public class JobControllerTest {
 
-  private static final String OUTPUT_DIR = "/";
-
-  @Mock
-  FileSystem fileSystem;
+  private static final String ENDPOINT_PATH = "/jobs";
 
   @Mock
-  JobRepository repository;
+  DownloadService service;
+  @Mock
+  Mailer mailer;
 
-  RemoveExpiredJobs task;
+  @InjectMocks
+  JobController controller;
+
+  @Captor
+  ArgumentCaptor<String> jobIdCaptor;
+  @Captor
+  ArgumentCaptor<Collection<String>> fieldsCaptor;
+
+  MockMvc mockMvc;
 
   @Before
   public void setUp() {
-    task = new RemoveExpiredJobs(fileSystem, repository, OUTPUT_DIR);
+    mockMvc = standaloneSetup(controller).build();
   }
 
   @Test
-  public void testExecute() throws Exception {
-    when(repository.findByCompletionDateLessThanAndStatusNot(anyLong(), eq(EXPIRED)))
-        .thenReturn(defineJobs());
-    val jobPath = new Path(OUTPUT_DIR + "1");
-    when(fileSystem.exists(jobPath)).thenReturn(true);
+  public void testGetDownloadJob() throws Exception {
+    when(service.getJob("job123", false)).thenReturn(Job.builder()
+        .id("job123")
+        .submissionDate(2L)
+        .fileSizeBytes(1L)
+        .ttlHours(48)
+        .build());
 
-    task.execute();
-
-    verify(fileSystem, times(1)).delete(jobPath, true);
+    mockMvc.perform(get(ENDPOINT_PATH + "/job123").param("field", "ttlHours"))
+        .andExpect(status().isOk())
+        .andExpect(content().string("{\"id\":\"job123\",\"ttlHours\":48}"));
   }
 
   @Test
-  public void testGetExpiredJobs() throws Exception {
-    when(repository.findByCompletionDateLessThanAndStatusNot(anyLong(), eq(EXPIRED)))
-        .thenReturn(defineJobs());
+  public void testGetDownloadJob_notFound() throws Exception {
+    mockMvc.perform(get(ENDPOINT_PATH + "/job123"))
+        .andExpect(status().isNotFound());
 
-    val expiredJobs = task.getExpiredJobs();
-    assertThat(expiredJobs).hasSize(1);
-    assertThat(expiredJobs.get(0).getId()).isEqualTo("1");
   }
 
-  private static List<Job> defineJobs() {
-    return ImmutableList.of(
-        Job.builder().id("1").status(SUCCEEDED).build(),
-        Job.builder().id("2").status(TRANSFERRING).build());
+  @Test
+  public void testGetDownloadJob_noFields() throws Exception {
+    mockMvc.perform(get(ENDPOINT_PATH + "/job123"))
+        .andExpect(status().isNotFound());
+
   }
 
 }

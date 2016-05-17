@@ -23,16 +23,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
+import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.core.model.JobUiInfo;
 
 public interface DownloadClient {
 
   void cancelJob(String jobId);
 
-  Map<String, JobInfo> getJobsInfo(Set<String> jobIds);
-
-  Map<String, JobProgress> getJobsProgress(Set<String> jobIds);
+  Job getJob(String jobId, Iterable<String> fields);
 
   Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
 
@@ -40,12 +38,12 @@ public interface DownloadClient {
 
   void setActiveDownload(String jobId);
 
+  void unsetActiveDownload(String jobId);
+
   boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
 
   boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
 
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobInfo jobInfo, String userEmailAddress);
-
-  void unsetActiveDownload(String jobId);
+  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo);
 
 }

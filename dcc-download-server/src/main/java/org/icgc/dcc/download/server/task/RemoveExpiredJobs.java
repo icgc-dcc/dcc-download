@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
-import org.icgc.dcc.download.server.model.Job;
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;

@@ -17,18 +17,24 @@
  */
 package org.icgc.dcc.download.core.model;
 
-import java.util.Map;
-
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class JobProgress {
+@JsonInclude(Include.NON_NULL)
+public class JobUiInfo {
 
-  private JobStatus status;
-  private Map<DownloadDataType, TaskProgress> taskProgress;
+  private String filter;
+  private String uiQueryStr;
+  private String email;
+  private boolean controlled;
 
 }

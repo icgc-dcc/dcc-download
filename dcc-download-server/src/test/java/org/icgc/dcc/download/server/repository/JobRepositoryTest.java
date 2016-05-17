@@ -30,8 +30,8 @@ import java.time.Instant;
 
 import lombok.val;
 
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobStatus;
-import org.icgc.dcc.download.server.model.Job;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
