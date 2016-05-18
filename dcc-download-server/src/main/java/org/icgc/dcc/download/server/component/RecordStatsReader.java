@@ -61,9 +61,9 @@ public class RecordStatsReader {
   @SneakyThrows
   public Table<String, DownloadDataType, Long> readStatsTable() {
     val statsPath = new Path(properties.jobProperties().getInputDir(), "stats");
-    log.debug("Reading records stats directory: {}", statsPath);
+    log.info("Reading records stats directory: {}", statsPath);
 
-    val statsFiles = HadoopUtils.lsFile(fileSystem, statsPath, Pattern.compile("*.gz"));
+    val statsFiles = HadoopUtils.lsFile(fileSystem, statsPath, Pattern.compile("\\*.gz"));
     Table<String, DownloadDataType, Long> statsTable = HashBasedTable.create();
     for (val file : statsFiles) {
       log.info("Reading record statistics file: {}", file);

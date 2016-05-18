@@ -68,6 +68,7 @@ public class JobService {
   @Async
   @SneakyThrows
   public void run() {
+    log.debug("Started {}.", this.getClass().getName());
     Future<String> result = null;
     while (true) {
       result = completionService.take();

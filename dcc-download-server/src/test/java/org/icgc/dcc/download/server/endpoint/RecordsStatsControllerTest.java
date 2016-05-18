@@ -22,7 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
@@ -69,7 +70,10 @@ public class RecordsStatsControllerTest {
   public void testEstimateRecordsSizes() throws Exception {
     when(recordStatsService.getRecordsSizes(ImmutableList.of("DO1", "DO2"))).thenReturn(singletonMap(DONOR, 1L));
 
-    mockMvc.perform(get(ENDPOINT_PATH).param("id", "DO1,DO2"))
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\",\"DO2\"]}"))
         .andExpect(status().isOk())
         .andExpect(content().string("{\"sizes\":{\"DONOR\":1}}"));
 
@@ -80,7 +84,10 @@ public class RecordsStatsControllerTest {
 
   @Test
   public void testEstimateRecordsSizes_empty() throws Exception {
-    mockMvc.perform(get(ENDPOINT_PATH).param("id", ""))
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[]}"))
         .andExpect(status().isBadRequest());
   }
 

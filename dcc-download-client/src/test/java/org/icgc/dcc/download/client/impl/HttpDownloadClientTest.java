@@ -19,7 +19,6 @@ package org.icgc.dcc.download.client.impl;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -103,7 +102,7 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   }
 
   private static void stubGetSizesRequest() {
-    stubFor(get(urlEqualTo("/stats?id=DO1"))
+    stubFor(post(urlEqualTo("/stats")).withRequestBody(equalToJson("{\"donorIds\":[\"DO1\"]}"))
         .willReturn(aResponse()
             .withBody("{\"sizes\":{\"DONOR\":1,\"SSM_CONTROLLED\":2,\"SAMPLE\":0,\"SPECIMEN\":1}}")
             .withHeader(CONTENT_TYPE, JSON_UTF_8.toString())

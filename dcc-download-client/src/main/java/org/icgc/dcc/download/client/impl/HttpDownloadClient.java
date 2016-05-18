@@ -50,6 +50,7 @@ import org.icgc.dcc.download.client.response.HealthResponse;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobUiInfo;
+import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
 
@@ -151,9 +152,10 @@ public class HttpDownloadClient implements DownloadClient {
 
   @Override
   public Map<DownloadDataType, Long> getSizes(@NonNull Set<String> donorIds) {
-    val ids = joinValues(donorIds);
-    val response = resource.path(STATS_PATH).queryParam("id", ids)
-        .get(DataTypeSizesResponse.class);
+    val body = new RecordsSizeRequest(donorIds);
+    val response = resource.path(STATS_PATH)
+        .header(CONTENT_TYPE, JSON_UTF_8)
+        .post(DataTypeSizesResponse.class, body);
 
     return response.getSizes();
   }

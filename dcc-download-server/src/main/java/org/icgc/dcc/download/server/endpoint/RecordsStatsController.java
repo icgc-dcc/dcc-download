@@ -17,19 +17,18 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.icgc.dcc.download.server.utils.Requests.splitValues;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
 import org.icgc.dcc.download.server.service.RecordStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -41,15 +40,16 @@ public final class RecordsStatsController {
   @NonNull
   private final RecordStatsService recordStatsService;
 
-  @RequestMapping(method = GET)
-  public DataTypeSizesResponse estimateRecordsSizes(@RequestParam String id) {
-    log.debug("Received get records sizes request for ids: '{}'", id);
-    if (isNullOrEmpty(id)) {
+  @RequestMapping(method = POST)
+  public DataTypeSizesResponse estimateRecordsSizes(@RequestBody RecordsSizeRequest body) {
+    val ids = body.getDonorIds();
+    log.debug("Received get records sizes request for ids: '{}'", ids);
+    if (ids == null || ids.isEmpty()) {
       log.info("Empty get records sizes request. Skipping...");
       throw new BadRequestException("Empty get records sizes request");
     }
 
-    val recordsSizes = recordStatsService.getRecordsSizes(splitValues(id));
+    val recordsSizes = recordStatsService.getRecordsSizes(ids);
     log.debug("Record sizes: {}", recordsSizes);
 
     return new DataTypeSizesResponse(recordsSizes);
