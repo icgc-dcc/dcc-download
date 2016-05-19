@@ -19,7 +19,6 @@ package org.icgc.dcc.download.server.endpoint;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.Collections.emptyList;
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.server.utils.Requests.splitValues;
 import static org.icgc.dcc.download.server.utils.Responses.createJobResponse;
 import static org.icgc.dcc.download.server.utils.Responses.verifyJobExistance;
@@ -64,9 +63,9 @@ public final class JobController {
   @RequestMapping(method = POST)
   public String submitJob(@RequestBody SubmitJobRequest request) {
     log.debug("Received submit job request {}", request);
-    if (isEmpty(request)) {
-      log.info("Empty submission job request. Skipping submission... {}", request);
-      throw new BadRequestException("Empty submission job request");
+    if (!isValid(request)) {
+      log.info("Malformed submission job request. Skipping submission... {}", request);
+      throw new BadRequestException("Malformed submission job request");
     }
 
     val jobId = downloadService.submitJob(request);
@@ -88,7 +87,10 @@ public final class JobController {
     val job = downloadService.getJob(jobId, includeProgress(fields));
     verifyJobExistance(job, jobId);
 
-    return createJobResponse(job, project(fields));
+    val response = createJobResponse(job, fields);
+    log.debug("getJob response: {}", response);
+
+    return response;
   }
 
   @ResponseStatus(OK)
@@ -103,8 +105,18 @@ public final class JobController {
     downloadService.unsetActiveDownload(jobId);
   }
 
-  private static boolean isEmpty(SubmitJobRequest request) {
-    return request.getDonorIds().isEmpty() || request.getDataTypes().isEmpty();
+  private static boolean isValid(SubmitJobRequest request) {
+    boolean valid = true;
+    if (request.getDonorIds().isEmpty() || request.getDataTypes().isEmpty() || request.getSubmissionTime() == 0) {
+      valid = false;
+    }
+
+    val jobInfo = request.getJobInfo();
+    if (jobInfo == null || isNullOrEmpty(jobInfo.getEmail())) {
+      valid = false;
+    }
+
+    return valid;
   }
 
   private static List<String> resolveFields(String field) {
@@ -113,14 +125,6 @@ public final class JobController {
 
   private static boolean includeProgress(List<String> fields) {
     return fields.contains(PROGRESS_FIELD);
-  }
-
-  private static List<String> project(List<String> fields) {
-    return fields.contains(PROGRESS_FIELD) ?
-        fields.stream()
-            .filter(field -> !PROGRESS_FIELD.equals(field))
-            .collect(toImmutableList()) :
-        fields;
   }
 
 }

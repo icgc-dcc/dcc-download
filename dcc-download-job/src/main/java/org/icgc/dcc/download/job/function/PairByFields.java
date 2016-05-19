@@ -54,11 +54,16 @@ public final class PairByFields implements PairFunction<Row, Tuple2<Map<String, 
     val unresolvedValues = ImmutableMap.<String, Object> builder();
 
     for (val field : keyFields) {
-      if (Rows.canBeResolved(row, field)) {
-        resolvedValues.put(field, getValue(row, field));
-      } else {
-        log.debug("Unresolved value: Key - {}, Value - {}", field, row);
-        unresolvedValues.put(field, getObjectValue(row, field));
+      try {
+        if (Rows.isRowsContainer(row, field)) {
+          resolvedValues.put(field, getValue(row, field));
+        } else {
+          log.debug("Unresolved value: Key - {}, Value - {}", field, row);
+          unresolvedValues.put(field, getObjectValue(row, field));
+        }
+      } catch (Exception e) {
+        log.error("Failed to resolve field '{}' from row {}", field, row.schema());
+        throw e;
       }
     }
 

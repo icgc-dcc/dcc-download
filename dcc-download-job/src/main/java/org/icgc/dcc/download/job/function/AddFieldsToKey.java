@@ -18,7 +18,7 @@
 package org.icgc.dcc.download.job.function;
 
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
-import static org.icgc.dcc.download.job.utils.Rows.canBeResolved;
+import static org.icgc.dcc.download.job.utils.Rows.isRowsContainer;
 import static org.icgc.dcc.download.job.utils.Rows.getObjectValue;
 import static org.icgc.dcc.download.job.utils.Rows.getValue;
 import static org.icgc.dcc.download.job.utils.Tuples.tuple;
@@ -60,7 +60,7 @@ public final class AddFieldsToKey
       if (!Rows.hasField(row, field)) {
         resolvedValues.put(field, EMPTY_STRING);
       }
-      else if (canBeResolved(row, field)) {
+      else if (isRowsContainer(row, field)) {
         resolvedValues.put(field, getValue(row, field));
       } else {
         unresolvedValues.put(field, getObjectValue(row, field));

@@ -49,6 +49,8 @@ public final class Jobs {
         .id(jobId)
         .donorIds(request.getDonorIds())
         .dataTypes(refineClinicalDataTypes(request.getDataTypes()))
+        .jobInfo(request.getJobInfo())
+        .submissionDate(request.getSubmissionTime())
         .ttlHours((int) ARCHIVE_TTL.toHours())
         .status(JobStatus.RUNNING)
         .build();

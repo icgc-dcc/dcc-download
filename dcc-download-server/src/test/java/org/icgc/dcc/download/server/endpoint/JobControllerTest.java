@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
+import static org.icgc.dcc.download.core.model.JobStatus.RUNNING;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -25,7 +26,9 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 import java.util.Collection;
 
+import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.core.model.TaskProgress;
 import org.icgc.dcc.download.server.mail.Mailer;
 import org.icgc.dcc.download.server.service.DownloadService;
 import org.junit.Before;
@@ -37,6 +40,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.google.common.collect.ImmutableMap;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JobControllerTest {
@@ -65,16 +70,21 @@ public class JobControllerTest {
 
   @Test
   public void testGetDownloadJob() throws Exception {
-    when(service.getJob("job123", false)).thenReturn(Job.builder()
+    when(service.getJob("job123", true)).thenReturn(Job.builder()
         .id("job123")
         .submissionDate(2L)
         .fileSizeBytes(1L)
+        .status(RUNNING)
+        .progress(ImmutableMap.of(DownloadDataType.DONOR, new TaskProgress(2, 3)))
         .ttlHours(48)
         .build());
 
-    mockMvc.perform(get(ENDPOINT_PATH + "/job123").param("field", "ttlHours"))
+    mockMvc
+        .perform(get(ENDPOINT_PATH + "/job123").param("field", "ttlHours", "status", "progress"))
         .andExpect(status().isOk())
-        .andExpect(content().string("{\"id\":\"job123\",\"ttlHours\":48}"));
+        .andExpect(
+            content().string("{\"id\":\"job123\",\"status\":\"RUNNING\",\"ttlHours\":48,"
+                + "\"progress\":{\"DONOR\":{\"completedCount\":2,\"totalCount\":3}}}"));
   }
 
   @Test

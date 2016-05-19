@@ -94,6 +94,7 @@ public class Properties {
   @Data
   public static class MailProperties {
 
+    private boolean enabled = true;
     private String portalUrl;
     private Map<String, String> properties = newLinkedHashMap();
 

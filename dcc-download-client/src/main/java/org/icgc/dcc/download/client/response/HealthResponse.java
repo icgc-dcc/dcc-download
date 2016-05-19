@@ -17,12 +17,15 @@
  */
 package org.icgc.dcc.download.client.response;
 
-import lombok.Value;
+import lombok.Data;
 
-@Value
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+@Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class HealthResponse {
 
-  String status;
+  private String status;
 
   public boolean isAlive() {
     return "UP".equals(status);

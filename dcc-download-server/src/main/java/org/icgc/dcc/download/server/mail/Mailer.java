@@ -57,6 +57,7 @@ public class Mailer {
   private final JavaMailSender mailSender;
   private final TemplateEngine templateEngine;
   private final String baseUrl;
+  private final boolean enabled;
 
   @Autowired
   public Mailer(JavaMailSender mailSender, TemplateEngine templateEngine, MailProperties mail) {
@@ -64,6 +65,7 @@ public class Mailer {
     this.templateEngine = templateEngine;
     val portalUrl = mail.getPortalUrl();
     this.baseUrl = portalUrl.endsWith(SLASH) ? portalUrl : portalUrl + SLASH;
+    this.enabled = mail.isEnabled();
   }
 
   private static final String SUBJECT_PREFIX = "ICGC Portal Notification: ";
@@ -78,15 +80,21 @@ public class Mailer {
       );
 
   public void sendStart(@NonNull String id, @NonNull String recipient) {
-    send(START_MESSAGE_TEMPLATE_NAME, createContextMap(id), recipient);
+    if (enabled) {
+      send(START_MESSAGE_TEMPLATE_NAME, createContextMap(id), recipient);
+    }
   }
 
   public void sendSuccessful(@NonNull String id, @NonNull String recipient) {
-    send(SUCCESSFUL_MESSAGE_TEMPLATE_NAME, createContextMap(id), recipient);
+    if (enabled) {
+      send(SUCCESSFUL_MESSAGE_TEMPLATE_NAME, createContextMap(id), recipient);
+    }
   }
 
   public void sendFailed(@NonNull String id, @NonNull String recipient) {
-    send(FAILED_MESSAGE_TEMPLATE_NAME, createContextMap(id), recipient);
+    if (enabled) {
+      send(FAILED_MESSAGE_TEMPLATE_NAME, createContextMap(id), recipient);
+    }
   }
 
   private Map<String, MessageContext> createContextMap(String id) {

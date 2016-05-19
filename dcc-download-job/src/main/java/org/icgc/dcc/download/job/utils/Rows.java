@@ -87,7 +87,10 @@ public final class Rows {
     return asJavaList(values);
   }
 
-  public static boolean canBeResolved(Row row, String field) {
+  /**
+   * Tests if the {@code field} is a container for other Rows
+   */
+  public static boolean isRowsContainer(Row row, String field) {
     val value = row.getAs(field);
 
     // Spark reads Parquet collections in WrappedArray<Row>

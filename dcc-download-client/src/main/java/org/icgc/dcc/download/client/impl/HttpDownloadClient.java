@@ -20,6 +20,7 @@ package org.icgc.dcc.download.client.impl;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.JSON_UTF_8;
+import static java.lang.System.currentTimeMillis;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
 import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
 import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
@@ -113,6 +114,7 @@ public class HttpDownloadClient implements DownloadClient {
         .donorIds(donorIds)
         .dataTypes(submitDataTypes)
         .jobInfo(jobInfo)
+        .submissionTime(currentTimeMillis())
         .build();
 
     return resource.path(JOBS_PATH)
@@ -130,12 +132,10 @@ public class HttpDownloadClient implements DownloadClient {
   public Job getJob(@NonNull String jobId, @NonNull Iterable<String> fields) {
     WebResource request = resource.path(JOBS_PATH).path(jobId);
     if (!Iterables.isEmpty(fields)) {
-      request.queryParam("field", joinValues(fields));
+      request = request.queryParam("field", joinValues(fields));
     }
 
-    request.post(Job.class);
-
-    return null;
+    return request.get(Job.class);
   }
 
   @Override

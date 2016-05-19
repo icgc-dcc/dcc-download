@@ -20,14 +20,12 @@ package org.icgc.dcc.download.core.model;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.Builder;
 import lombok.Data;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @Data
-@Builder
 @JsonInclude(Include.NON_NULL)
 public class Job {
 
@@ -44,5 +42,80 @@ public class Job {
   private Integer ttlHours;
 
   private Map<DownloadDataType, TaskProgress> progress;
+
+  public static JobBuilder builder() {
+    return new JobBuilder();
+  }
+
+  // Can't use lombok @Builder because it removes the public no-args Job constructor required by the Jackson
+  public static class JobBuilder {
+
+    private final Job job = new Job();
+
+    public JobBuilder id(String id) {
+      job.id = id;
+
+      return this;
+    }
+
+    public JobBuilder donorIds(Set<String> donorIds) {
+      job.donorIds = donorIds;
+
+      return this;
+    }
+
+    public JobBuilder dataTypes(Set<DownloadDataType> dataTypes) {
+      job.dataTypes = dataTypes;
+
+      return this;
+    }
+
+    public JobBuilder status(JobStatus status) {
+      job.status = status;
+
+      return this;
+    }
+
+    public JobBuilder submissionDate(Long submissionDate) {
+      job.submissionDate = submissionDate;
+
+      return this;
+    }
+
+    public JobBuilder completionDate(Long completionDate) {
+      job.completionDate = completionDate;
+
+      return this;
+    }
+
+    public JobBuilder jobInfo(JobUiInfo jobInfo) {
+      job.jobInfo = jobInfo;
+
+      return this;
+    }
+
+    public JobBuilder fileSizeBytes(Long fileSizeBytes) {
+      job.fileSizeBytes = fileSizeBytes;
+
+      return this;
+    }
+
+    public JobBuilder ttlHours(Integer ttlHours) {
+      job.ttlHours = ttlHours;
+
+      return this;
+    }
+
+    public JobBuilder progress(Map<DownloadDataType, TaskProgress> progress) {
+      job.progress = progress;
+
+      return this;
+    }
+
+    public Job build() {
+      return job;
+    }
+
+  }
 
 }

@@ -71,11 +71,13 @@ public class JobService {
     log.debug("Started {}.", this.getClass().getName());
     Future<String> result = null;
     while (true) {
+      log.debug("Waiting for completed jobs...");
       result = completionService.take();
+      log.debug("Received a completed job.");
       try {
         processSuccessfulJob(result);
       } catch (CancellationException e) {
-        log.debug("Job was cancelled: ", e);
+        log.info("Job was cancelled: ", e);
       } catch (ExecutionException e) {
         processFailedJob(result, e);
       } catch (InterruptedException e) {
