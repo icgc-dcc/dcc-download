@@ -18,6 +18,9 @@
 package org.icgc.dcc.download.server.component;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_CONTROLLED;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_OPEN;
+import static org.icgc.dcc.download.core.model.DownloadDataType.toControlledIfPossible;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,7 +43,8 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.server.config.Properties;
+import org.icgc.dcc.download.server.config.Properties.DownloadServerProperties;
+import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -54,16 +58,22 @@ import com.google.common.collect.Table;
 public class RecordStatsReader {
 
   @NonNull
-  private final Properties properties;
+  private final JobProperties jobProperties;
+  @NonNull
+  private final DownloadServerProperties downloadProperties;
   @NonNull
   private final FileSystem fileSystem;
 
   @SneakyThrows
   public Table<String, DownloadDataType, Long> readStatsTable() {
-    val statsPath = new Path(properties.jobProperties().getInputDir(), "stats");
+    val statsPath = new Path(jobProperties.getInputDir(), "stats");
     log.info("Reading records stats directory: {}", statsPath);
 
-    val statsFiles = HadoopUtils.lsFile(fileSystem, statsPath, Pattern.compile("\\*.gz"));
+    val statsFiles = HadoopUtils.lsFile(fileSystem, statsPath, Pattern.compile(".*.gz$"));
+    if (statsFiles.isEmpty()) {
+      log.warn("Records stats directory is empty.");
+    }
+
     Table<String, DownloadDataType, Long> statsTable = HashBasedTable.create();
     for (val file : statsFiles) {
       log.info("Reading record statistics file: {}", file);
@@ -82,7 +92,7 @@ public class RecordStatsReader {
 
   @SneakyThrows
   public Map<DownloadDataType, Integer> resolveRecordWeights() {
-    val recordWeightsFile = properties.downloadServerProperties().getRecordWeightsFile();
+    val recordWeightsFile = downloadProperties.getRecordWeightsFile();
     @Cleanup
     val fileReader = createrRecordWeightsFileReader(recordWeightsFile);
     val props = new java.util.Properties();
@@ -100,14 +110,23 @@ public class RecordStatsReader {
       ensureStatsFileFormat(parts);
 
       val donorId = parts.get(0);
-      val type = DownloadDataType.valueOf(parts.get(1));
+      val type = parseDataType(parts.get(1));
       val count = Long.valueOf(parts.get(2));
 
       val currentValue = statsTable.get(donorId, type);
       checkState(currentValue == null, "Record stats for donor '%s' and type '%s' already exists(%s).", donorId, type,
           currentValue);
       statsTable.put(donorId, type, count);
+
+      // Special case for SSM_OPEN
+      if (type == SSM_CONTROLLED) {
+        statsTable.put(donorId, SSM_OPEN, count);
+      }
     }
+  }
+
+  private static DownloadDataType parseDataType(String value) {
+    return toControlledIfPossible(value);
   }
 
   private static void ensureStatsFileFormat(List<String> parts) {

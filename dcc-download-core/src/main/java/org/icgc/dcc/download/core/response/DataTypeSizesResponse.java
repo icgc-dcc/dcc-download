@@ -19,11 +19,11 @@ package org.icgc.dcc.download.core.response;
 
 import java.util.Map;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import org.icgc.dcc.download.core.model.DownloadDataType;
 
 @Data
 @AllArgsConstructor

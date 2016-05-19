@@ -700,9 +700,37 @@ public enum DownloadDataType implements Identifiable {
     return dataTypes.get(0);
   }
 
+  /**
+   * Resolve {@code DownloadDataType} from the canonical name. If open and controlled version exists returns the
+   * controlled one.
+   */
+  public static DownloadDataType fromCanonical(@NonNull String name) {
+    val dataTypes = stream(values())
+        .filter(dt -> dt.getCanonicalName().equals(name.toLowerCase()))
+        .filter(dt -> dt.isControlled() || !dt.isOpen())
+        .collect(toImmutableList());
+    checkState(dataTypes.size() == 1, "Failed to resolve DownloadDataType from name '%s'. Found data types: %s", name,
+        dataTypes);
+
+    return dataTypes.get(0);
+  }
+
   public static boolean canCreateFrom(@NonNull String name) {
     return stream(values())
         .anyMatch(dt -> dt.name().equals(name));
+  }
+
+  /**
+   * Returns {@code controlled} version for this data type if it exists otherwise returns the argument.
+   */
+  public static DownloadDataType toControlledIfPossible(String name) {
+    val controlled = stream(values())
+        .filter(dt -> dt.getCanonicalName().equals(name.toLowerCase()))
+        .filter(dt -> dt.isControlled() || !dt.isOpen())
+        .collect(toImmutableList());
+    checkState(controlled.size() == 1, "Failed to resolve controlled from %s", name);
+
+    return controlled.get(0);
   }
 
   private static Map<String, String> getSsmOpenFields() {

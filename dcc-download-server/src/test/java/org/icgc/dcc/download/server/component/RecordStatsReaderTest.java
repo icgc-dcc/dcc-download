@@ -15,65 +15,64 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.service;
+package org.icgc.dcc.download.server.component;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
-
-import java.util.Map;
-
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_EXPOSURE;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_FAMILY;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR_THERAPY;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SAMPLE;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SGV_CONTROLLED;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SPECIMEN;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_CONTROLLED;
+import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_OPEN;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.common.hadoop.fs.FileSystems;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.config.Properties;
+import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Table;
 
-public class RecordStatsServiceTest {
+@Slf4j
+public class RecordStatsReaderTest extends AbstractTest {
 
-  RecordStatsService service;
+  RecordStatsReader reader;
 
+  @Override
   @Before
   public void setUp() {
-    service = new RecordStatsService(defineStatsTable(), defineRecordWeights());
+    super.setUp();
+    prepareInput();
+    val fs = FileSystems.getDefaultLocalFileSystem();
+    val jobProps = new Properties.JobProperties();
+    jobProps.setInputDir(workingDir.getAbsolutePath());
+    val downloadProps = new Properties.DownloadServerProperties();
+    reader = new RecordStatsReader(jobProps, downloadProps, fs);
   }
 
   @Test
-  public void testGetRecordsSizes() throws Exception {
-    val donorIds = ImmutableSet.of("DO1", "DO2");
-    val sizes = service.getRecordsSizes(donorIds);
-    assertThat(sizes).hasSize(3);
-    // DO1: (Donor) 1 * 1 + (Specimen) 2 * 2 + (Sample) 2 * 3 = 12
-    // DO2: (Donor) 1 * 1 = 1
-    assertThat(sizes.get(DONOR)).isEqualTo(13);
-    assertThat(sizes.get(DownloadDataType.SSM_CONTROLLED)).isEqualTo(4);
-    assertThat(sizes.get(DownloadDataType.SSM_OPEN)).isEqualTo(4);
-
-  }
-
-  private static Table<String, DownloadDataType, Long> defineStatsTable() {
-    Table<String, DownloadDataType, Long> statsTable = HashBasedTable.create();
-    statsTable.put("DO1", DownloadDataType.DONOR, 1L);
-    statsTable.put("DO2", DownloadDataType.DONOR, 2L);
-    statsTable.put("DO1", DownloadDataType.SPECIMEN, 2L);
-    statsTable.put("DO1", DownloadDataType.SAMPLE, 2L);
-    statsTable.put("DO1", DownloadDataType.SSM_CONTROLLED, 1L);
-    statsTable.put("DO1", DownloadDataType.SSM_OPEN, 1L);
-
-    return statsTable;
-  }
-
-  private Map<DownloadDataType, Integer> defineRecordWeights() {
-    return ImmutableMap.of(DONOR, 1,
-        DownloadDataType.SPECIMEN, 2,
-        DownloadDataType.SAMPLE, 3,
-        DownloadDataType.SSM_CONTROLLED, 4,
-        DownloadDataType.SSM_OPEN, 4
-        );
+  public void testReadStatsTable() throws Exception {
+    val stats = reader.readStatsTable();
+    log.info("{}", stats);
+    assertThat(stats.rowKeySet().size()).isEqualTo(4);
+    val donor1 = stats.row("DO001");
+    assertThat(donor1).isEqualTo(ImmutableMap.<DownloadDataType, Long> builder()
+        .put(DONOR, 1L)
+        .put(DONOR_EXPOSURE, 1L)
+        .put(DONOR_FAMILY, 1L)
+        .put(SPECIMEN, 1L)
+        .put(SSM_CONTROLLED, 341L)
+        .put(SSM_OPEN, 341L)
+        .put(SGV_CONTROLLED, 3763280L)
+        .put(DONOR_THERAPY, 1L)
+        .put(SAMPLE, 2L)
+        .build());
   }
 
 }
