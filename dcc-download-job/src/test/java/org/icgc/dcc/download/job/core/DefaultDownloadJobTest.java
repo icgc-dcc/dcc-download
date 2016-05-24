@@ -41,16 +41,25 @@ public class DefaultDownloadJobTest extends AbstractSparkJobTest {
     prepareInput();
     val jobContext = createJobContext();
     job.execute(jobContext);
+
     val outputPath = workingDir.getAbsolutePath() + "/" + JOB_ID + "/" + DownloadDataType.DONOR.getId()
         + "/part-00000.gz";
     log.debug("Expected output file: {}", outputPath);
-    val outputFile = new File(outputPath);
-    log.info("\nResult: {}", new Object[] { new File(workingDir, JOB_ID).list() });
-    assertThat(outputFile.exists()).isTrue();
+    val outputDir = new File(outputPath);
+    assertThat(outputDir.exists()).isTrue();
+
+    String[] resultDirs = new File(workingDir, JOB_ID).list();
+    log.info("\nResult: {}", new Object[] { resultDirs });
+    assertThat(resultDirs).containsOnly("donor", "donor_exposure", "donor_family", "donor_therapy", "sample",
+        "sgv_controlled", "specimen");
   }
 
   private JobContext createJobContext() {
-    return createJobContext(JOB_ID, ImmutableSet.of("DO001", "DO002"), DownloadDataType.CLINICAL);
+    val dataTypes = ImmutableSet.<DownloadDataType> builder();
+    dataTypes.addAll(DownloadDataType.CLINICAL);
+    dataTypes.add(DownloadDataType.SGV_CONTROLLED);
+
+    return createJobContext(JOB_ID, ImmutableSet.of("DO001", "DO002"), dataTypes.build());
   }
 
 }

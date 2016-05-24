@@ -18,7 +18,13 @@
 package org.icgc.dcc.download.server.endpoint;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.ImmutableSet.copyOf;
+import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static org.icgc.dcc.common.core.collect.Collections3.isNullOrEmpty;
+import static org.icgc.dcc.common.core.util.Emails.isValidEmail;
+import static org.icgc.dcc.download.core.model.DownloadDataType.values;
 import static org.icgc.dcc.download.server.utils.Requests.splitValues;
 import static org.icgc.dcc.download.server.utils.Responses.createJobResponse;
 import static org.icgc.dcc.download.server.utils.Responses.verifyJobExistance;
@@ -36,6 +42,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.server.mail.Mailer;
 import org.icgc.dcc.download.server.service.DownloadService;
@@ -67,6 +74,17 @@ public final class JobController {
       log.info("Malformed submission job request. Skipping submission... {}", request);
       throw new BadRequestException("Malformed submission job request");
     }
+
+    val jobId = downloadService.submitJob(request);
+    mailer.sendStart(jobId, request.getJobInfo().getEmail());
+
+    return jobId;
+  }
+
+  @RequestMapping(value = "/static", method = POST)
+  public String submitStaticJob() {
+    log.info("Generating static files...");
+    val request = createSubmitStaticJobRequest();
 
     val jobId = downloadService.submitJob(request);
     mailer.sendStart(jobId, request.getJobInfo().getEmail());
@@ -107,12 +125,16 @@ public final class JobController {
 
   private static boolean isValid(SubmitJobRequest request) {
     boolean valid = true;
-    if (request.getDonorIds().isEmpty() || request.getDataTypes().isEmpty() || request.getSubmissionTime() == 0) {
+    val donorIds = request.getDonorIds();
+    val dataTypes = request.getDataTypes();
+    if (isNullOrEmpty(donorIds)
+        || isNullOrEmpty(dataTypes)
+        || request.getSubmissionTime() == 0) {
       valid = false;
     }
 
     val jobInfo = request.getJobInfo();
-    if (jobInfo == null || isNullOrEmpty(jobInfo.getEmail())) {
+    if (jobInfo == null || isNullOrEmpty(jobInfo.getEmail()) || !isValidEmail(jobInfo.getEmail())) {
       valid = false;
     }
 
@@ -125,6 +147,16 @@ public final class JobController {
 
   private static boolean includeProgress(List<String> fields) {
     return fields.contains(PROGRESS_FIELD);
+  }
+
+  private static SubmitJobRequest createSubmitStaticJobRequest() {
+    return SubmitJobRequest.builder()
+        .donorIds(emptySet())
+        .dataTypes(copyOf(values()))
+        .jobInfo(JobUiInfo.builder()
+            .build())
+        .submissionTime(currentTimeMillis())
+        .build();
   }
 
 }

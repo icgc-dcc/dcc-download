@@ -19,6 +19,8 @@ package org.icgc.dcc.download.job.function;
 
 import static org.icgc.dcc.download.job.utils.Rows.getObjectValue;
 import static org.icgc.dcc.download.job.utils.Rows.getValue;
+import static org.icgc.dcc.download.job.utils.Rows.hasField;
+import static org.icgc.dcc.download.job.utils.Rows.isRowsContainer;
 
 import java.util.Collection;
 import java.util.Map;
@@ -29,7 +31,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Row;
-import org.icgc.dcc.download.job.utils.Rows;
 
 import scala.Tuple2;
 
@@ -54,16 +55,19 @@ public final class PairByFields implements PairFunction<Row, Tuple2<Map<String, 
     val unresolvedValues = ImmutableMap.<String, Object> builder();
 
     for (val field : keyFields) {
-      try {
-        if (Rows.isRowsContainer(row, field)) {
-          resolvedValues.put(field, getValue(row, field));
-        } else {
-          log.debug("Unresolved value: Key - {}, Value - {}", field, row);
-          unresolvedValues.put(field, getObjectValue(row, field));
+      // TODO: https://jira.oicr.on.ca/browse/DCC-4767 should specify if missing fields should be skipped.
+      if (hasField(row, field)) {
+        try {
+          if (isRowsContainer(row, field)) {
+            resolvedValues.put(field, getValue(row, field));
+          } else {
+            log.debug("Unresolved value: Key - {}, Value - {}", field, row);
+            unresolvedValues.put(field, getObjectValue(row, field));
+          }
+        } catch (Exception e) {
+          log.error("Failed to resolve field '{}' from row {}", field, row.schema());
+          throw e;
         }
-      } catch (Exception e) {
-        log.error("Failed to resolve field '{}' from row {}", field, row.schema());
-        throw e;
       }
     }
 

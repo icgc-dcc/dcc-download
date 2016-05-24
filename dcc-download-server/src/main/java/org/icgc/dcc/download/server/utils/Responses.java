@@ -28,12 +28,16 @@ import java.util.Set;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.common.core.util.stream.Streams;
 import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
 
 import com.google.common.collect.ImmutableSet;
 
+@Slf4j
 @NoArgsConstructor(access = PRIVATE)
 public final class Responses {
 
@@ -47,12 +51,27 @@ public final class Responses {
     throw new NotFoundException("Failed to find job with ID " + jobId);
   }
 
+  public static void throwBadRequestException(String message) {
+    throw new BadRequestException(message);
+  }
+
   public static Job createJobResponse(Job job, Iterable<String> fieldsProjection) {
     val allFields = getJobFields();
+    verifyFields(fieldsProjection, allFields);
     val keepFields = convertProjectionFields(fieldsProjection);
     val removeFields = difference(allFields, keepFields);
 
     return unsetFields(job, removeFields);
+  }
+
+  private static void verifyFields(Iterable<String> fieldsProjection, Set<String> allFields) {
+    val valid = Streams.stream(fieldsProjection)
+        .allMatch(field -> allFields.contains(field));
+    if (!valid) {
+      val message = "The request has an invalid field in the field parameter. Fields: " + fieldsProjection;
+      log.error(message);
+      throwBadRequestException(message);
+    }
   }
 
   private static Job unsetFields(Job job, Set<String> removeFields) {

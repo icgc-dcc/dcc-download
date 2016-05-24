@@ -19,7 +19,9 @@ package org.icgc.dcc.download.server.endpoint;
 
 import static org.icgc.dcc.download.core.model.JobStatus.RUNNING;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
@@ -99,6 +101,56 @@ public class JobControllerTest {
     mockMvc.perform(get(ENDPOINT_PATH + "/job123"))
         .andExpect(status().isNotFound());
 
+  }
+
+  @Test
+  public void testSubmitJob() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"dataTypes\":[\"DONOR\"], \"submissionTime\":2,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  public void testSubmitJob_noDonors() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[], \"dataTypes\":[\"DONOR\"], \"submissionTime\":2,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  public void testSubmitJob_noDataTypes() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"submissionTime\":2,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  public void testSubmitJob_badSubmissionTime() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"dataTypes\":[\"DONOR\"], \"submissionTime\":0,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  public void testSubmitJob_badEmail() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"dataTypes\":[\"DONOR\"], \"submissionTime\":3,"
+                + "\"jobInfo\":{\"email\":\"zzz123\"}}"))
+        .andExpect(status().isBadRequest());
   }
 
 }

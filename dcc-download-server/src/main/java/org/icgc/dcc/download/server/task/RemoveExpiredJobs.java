@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -52,7 +53,7 @@ public class RemoveExpiredJobs {
   @NonNull
   private final JobRepository jobRepository;
   @NonNull
-  private final String outputDir;
+  private final JobProperties jobProperties;
 
   // Daily at midnight
   @Scheduled(cron = "0 0 0 * * *")
@@ -83,7 +84,7 @@ public class RemoveExpiredJobs {
   }
 
   private Path getPath(String jobId) {
-    return new Path(outputDir, jobId);
+    return new Path(jobProperties.getOutputDir(), jobId);
   }
 
   private static long getExpirationDate() {

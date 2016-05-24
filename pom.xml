@@ -207,7 +207,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 
   <properties>
     <!-- Versions - DCC -->
-    <dcc-common.version>4.0.9</dcc-common.version>
+    <dcc-common.version>4.0.19-SNAPSHOT</dcc-common.version>
     
     <!-- Spring -->
     <spring-boot.version>1.3.3.RELEASE</spring-boot.version>

@@ -18,9 +18,9 @@
 package org.icgc.dcc.download.server.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
 import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
+import static org.icgc.dcc.download.core.model.JobStatus.TRANSFERRING;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
@@ -34,6 +34,7 @@ import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +59,9 @@ public class RemoveExpiredJobsTest {
 
   @Before
   public void setUp() {
-    task = new RemoveExpiredJobs(fileSystem, repository, OUTPUT_DIR);
+    val jobProperties = new JobProperties();
+    jobProperties.setOutputDir(OUTPUT_DIR);
+    task = new RemoveExpiredJobs(fileSystem, repository, jobProperties);
   }
 
   @Test
