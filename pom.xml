@@ -234,6 +234,9 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     
     <!-- HTTP - Test -->
     <wiremock.version>1.57</wiremock.version>
+    
+    <!-- Logging -->
+    <logback.version>1.1.5</logback.version>
   </properties>
 
 </project>
