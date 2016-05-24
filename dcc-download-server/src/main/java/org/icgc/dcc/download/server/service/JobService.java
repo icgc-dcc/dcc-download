@@ -44,7 +44,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class JobService {
+public class JobService implements Runnable {
 
   /**
    * Dependencies.
@@ -62,9 +62,13 @@ public class JobService {
 
   @PostConstruct
   public void startService() {
-    run();
+    val thread = new Thread(this);
+    thread.setDaemon(true);
+    thread.start();
   }
 
+  @Override
+  // TODO: fix this does not work
   @Async
   @SneakyThrows
   public void run() {

@@ -21,13 +21,10 @@
 
 # Server
 server:
-  port: 8443
-  ssl:
-    key-store: src/main/conf/keystore.p12
-    key-store-type: PKCS12
-    key-store-password: P@ssw0rd
+  port: 9090
 
 mail:
+  serviceUrl: "<service-email>"
   portalUrl: "http://localhost:8080/download/"
   properties:
     mail.smtp.host: smtp.res.oicr.on.ca
@@ -110,11 +107,20 @@ download.server:
   user: user
   password: pass
   
+mail:
+  enabled: false
 ---
 
 # Spring
 spring:
   profiles: secure
+  
+server:
+  port: 8443
+  ssl:
+    key-store: src/main/conf/keystore.p12
+    key-store-type: PKCS12
+    key-store-password: P@ssw0rd
   
 download.server:
   user: user

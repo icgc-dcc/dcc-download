@@ -95,6 +95,7 @@ public class Properties {
   public static class MailProperties {
 
     private boolean enabled = true;
+    private String serviceUrl;
     private String portalUrl;
     private Map<String, String> properties = newLinkedHashMap();
 
