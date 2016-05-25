@@ -25,14 +25,12 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.test.AbstractSparkTest;
-import org.icgc.dcc.download.test.io.TestFiles;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
 @Slf4j
-public class DefaultDownloadJobTest extends AbstractSparkTest {
+public class DefaultDownloadJobTest extends AbstractSparkJobTest {
 
   private static final String JOB_ID = "job123";
 
@@ -43,29 +41,25 @@ public class DefaultDownloadJobTest extends AbstractSparkTest {
     prepareInput();
     val jobContext = createJobContext();
     job.execute(jobContext);
+
     val outputPath = workingDir.getAbsolutePath() + "/" + JOB_ID + "/" + DownloadDataType.DONOR.getId()
         + "/part-00000.gz";
     log.debug("Expected output file: {}", outputPath);
-    val outputFile = new File(outputPath);
-    log.info("\nResult: {}", new Object[] { new File(workingDir, JOB_ID).list() });
-    assertThat(outputFile.exists()).isTrue();
-  }
+    val outputDir = new File(outputPath);
+    assertThat(outputDir.exists()).isTrue();
 
-  private void prepareInput() {
-    val srcDir = new File(INPUT_TEST_FIXTURES_DIR);
-    val destDir = workingDir;
-    TestFiles.copyDirectory(srcDir, destDir);
+    String[] resultDirs = new File(workingDir, JOB_ID).list();
+    log.info("\nResult: {}", new Object[] { resultDirs });
+    assertThat(resultDirs).containsOnly("donor", "donor_exposure", "donor_family", "donor_therapy", "sample",
+        "sgv_controlled", "specimen");
   }
 
   private JobContext createJobContext() {
-    return new JobContext(
-        JOB_ID,
-        ImmutableSet.of("DO001", "DO002"),
-        DownloadDataType.CLINICAL,
-        sparkContext,
-        fileSystem,
-        INPUT_TEST_FIXTURES_DIR,
-        workingDir.getAbsolutePath());
+    val dataTypes = ImmutableSet.<DownloadDataType> builder();
+    dataTypes.addAll(DownloadDataType.CLINICAL);
+    dataTypes.add(DownloadDataType.SGV_CONTROLLED);
+
+    return createJobContext(JOB_ID, ImmutableSet.of("DO001", "DO002"), dataTypes.build());
   }
 
 }

@@ -29,9 +29,11 @@ import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.SQLContext;
 import org.icgc.dcc.common.core.model.FieldNames;
 import org.icgc.dcc.common.core.util.Joiners;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.core.StaticDownloadJob;
 
 @Slf4j
 public abstract class Task {
@@ -45,7 +47,9 @@ public abstract class Task {
   }
 
   private static String getOutputPath(String jobId, String outputDir, DownloadDataType dataType) {
-    return outputDir + "/" + jobId + "/" + dataType.getId();
+    return StaticDownloadJob.STATIC_DIR_PATH.equals(jobId) ?
+        outputDir + "/" + dataType.getId() :
+        outputDir + "/" + jobId + "/" + dataType.getId();
   }
 
   protected static JavaRDD<String> getHeader(JavaSparkContext sparkContext, DownloadDataType dataType) {
@@ -58,10 +62,25 @@ public abstract class Task {
     return sparkContext.parallelize(singletonList(header));
   }
 
+  protected DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
+    val sparkContext = taskContext.getSparkContext();
+    val sqlContext = new SQLContext(sparkContext);
+    val inputPath = taskContext.getInputDir() + "/" + dataType.getCanonicalName();
+    val input = sqlContext.read().parquet(inputPath);
+
+    return isReadAll(taskContext) ? input : filterDonors(input, taskContext.getDonorIds());
+  }
+
   protected DataFrame filterDonors(DataFrame input, Set<String> donorIds) {
     val filterCondition = input.col(FieldNames.DONOR_ID).in(donorIds.toArray());
 
     return input.filter(filterCondition);
+  }
+
+  // Donor IDs should be empty only when the export static files task is executed. The download server should never pass
+  // empty donor IDs set when serving client requests.
+  private static boolean isReadAll(TaskContext taskContext) {
+    return taskContext.getDonorIds().isEmpty();
   }
 
 }

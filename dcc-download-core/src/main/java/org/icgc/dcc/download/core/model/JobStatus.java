@@ -21,11 +21,34 @@ import org.icgc.dcc.common.core.model.Identifiable;
 
 public enum JobStatus implements Identifiable {
 
-  SUBMITTED,
+  /**
+   * The job is currently running.
+   */
   RUNNING,
-  COMPLETED,
-  CANCELLED,
-  ACTIVE_DOWNLOAD,
+
+  /**
+   * The job has succeeded.
+   */
+  SUCCEEDED,
+
+  /**
+   * The job was cancelled by the user. 'Killed' name is used by the UI.
+   */
+  KILLED,
+
+  /**
+   * The job has failed.
+   */
+  FAILED,
+
+  /**
+   * Files of the job are currently being downloaded. Don't remove them yet.
+   */
+  TRANSFERRING,
+
+  /**
+   * The job is expired and its files have been removed.
+   */
   EXPIRED;
 
   @Override

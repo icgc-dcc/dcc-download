@@ -17,18 +17,29 @@
  */
 package org.icgc.dcc.download.core.model;
 
+import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.common.core.util.stream.Streams.stream;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_CONTROLLED_FIELDS;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_CONTROLLED_REMOVE_FIELDS;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_FIRST_LEVEL_FIELDS;
+import static org.icgc.dcc.download.core.model.DownloadDataTypeFields.SSM_SECOND_LEVEL_FIELDS;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.val;
 
 import org.icgc.dcc.common.core.model.Identifiable;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -194,24 +205,417 @@ public enum DownloadDataType implements Identifiable {
       .put("seq_coverage", "seq_coverage")
       .put("raw_data_repository", "raw_data_repository")
       .put("raw_data_accession", "raw_data_accession")
+      .build(),
+
+      ImmutableList.<String> builder()
+          .add("_donor_id")
+          .add("_project_id")
+          .add("_specimen_id")
+          .add("_sample_id")
+          .add("_matched_sample_id")
+          .add("analyzed_sample_id")
+          .add("matched_sample_id")
+          .add("mutation_type")
+          .add("copy_number")
+          .add("segment_mean")
+          .add("segment_median")
+          .add("chromosome")
+          .add("chromosome_start")
+          .add("chromosome_end")
+          .add("assembly_version")
+          .add("chromosome_start_range")
+          .add("chromosome_end_range")
+          .add("start_probe_id")
+          .add("end_probe_id")
+          .add("sequencing_strategy")
+          .add("quality_score")
+          .add("probability")
+          .add("is_annotated")
+          .add("verification_status")
+          .add("verification_platform")
+          .add("platform")
+          .add("experimental_protocol")
+          .add("base_calling_algorithm")
+          .add("alignment_algorithm")
+          .add("variation_calling_algorithm")
+          .add("other_analysis_algorithm")
+          .add("seq_coverage")
+          .add("raw_data_repository")
+          .add("raw_data_accession")
+          .add("consequence") // Unwind field
+          .build()),
+
+  JCN(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id,")
+      .put("analysis_id", "analysis_id")
+      .put("junction_id", "junction_id")
+      .put("gene_stable_id", "gene_stable_id")
+      .put("gene_chromosome", "gene_chromosome")
+      .put("gene_strand", "gene_strand")
+      .put("gene_start", "gene_start")
+      .put("gene_end", "gene_end")
+      .put("assembly_version", "assembly_version")
+      .put("second_gene_stable_id", "second_gene_stable_id")
+      .put("exon1_chromosome", "exon1_chromosome")
+      .put("exon1_number_bases", "exon1_number_bases")
+      .put("exon1_end", "exon1_end")
+      .put("exon1_strand", "exon1_strand")
+      .put("exon2_chromosome", "exon2_chromosome")
+      .put("exon2_number_bases", "exon2_number_bases")
+      .put("exon2_start", "exon2_start")
+      .put("exon2_strand", "exon2_strand")
+      .put("is_fusion_gene", "is_fusion_gene")
+      .put("is_novel_splice_form", "is_novel_splice_form")
+      .put("junction_seq", "junction_seq")
+      .put("junction_type", "junction_type")
+      .put("junction_read_count", "junction_read_count")
+      .put("quality_score", "quality_score")
+      .put("probability", "probability")
+      .put("verification_status", "verification_status")
+      .put("verification_platform", "verification_platform")
+      .put("gene_build_version", "gene_build_version")
+      .put("platform", "platform")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("base_calling_algorithm", "base_calling_algorithm")
+      .put("alignment_algorithm", "alignment_algorithm")
+      .put("normalization_algorithm", "normalization_algorithm")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("sequencing_strategy", "sequencing_strategy")
+      .put("seq_coverage", "seq_coverage")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
       .build()),
 
-  JCN,
-  METH_SEQ,
-  METH_ARRAY,
-  MIRNA_SEQ,
-  STSM,
-  PEXP,
-  EXP_SEQ,
-  EXP_ARRAY,
-  SSM_OPEN,
-  SSM_CONTROLLED,
-  SGV_CONTROLLED,
+  METH_SEQ(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id,")
+      .put("analysis_id", "analysis_id")
+      .put("mirna_db", "mirna_db")
+      .put("mirna_id", "mirna_id")
+      .put("normalized_read_count", "normalized_read_count")
+      .put("raw_read_count", "raw_read_count")
+      .put("fold_change", "fold_change")
+      .put("is_isomir", "is_isomir")
+      .put("chromosome", "chromosome")
+      .put("chromosome_start", "chromosome_start")
+      .put("chromosome_end", "chromosome_end")
+      .put("chromosome_strand", "chromosome_strand")
+      .put("assembly_version", "assembly_version")
+      .put("verification_status", "verification_status")
+      .put("verification_platform", "verification_platform")
+      .put("sequencing_platform", "sequencing_platform")
+      .put("total_read_count", "total_read_count")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("reference_sample_type", "reference_sample_type")
+      .put("alignment_algorithm", "alignment_algorithm")
+      .put("normalization_algorithm", "normalization_algorithm")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("sequencing_strategy", "sequencing_strategy")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .build()),
 
-  // For backward compatible only (remove when no longer use these names)
-  EXP,
-  MIRNA,
-  METH;
+  METH_ARRAY(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id")
+      .put("analysis_id", "analysis_id")
+      .put("array_platform", "array_platform")
+      .put("probe_id", "probe_id")
+      .put("methylation_value", "methylation_value")
+      .put("metric_used", "metric_used")
+      .put("methylated_probe_intensity", "methylated_probe_intensity")
+      .put("unmethylated_probe_intensity", "unmethylated_probe_intensity")
+      .put("verification_status", "verification_status")
+      .put("verification_platform", "verification_platform")
+      .put("fraction_wg_cpg_sites_covered", "fraction_wg_cpg_sites_covered")
+      .put("conversion_rate", "conversion_rate")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .build()),
+
+  MIRNA_SEQ(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id,")
+      .put("analysis_id", "analysis_id")
+      .put("mirna_db", "mirna_db")
+      .put("mirna_id", "mirna_id")
+      .put("normalized_read_count", "normalized_read_count")
+      .put("raw_read_count", "raw_read_count")
+      .put("fold_change", "fold_change")
+      .put("is_isomir", "is_isomir")
+      .put("chromosome", "chromosome")
+      .put("chromosome_start", "chromosome_start")
+      .put("chromosome_end", "chromosome_end")
+      .put("chromosome_strand", "chromosome_strand")
+      .put("assembly_version", "assembly_version")
+      .put("verification_status", "verification_status")
+      .put("verification_platform", "verification_platform")
+      .put("sequencing_platform", "sequencing_platform")
+      .put("total_read_count", "total_read_count")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("reference_sample_type", "reference_sample_type")
+      .put("alignment_algorithm", "alignment_algorithm")
+      .put("normalization_algorithm", "normalization_algorithm")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("sequencing_strategy", "sequencing_strategy")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .build()),
+
+  STSM(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id,")
+      .put("matched_sample_id", "submitted_matched_sample_id")
+      .put("variant_type", "variant_type")
+      .put("sv_id", "sv_id")
+      .put("placement", "placement")
+      .put("annotation", "annotation")
+      .put("interpreted_annotation", "interpreted_annotation")
+      .put("chr_from", "chr_from")
+      .put("chr_from_bkpt", "chr_from_bkpt")
+      .put("chr_from_strand", "chr_from_strand")
+      .put("chr_from_range", "chr_from_range")
+      .put("chr_from_flanking_seq", "chr_from_flanking_seq")
+      .put("chr_to", "chr_to")
+      .put("chr_to_bkpt", "chr_to_bkpt")
+      .put("chr_to_strand", "chr_to_strand")
+      .put("chr_to_range", "chr_to_range")
+      .put("chr_to_flanking_seq", "chr_to_flanking_seq")
+      .put("assembly_version", "assembly_version")
+      .put("sequencing_strategy", "sequencing_strategy")
+      .put("microhomology_sequence", "microhomology_sequence")
+      .put("non_templated_sequence", "non_templated_sequence")
+      .put("evidence", "evidence")
+      .put("quality_score", "quality_score")
+      .put("probability", "probability")
+      .put("zygosity", "zygosity")
+      .put("verification_status", "verification_status")
+      .put("verification_platform", "verification_platform")
+      .put("gene_affected_by_bkpt_from", "gene_affected_by_bkpt_from")
+      .put("gene_affected_by_bkpt_to", "gene_affected_by_bkpt_to")
+      .put("transcript_affected_by_bkpt_from", "transcript_affected_by_bkpt_from")
+      .put("transcript_affected_by_bkpt_to", "transcript_affected_by_bkpt_to")
+      .put("bkpt_from_context", "bkpt_from_context")
+      .put("bkpt_to_context", "bkpt_to_context")
+      .put("gene_build_version", "gene_build_version")
+      .put("platform", "platform")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("base_calling_algorithm", "base_calling_algorithm")
+      .put("alignment_algorithm", "alignment_algorithm")
+      .put("variation_calling_algorithm", "variation_calling_algorithm")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("seq_coverage", "seq_coverage")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .build(),
+
+      ImmutableList.<String> builder()
+          .add("_donor_id")
+          .add("_project_id")
+          .add("_specimen_id")
+          .add("_sample_id")
+          .add("analyzed_sample_id")
+          .add("matched_sample_id")
+          .add("variant_type")
+          .add("sv_id")
+          .add("placement")
+          .add("annotation")
+          .add("interpreted_annotation")
+          .add("chr_from")
+          .add("chr_from_bkpt")
+          .add("chr_from_strand")
+          .add("chr_from_range")
+          .add("chr_from_flanking_seq")
+          .add("chr_to")
+          .add("chr_to_bkpt")
+          .add("chr_to_strand")
+          .add("chr_to_range")
+          .add("chr_to_flanking_seq")
+          .add("assembly_version")
+          .add("sequencing_strategy")
+          .add("microhomology_sequence")
+          .add("non_templated_sequence")
+          .add("evidence")
+          .add("quality_score")
+          .add("probability")
+          .add("zygosity")
+          .add("verification_status")
+          .add("verification_platform")
+          .add("platform")
+          .add("experimental_protocol")
+          .add("base_calling_algorithm")
+          .add("alignment_algorithm")
+          .add("variation_calling_algorithm")
+          .add("other_analysis_algorithm")
+          .add("seq_coverage")
+          .add("raw_data_repository")
+          .add("raw_data_accession")
+          .add("consequence") // Unwind field
+          .build()),
+
+  PEXP(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id,")
+      .put("analysis_id", "analysis_id")
+      .put("antibody_id", "antibody_id")
+      .put("gene_name", "gene_name")
+      .put("gene_stable_id", "gene_stable_id")
+      .put("gene_build_version", "gene_build_version")
+      .put("normalized_expression_level", "normalized_expression_level")
+      .put("verification_status", "verification_status")
+      .put("verification_platform", "verification_platform")
+      .put("platform", "platform")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .build()),
+
+  EXP_SEQ(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id")
+      .put("analysis_id", "analysis_id")
+      .put("gene_model", "gene_model")
+      .put("gene_id", "gene_id")
+      .put("normalized_read_count", "normalized_read_count")
+      .put("raw_read_count", "raw_read_count")
+      .put("fold_change", "fold_change")
+      .put("assembly_version", "assembly_version")
+      .put("platform", "platform")
+      .put("total_read_count", "total_read_count")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("alignment_algorithm", "alignment_algorithm")
+      .put("normalization_algorithm", "normalization_algorithm")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("sequencing_strategy", "sequencing_strategy")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .put("reference_sample_type", "reference_sample_type")
+      .build()),
+
+  EXP_ARRAY(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id")
+      .put("analysis_id", "analysis_id")
+      .put("gene_model", "gene_model")
+      .put("gene_id", "gene_id")
+      .put("normalized_expression_value", "normalized_expression_value")
+      .put("fold_change", "fold_change")
+      .put("platform", "platform")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("normalization_algorithm", "normalization_algorithm")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .put("reference_sample_type", "reference_sample_type")
+      .build()),
+
+  SSM_OPEN(getSsmOpenFields(), SSM_FIRST_LEVEL_FIELDS, getSsmOpenSecondLevelFields()),
+  SSM_CONTROLLED(SSM_CONTROLLED_FIELDS, SSM_FIRST_LEVEL_FIELDS, SSM_SECOND_LEVEL_FIELDS),
+  SGV_CONTROLLED(ImmutableMap.<String, String> builder()
+      .put("_donor_id", "icgc_donor_id")
+      .put("_project_id", "project_code")
+      .put("_specimen_id", "icgc_specimen_id")
+      .put("_sample_id", "icgc_sample_id")
+      .put("analyzed_sample_id", "submitted_sample_id")
+      .put("analysis_id", "analysis_id")
+      .put("chromosome", "chromosome")
+      .put("chromosome_start", "chromosome_start")
+      .put("chromosome_end", "chromosome_end")
+      .put("chromosome_strand", "chromosome_strand")
+      .put("assembly_version", "assembly_version")
+      .put("variant_type", "variant_type")
+      .put("reference_genome_allele", "reference_genome_allele")
+      .put("genotype", "genotype")
+      .put("variant_allele", "variant_allele")
+      .put("quality_score", "quality_score")
+      .put("probability", "probability")
+      .put("total_read_count", "total_read_count")
+      .put("variant_allele_read_count", "variant_allele_read_count")
+      .put("verification_status", "verification_status")
+      .put("verification_platform", "verification_platform")
+      .put("consequence_type", "consequence_type")
+      .put("aa_change", "aa_change")
+      .put("cds_change", "cds_change")
+      .put("gene_affected", "gene_affected")
+      .put("transcript_affected", "transcript_affected")
+      .put("platform", "platform")
+      .put("experimental_protocol", "experimental_protocol")
+      .put("base_calling_algorithm", "base_calling_algorithm")
+      .put("alignment_algorithm", "alignment_algorithm")
+      .put("variation_calling_algorithm", "variation_calling_algorithm")
+      .put("other_analysis_algorithm", "other_analysis_algorithm")
+      .put("sequencing_strategy", "sequencing_strategy")
+      .put("seq_coverage", "seq_coverage")
+      .put("raw_data_repository", "raw_data_repository")
+      .put("raw_data_accession", "raw_data_accession")
+      .put("note", "note")
+      .build(),
+
+      ImmutableList.<String> builder()
+          .add("_donor_id")
+          .add("_project_id")
+          .add("_specimen_id")
+          .add("_sample_id")
+          .add("analyzed_sample_id")
+          .add("analysis_id")
+          .add("chromosome")
+          .add("chromosome_start")
+          .add("chromosome_end")
+          .add("chromosome_strand")
+          .add("assembly_version")
+          .add("variant_type")
+          .add("reference_genome_allele")
+          .add("genotype")
+          .add("variant_allele")
+          .add("quality_score")
+          .add("probability")
+          .add("total_read_count")
+          .add("variant_allele_read_count")
+          .add("verification_status")
+          .add("verification_platform")
+          .add("platform")
+          .add("experimental_protocol")
+          .add("base_calling_algorithm")
+          .add("alignment_algorithm")
+          .add("variation_calling_algorithm")
+          .add("other_analysis_algorithm")
+          .add("sequencing_strategy")
+          .add("seq_coverage")
+          .add("raw_data_repository")
+          .add("raw_data_accession")
+          .add("note")
+          .add("consequence") // Unwind field
+          .build());
+
+  private static final String CONTROLLED_SUFFIX = "_controlled";
+  private static final String OPEN_SUFFIX = "_open";
 
   public static final Set<DownloadDataType> CLINICAL = ImmutableSet.of(DONOR, DONOR_FAMILY, DONOR_THERAPY,
       DONOR_EXPOSURE, SPECIMEN, SAMPLE);
@@ -223,12 +627,31 @@ public enum DownloadDataType implements Identifiable {
    */
   private final Map<String, String> fields;
 
+  /**
+   * Rows in the parquet files have a nested structure. The processing logic 'unwinds' nested fields to make the row
+   * flat. Field levels represent which fields should be used first for projection.<br>
+   * E.g. {@code firstLevelFields} are non-nested fields. {@code secondLevelFields} are first nested fields
+   */
+  private final List<String> firstLevelFields;
+  private final List<String> secondLevelFields;
+
   private DownloadDataType() {
-    this(Collections.emptyMap());
+    this(emptyMap());
   }
 
   private DownloadDataType(@NonNull Map<String, String> fields) {
+    this(fields, emptyList(), emptyList());
+  }
+
+  private DownloadDataType(@NonNull Map<String, String> fields, List<String> firstLevelFields) {
+    this(fields, firstLevelFields, emptyList());
+  }
+
+  private DownloadDataType(@NonNull Map<String, String> fields, List<String> firstLevelFields,
+      List<String> secondLevelFields) {
     this.fields = fields;
+    this.firstLevelFields = firstLevelFields;
+    this.secondLevelFields = secondLevelFields;
   }
 
   @Override
@@ -236,19 +659,89 @@ public enum DownloadDataType implements Identifiable {
     return name().toLowerCase();
   }
 
-  public boolean isControlled() {
-    return getId().endsWith("_controlled");
+  public String getCanonicalName() {
+    String name = getId();
+    if (isControlled()) {
+      name = name.replace(CONTROLLED_SUFFIX, EMPTY_STRING);
+    } else if (isOpen()) {
+      name = name.replace(OPEN_SUFFIX, EMPTY_STRING);
+    }
+
+    return name;
   }
 
-  public List<String> getDownloadFileds() {
+  public boolean isControlled() {
+    return getId().endsWith(CONTROLLED_SUFFIX);
+  }
+
+  public boolean isOpen() {
+    return getId().endsWith(OPEN_SUFFIX);
+  }
+
+  public List<String> getDownloadFields() {
     return this.getFields().entrySet().stream()
         .map(e -> e.getKey())
         .collect(toImmutableList());
   }
 
-  public static boolean hasClinicalDataTypes(Set<DownloadDataType> dataTypes) {
+  public static boolean hasClinicalDataTypes(@NonNull Set<DownloadDataType> dataTypes) {
     return Sets.intersection(CLINICAL, dataTypes)
         .isEmpty() == false;
+  }
+
+  public static DownloadDataType from(@NonNull String name, boolean controlled) {
+    val dataTypes = stream(values())
+        .filter(dt -> dt.getCanonicalName().equals(name) && dt.isControlled() == controlled)
+        .collect(toImmutableList());
+    checkState(dataTypes.size() == 1, "Failed to resolve DownloadDataType from name '%s' and controlled '%s'. "
+        + "Found data types: %s", name, controlled, dataTypes);
+
+    return dataTypes.get(0);
+  }
+
+  /**
+   * Resolve {@code DownloadDataType} from the canonical name. If open and controlled version exists returns the
+   * controlled one.
+   */
+  public static DownloadDataType fromCanonical(@NonNull String name) {
+    val dataTypes = stream(values())
+        .filter(dt -> dt.getCanonicalName().equals(name.toLowerCase()))
+        .filter(dt -> dt.isControlled() || !dt.isOpen())
+        .collect(toImmutableList());
+    checkState(dataTypes.size() == 1, "Failed to resolve DownloadDataType from name '%s'. Found data types: %s", name,
+        dataTypes);
+
+    return dataTypes.get(0);
+  }
+
+  public static boolean canCreateFrom(@NonNull String name) {
+    return stream(values())
+        .anyMatch(dt -> dt.name().equals(name));
+  }
+
+  /**
+   * Returns {@code controlled} version for this data type if it exists otherwise returns the argument.
+   */
+  public static DownloadDataType toControlledIfPossible(String name) {
+    val controlled = stream(values())
+        .filter(dt -> dt.getCanonicalName().equals(name.toLowerCase()))
+        .filter(dt -> dt.isControlled() || !dt.isOpen())
+        .collect(toImmutableList());
+    checkState(controlled.size() == 1, "Failed to resolve controlled from %s", name);
+
+    return controlled.get(0);
+  }
+
+  private static Map<String, String> getSsmOpenFields() {
+    return SSM_CONTROLLED_FIELDS.entrySet().stream()
+        .filter(e -> !SSM_CONTROLLED_REMOVE_FIELDS.contains(e.getKey()))
+        .collect(toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+  }
+
+  private static List<String> getSsmOpenSecondLevelFields() {
+    return SSM_SECOND_LEVEL_FIELDS.stream()
+        .filter(e -> !SSM_CONTROLLED_REMOVE_FIELDS.contains(e))
+        .collect(toImmutableList());
   }
 
 }

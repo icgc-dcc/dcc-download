@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
 import org.icgc.dcc.download.server.service.RecordStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,20 +41,18 @@ public final class RecordsStatsController {
   private final RecordStatsService recordStatsService;
 
   @RequestMapping(method = POST)
-  public DataTypeSizesResponse estimateRecordsSizes(@RequestBody SubmitJobRequest request) {
-    log.debug("Received get records sizes request. {}", request);
-    if (isEmpty(request)) {
-      log.info("Empty get records sizes request. Skipping... {}", request);
+  public DataTypeSizesResponse estimateRecordsSizes(@RequestBody RecordsSizeRequest body) {
+    val ids = body.getDonorIds();
+    log.debug("Received get records sizes request for ids: '{}'", ids);
+    if (ids == null || ids.isEmpty()) {
+      log.info("Empty get records sizes request. Skipping...");
       throw new BadRequestException("Empty get records sizes request");
     }
 
-    val recordsSizes = recordStatsService.getRecordsSizes(request.getDonorIds());
+    val recordsSizes = recordStatsService.getRecordsSizes(ids);
+    log.debug("Record sizes: {}", recordsSizes);
 
     return new DataTypeSizesResponse(recordsSizes);
-  }
-
-  private static boolean isEmpty(SubmitJobRequest request) {
-    return request.getDonorIds().isEmpty();
   }
 
 }

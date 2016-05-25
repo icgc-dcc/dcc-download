@@ -19,12 +19,16 @@ package org.icgc.dcc.download.job.task;
 
 import java.util.Set;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import org.apache.spark.api.java.JavaSparkContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 
 @Value
+@Builder
+@AllArgsConstructor
 public class TaskContext {
 
   String jobId;

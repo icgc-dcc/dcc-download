@@ -20,6 +20,8 @@ package org.icgc.dcc.download.job.core;
 import static java.util.Collections.singleton;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
+import static org.icgc.dcc.download.core.model.DownloadDataType.hasClinicalDataTypes;
+import static org.icgc.dcc.download.job.utils.Tasks.createTask;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,7 +34,6 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.util.DownloadJobs;
 import org.icgc.dcc.download.job.task.ClinicalTask;
-import org.icgc.dcc.download.job.task.GenericTask;
 import org.icgc.dcc.download.job.task.Task;
 import org.icgc.dcc.download.job.task.TaskContext;
 
@@ -47,11 +48,6 @@ public class DefaultDownloadJob implements DownloadJob {
   @Override
   public void execute(JobContext jobContext) {
     log.info("Running spark job...");
-    // TODO: Set job name in format jobId-download_data_type
-    setJobGroupName(jobContext.getSparkContext(), jobContext.getJobId());
-
-    DownloadJobs.getJobName(null, null);
-
     createTasks(jobContext).entrySet().parallelStream()
         .forEach(e -> {
           Task task = e.getKey();
@@ -64,7 +60,7 @@ public class DefaultDownloadJob implements DownloadJob {
   private static void setJobName(TaskContext taskContext) {
     val jobId = taskContext.getJobId();
     val dataTypes = taskContext.getDataTypes();
-    val dataType = DownloadDataType.hasClinicalDataTypes(dataTypes) ? DownloadDataType.DONOR : Iterables.get(dataTypes, 0);
+    val dataType = hasClinicalDataTypes(dataTypes) ? DownloadDataType.DONOR : Iterables.get(dataTypes, 0);
     val jobName = DownloadJobs.getJobName(jobId, dataType);
 
     setJobGroupName(taskContext.getSparkContext(), jobName);
@@ -81,19 +77,16 @@ public class DefaultDownloadJob implements DownloadJob {
       tasks.put(createClinical(jobContext));
     }
 
-    tasks.putAll(createGenericTasks(jobContext));
-
-    // TODO: finish SSM
+    tasks.putAll(createNonClinicalTasks(jobContext));
 
     return tasks.build();
   }
 
-  private static Map<? extends Task, TaskContext> createGenericTasks(JobContext jobContext) {
-    val dataTypes = filterGenericDataTypes(jobContext.getDataTypes());
-    val genericTask = new GenericTask();
+  private static Map<? extends Task, TaskContext> createNonClinicalTasks(JobContext jobContext) {
+    val dataTypes = filterOutClinicalDataTypes(jobContext.getDataTypes());
 
     return dataTypes.stream()
-        .collect(toImmutableMap(dt -> genericTask, dt -> createTaskContext(jobContext, singleton(dt))));
+        .collect(toImmutableMap(dt -> createTask(dt), dt -> createTaskContext(jobContext, singleton(dt))));
   }
 
   private static Entry<? extends Task, ? extends TaskContext> createClinical(JobContext jobContext) {
@@ -107,11 +100,9 @@ public class DefaultDownloadJob implements DownloadJob {
     return Sets.intersection(CLINICAL, dataTypes);
   }
 
-  private static Set<DownloadDataType> filterGenericDataTypes(Set<DownloadDataType> dataTypes) {
+  private static Set<DownloadDataType> filterOutClinicalDataTypes(Set<DownloadDataType> dataTypes) {
     val genericDataTypes = Sets.newHashSet(dataTypes);
     genericDataTypes.removeAll(CLINICAL);
-    genericDataTypes.remove(DownloadDataType.SSM_OPEN);
-    genericDataTypes.remove(DownloadDataType.SSM_CONTROLLED);
 
     return genericDataTypes;
   }

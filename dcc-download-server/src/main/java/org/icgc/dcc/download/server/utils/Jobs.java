@@ -17,58 +17,102 @@
  */
 package org.icgc.dcc.download.server.utils;
 
+import static com.google.common.collect.Sets.difference;
 import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
+import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
 
-import java.util.Date;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Set;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.val;
 
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobStatus;
+import org.icgc.dcc.download.core.model.TaskProgress;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
-import org.icgc.dcc.download.server.model.Job;
+
+import com.google.common.collect.ImmutableSet;
 
 @NoArgsConstructor(access = PRIVATE)
 public final class Jobs {
+
+  public static final Duration ARCHIVE_TTL = Duration.ofHours(48);
 
   public static Job createJob(@NonNull String jobId, @NonNull SubmitJobRequest request) {
     return Job.builder()
         .id(jobId)
         .donorIds(request.getDonorIds())
-        .dataTypes(request.getDataTypes())
+        .dataTypes(refineClinicalDataTypes(request.getDataTypes()))
         .jobInfo(request.getJobInfo())
-        .userEmailAddress(request.getUserEmailAddress())
+        .submissionDate(request.getSubmissionTime())
+        .ttlHours((int) ARCHIVE_TTL.toHours())
         .status(JobStatus.RUNNING)
         .build();
   }
 
-  public static Job completeJob(@NonNull Job job) {
+  public static Job completeJob(@NonNull Job job, long archiveSize) {
+    val completionDate = getDateAsMillis();
+    job.setCompletionDate(completionDate);
+    job.setStatus(JobStatus.SUCCEEDED);
+    job.setFileSizeBytes(archiveSize);
+
+    return job;
+  }
+
+  public static Job failJob(@NonNull Job job) {
     job.setCompletionDate(getDateAsMillis());
-    job.setStatus(JobStatus.COMPLETED);
+    job.setStatus(JobStatus.FAILED);
 
     return job;
   }
 
   public static Job cancelJob(@NonNull Job job) {
-    job.setStatus(JobStatus.CANCELLED);
+    job.setStatus(JobStatus.KILLED);
 
     return job;
   }
 
   public static Job setActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.ACTIVE_DOWNLOAD);
+    job.setStatus(JobStatus.TRANSFERRING);
 
     return job;
   }
 
   public static Job unsetActiveDownload(@NonNull Job job) {
-    job.setStatus(JobStatus.COMPLETED);
+    job.setStatus(JobStatus.SUCCEEDED);
 
     return job;
   }
 
+  public static Map<DownloadDataType, TaskProgress> createJobProgress(@NonNull JobStatus status,
+      @NonNull Set<DownloadDataType> dataTypes) {
+    return status == JobStatus.KILLED || status == JobStatus.FAILED ?
+        createTaskProgress(dataTypes, 0) :
+        createTaskProgress(dataTypes, 1);
+  }
+
+  private static Map<DownloadDataType, TaskProgress> createTaskProgress(Set<DownloadDataType> dataTypes, int progress) {
+    return dataTypes.stream()
+        .collect(toImmutableMap(dt -> dt, dt -> new TaskProgress(progress, progress)));
+  }
+
   private static long getDateAsMillis() {
-    return new Date().getTime();
+    return System.currentTimeMillis();
+  }
+
+  private static Set<DownloadDataType> refineClinicalDataTypes(Set<DownloadDataType> dataTypes) {
+    return dataTypes.contains(DownloadDataType.DONOR) == false ?
+        dataTypes :
+        ImmutableSet.<DownloadDataType> builder()
+            .addAll(difference(dataTypes, CLINICAL))
+            .add(DONOR)
+            .build();
   }
 
 }

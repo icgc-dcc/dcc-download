@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2016 The Ontario Institute for Cancer Research. All rights reserved.                             
+ *                                                                                                               
+ * This program and the accompanying materials are made available under the terms of the GNU Public License v3.0.
+ * You should have received a copy of the GNU General Public License along with                                  
+ * this program. If not, see <http://www.gnu.org/licenses/>.                                                     
+ *                                                                                                               
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY                           
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES                          
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT                           
+ * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,                                
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED                          
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;                               
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER                              
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.icgc.dcc.download.client;
 
 import java.io.OutputStream;
@@ -5,93 +22,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.Cleanup;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.val;
-
-import org.icgc.dcc.download.client.io.ArchiveOutputStream;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
-import org.icgc.dcc.download.core.model.JobProgress;
-import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.core.model.JobUiInfo;
 
-@RequiredArgsConstructor
-public class DownloadClient {
+public interface DownloadClient {
 
-  /**
-   * Dependencies.
-   */
-  @NonNull
-  private final ArchiveOutputStream outputStream;
-  @NonNull
-  private final HttpDownloadClient httpClient;
+  void cancelJob(String jobId);
 
-  public boolean isServiceAvailable() {
-    // TODO: Implement!
-    throw new UnsupportedOperationException();
-  }
+  Job getJob(String jobId, Iterable<String> fields);
 
-  public String submitJob(
-      @NonNull Set<String> donorIds,
-      @NonNull Set<DownloadDataType> dataTypes,
-      @NonNull JobInfo jobInfo,
-      @NonNull String userEmailAddress) {
-    val submitJobRequest = SubmitJobRequest.builder()
-        .donorIds(donorIds)
-        .dataTypes(dataTypes)
-        .jobInfo(jobInfo)
-        .userEmailAddress(userEmailAddress)
-        .build();
+  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
 
-    return httpClient.submitJob(submitJobRequest);
-  }
+  boolean isServiceAvailable();
 
-  public void cancelJob(@NonNull String jobId) {
-    httpClient.cancelJob(jobId);
-  }
+  void setActiveDownload(String jobId);
 
-  public Map<String, JobProgress> getJobsProgress(@NonNull Set<String> jobIds) {
-    return httpClient.getJobsProgress(jobIds);
-  }
+  void unsetActiveDownload(String jobId);
 
-  public Map<String, JobInfo> getJobsInfo(@NonNull Set<String> jobIds) {
-    return httpClient.getJobsInfo(jobIds);
-  }
+  boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType);
 
-  public void setActiveDownload(@NonNull String jobId) {
-    httpClient.setActiveDownload(jobId);
-  }
+  boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes);
 
-  public void unsetActiveDownload(@NonNull String jobId) {
-    httpClient.unsetActiveDownload(jobId);
-  }
-
-  public Map<DownloadDataType, Long> getSizes(@NonNull Set<String> donorIds) {
-    val requestBody = SubmitJobRequest.builder()
-        .donorIds(donorIds)
-        .build();
-
-    return httpClient.getSizes(requestBody);
-  }
-
-  @SneakyThrows
-  public boolean streamArchiveInGz(@NonNull OutputStream out, @NonNull String downloadId,
-      @NonNull DownloadDataType dataType) {
-    @Cleanup
-    val managedOut = out;
-
-    return outputStream.streamArchiveInGz(managedOut, downloadId, dataType);
-  }
-
-  @SneakyThrows
-  public boolean streamArchiveInTarGz(@NonNull OutputStream out, @NonNull String downloadId,
-      @NonNull List<DownloadDataType> downloadDataTypes) {
-    @Cleanup
-    val managedOut = out;
-
-    return outputStream.streamArchiveInGzTar(managedOut, downloadId, downloadDataTypes);
-  }
+  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo);
 
 }

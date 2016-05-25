@@ -49,6 +49,18 @@ public class Properties {
     return new DownloadServerProperties();
   }
 
+  @Bean
+  @ConfigurationProperties(prefix = "hadoop")
+  public HadoopProperties hadoopProperties() {
+    return new HadoopProperties();
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "mail")
+  public MailProperties mailProperties() {
+    return new MailProperties();
+  }
+
   @Data
   public static class JobProperties {
 
@@ -69,6 +81,23 @@ public class Properties {
   public static class DownloadServerProperties {
 
     private String recordWeightsFile;
+
+  }
+
+  @Data
+  public static class HadoopProperties {
+
+    private Map<String, String> properties = newLinkedHashMap();
+
+  }
+
+  @Data
+  public static class MailProperties {
+
+    private boolean enabled = true;
+    private String serviceUrl;
+    private String portalUrl;
+    private Map<String, String> properties = newLinkedHashMap();
 
   }
 

@@ -18,13 +18,15 @@
 package org.icgc.dcc.download.job.task;
 
 import static com.google.common.base.Preconditions.checkState;
+import lombok.NoArgsConstructor;
 import lombok.val;
 
-import org.apache.spark.sql.DataFrame;
-import org.apache.spark.sql.SQLContext;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.Row;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.job.function.ConvertGenericType;
+import org.icgc.dcc.download.job.function.ConvertRow;
 
+@NoArgsConstructor
 public class GenericTask extends Task {
 
   @Override
@@ -33,23 +35,20 @@ public class GenericTask extends Task {
     checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
     val dataType = dataTypes.iterator().next();
 
-    val input = readInput(taskContext, dataType);
-    val donors = filterDonors(input, taskContext.getDonorIds())
-        .javaRDD();
+    val filteredInput = readInput(taskContext, dataType)
+        .javaRDD()
+        .coalesce(200);
+
+    val records = process(filteredInput, dataType);
 
     val header = getHeader(taskContext.getSparkContext(), dataType);
-    val records = donors.flatMap(new ConvertGenericType(dataType));
     val output = header.union(records);
 
     writeOutput(dataType, taskContext, output);
   }
 
-  private DataFrame readInput(TaskContext taskContext, DownloadDataType dataType) {
-    val sparkContext = taskContext.getSparkContext();
-    val sqlContext = new SQLContext(sparkContext);
-    val inputPath = taskContext.getInputDir() + "/" + dataType.getId();
-
-    return sqlContext.read().parquet(inputPath);
+  protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
+    return input.map(new ConvertRow(dataType.getDownloadFields()));
   }
 
 }

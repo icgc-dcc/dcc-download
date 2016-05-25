@@ -1,0 +1,156 @@
+/*
+ * Copyright (c) 2016 The Ontario Institute for Cancer Research. All rights reserved.                             
+ *                                                                                                               
+ * This program and the accompanying materials are made available under the terms of the GNU Public License v3.0.
+ * You should have received a copy of the GNU General Public License along with                                  
+ * this program. If not, see <http://www.gnu.org/licenses/>.                                                     
+ *                                                                                                               
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY                           
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES                          
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT                           
+ * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,                                
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED                          
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;                               
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER                              
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.icgc.dcc.download.server.endpoint;
+
+import static org.icgc.dcc.download.core.model.JobStatus.RUNNING;
+import static org.mockito.Mockito.when;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
+
+import java.util.Collection;
+
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.Job;
+import org.icgc.dcc.download.core.model.TaskProgress;
+import org.icgc.dcc.download.server.mail.Mailer;
+import org.icgc.dcc.download.server.service.DownloadService;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.google.common.collect.ImmutableMap;
+
+@RunWith(MockitoJUnitRunner.class)
+public class JobControllerTest {
+
+  private static final String ENDPOINT_PATH = "/jobs";
+
+  @Mock
+  DownloadService service;
+  @Mock
+  Mailer mailer;
+
+  @InjectMocks
+  JobController controller;
+
+  @Captor
+  ArgumentCaptor<String> jobIdCaptor;
+  @Captor
+  ArgumentCaptor<Collection<String>> fieldsCaptor;
+
+  MockMvc mockMvc;
+
+  @Before
+  public void setUp() {
+    mockMvc = standaloneSetup(controller).build();
+  }
+
+  @Test
+  public void testGetDownloadJob() throws Exception {
+    when(service.getJob("job123", true)).thenReturn(Job.builder()
+        .id("job123")
+        .submissionDate(2L)
+        .fileSizeBytes(1L)
+        .status(RUNNING)
+        .progress(ImmutableMap.of(DownloadDataType.DONOR, new TaskProgress(2, 3)))
+        .ttlHours(48)
+        .build());
+
+    mockMvc
+        .perform(get(ENDPOINT_PATH + "/job123").param("field", "ttlHours", "status", "progress"))
+        .andExpect(status().isOk())
+        .andExpect(
+            content().string("{\"id\":\"job123\",\"status\":\"RUNNING\",\"ttlHours\":48,"
+                + "\"progress\":{\"DONOR\":{\"completedCount\":2,\"totalCount\":3}}}"));
+  }
+
+  @Test
+  public void testGetDownloadJob_notFound() throws Exception {
+    mockMvc.perform(get(ENDPOINT_PATH + "/job123"))
+        .andExpect(status().isNotFound());
+
+  }
+
+  @Test
+  public void testGetDownloadJob_noFields() throws Exception {
+    mockMvc.perform(get(ENDPOINT_PATH + "/job123"))
+        .andExpect(status().isNotFound());
+
+  }
+
+  @Test
+  public void testSubmitJob() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"dataTypes\":[\"DONOR\"], \"submissionTime\":2,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  public void testSubmitJob_noDonors() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[], \"dataTypes\":[\"DONOR\"], \"submissionTime\":2,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  public void testSubmitJob_noDataTypes() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"submissionTime\":2,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  public void testSubmitJob_badSubmissionTime() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"dataTypes\":[\"DONOR\"], \"submissionTime\":0,"
+                + "\"jobInfo\":{\"email\":\"e@b.com\"}}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  public void testSubmitJob_badEmail() throws Exception {
+    mockMvc.perform(
+        post(ENDPOINT_PATH)
+            .contentType(APPLICATION_JSON)
+            .content("{\"donorIds\":[\"DO1\"], \"dataTypes\":[\"DONOR\"], \"submissionTime\":3,"
+                + "\"jobInfo\":{\"email\":\"zzz123\"}}"))
+        .andExpect(status().isBadRequest());
+  }
+
+}

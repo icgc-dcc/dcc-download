@@ -19,6 +19,7 @@ package org.icgc.dcc.download.job.function;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.job.utils.Rows.getValueAsList;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,7 +29,6 @@ import lombok.val;
 
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.icgc.dcc.download.job.utils.Rows;
 
 public final class UnwindRow implements Function<Row, Iterable<Row>> {
 
@@ -46,7 +46,7 @@ public final class UnwindRow implements Function<Row, Iterable<Row>> {
 
   private static List<Row> unwindRow(Row source, List<String> path) {
     val field = path.get(0);
-    val values = Rows.getValueAsList(source, field);
+    val values = getValueAsList(source, field);
     if (isLast(path)) {
       return values;
     }

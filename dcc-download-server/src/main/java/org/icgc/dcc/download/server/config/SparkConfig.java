@@ -50,7 +50,7 @@ public class SparkConfig {
   }
 
   @Bean
-  public JavaSparkContext javaSparkContext() {
+  public JavaSparkContext sparkContext() {
     val sparkContext = new JavaSparkContext(sparkConf());
     val jobJar = getJobJar();
     if (!isExploded(jobJar)) {
@@ -63,24 +63,8 @@ public class SparkConfig {
 
   private String getJobJar() {
     val jobJarAnchor = DefaultDownloadJob.class;
-    String path = getPath(jobJarAnchor);
-    if (isPathInJar(path)) {
-      path = fixJarPath(path);
-    }
 
-    return path;
-  }
-
-  private static String fixJarPath(String path) {
-    if (path.startsWith("jar:") || !path.startsWith("file:")) {
-      return path;
-    }
-
-    return "jar:" + path;
-  }
-
-  private static boolean isPathInJar(String path) {
-    return path.contains("!/");
+    return getPath(jobJarAnchor);
   }
 
   private static boolean isExploded(String path) {

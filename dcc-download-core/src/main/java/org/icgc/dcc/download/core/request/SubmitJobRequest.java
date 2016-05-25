@@ -25,17 +25,21 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobInfo;
+import org.icgc.dcc.download.core.model.JobUiInfo;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(Include.NON_NULL)
 public class SubmitJobRequest {
 
   Set<String> donorIds;
   Set<DownloadDataType> dataTypes;
-  JobInfo jobInfo;
-  String userEmailAddress;
+  JobUiInfo jobInfo;
+  long submissionTime;
 
 }
