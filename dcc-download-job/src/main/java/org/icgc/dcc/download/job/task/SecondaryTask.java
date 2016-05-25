@@ -34,7 +34,7 @@ public class SecondaryTask extends GenericTask {
     return input
         .mapToPair(new PairByFields(dataType.getFirstLevelFields()))
         .flatMapValues(new UnwindRow(ImmutableList.of(FieldNames.LoaderFieldNames.CONSEQUENCE_ARRAY_NAME)))
-        .map(new ConvertRecord(dataType.getDownloadFileds()));
+        .map(new ConvertRecord(dataType.getDownloadFields()));
   }
 
 }

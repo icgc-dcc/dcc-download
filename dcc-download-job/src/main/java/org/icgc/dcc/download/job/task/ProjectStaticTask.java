@@ -15,35 +15,39 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.utils;
+package org.icgc.dcc.download.job.task;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.common.core.util.Joiners.TAB;
-import static org.icgc.dcc.download.job.util.TestRows.createExposureSchema;
-import static org.icgc.dcc.download.job.util.TestRows.createRow;
+import static com.google.common.base.Preconditions.checkState;
 import lombok.val;
 
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.junit.Test;
+import org.icgc.dcc.download.job.function.PairByProject;
+import org.icgc.dcc.download.job.utils.Tasks;
 
-import com.google.common.collect.ImmutableMap;
+public class ProjectStaticTask extends Task {
 
-public class RecordConverterTest {
+  @Override
+  public void execute(TaskContext taskContext) {
+    val dataTypes = taskContext.getDataTypes();
+    checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
+    val dataType = dataTypes.iterator().next();
 
-  @Test
-  public void testConvert() throws Exception {
-    val exposureRow =
-        createRow(createExposureSchema(), "alco_hist", "alco_hist_int", 1, "exp_notes", "exp_type", null, 2);
-    val resolvedValues = ImmutableMap.of(
-        "_donor_id", "DO1",
-        "_project_id", "DCC-TEST",
-        "donor_id", "DID123");
+    val inputInput = readInput(taskContext, dataType).javaRDD();
+    val delegate = Tasks.createTask(dataType);
+    val records = delegate.process(inputInput, dataType);
 
-    val converter = new RecordConverter(DownloadDataType.DONOR_EXPOSURE.getDownloadFields());
-    val actualValue = converter.convert(resolvedValues, exposureRow);
-    val expectedValue = TAB.join("DO1", "DCC-TEST", "DID123", "exp_type", 1, "", 2, "alco_hist",
-        "alco_hist_int");
-    assertThat(actualValue).isEqualTo(expectedValue);
+    val projectIdIndex = resolveProjectIdIndex(dataType);
+    records.mapToPair(new PairByProject(projectIdIndex));
+    // TODO: Now save as here:
+    // http://stackoverflow.com/questions/23995040/write-to-multiple-outputs-by-key-spark-one-spark-job
+
+  }
+
+  private static int resolveProjectIdIndex(DownloadDataType dataType) {
+    val index = dataType.getDownloadFields().indexOf("_project_id");
+    checkState(index != -1, "Failed to resolve project ID index of '%s' data type.", dataType);
+
+    return index;
   }
 
 }

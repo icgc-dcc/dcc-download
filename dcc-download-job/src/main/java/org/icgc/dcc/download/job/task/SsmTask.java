@@ -59,7 +59,7 @@ public class SsmTask extends GenericTask {
         // Unwind Consequences
         .flatMapToPair(new UnwindUnresolvedValue(FieldNames.LoaderFieldNames.CONSEQUENCE_ARRAY_NAME))
 
-        .map(new ConvertRecord(dataType.getDownloadFileds()));
+        .map(new ConvertRecord(dataType.getDownloadFields()));
   }
 
 }

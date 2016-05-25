@@ -51,7 +51,9 @@ public class ClinicalTask extends Task {
 
   @Override
   public void execute(TaskContext taskContext) {
-    val donors = readInput(taskContext, DONOR).javaRDD();
+    val donors = readInput(taskContext, DONOR)
+        .javaRDD()
+        .coalesce(200);
 
     donors.cache();
 
@@ -86,7 +88,7 @@ public class ClinicalTask extends Task {
   private void writeDonors(TaskContext taskContext, JavaRDD<Row> donors) {
     val dataType = DONOR;
     val header = getHeader(taskContext.getSparkContext(), dataType);
-    val records = donors.map(new ConvertRow(dataType.getDownloadFileds()));
+    val records = donors.map(new ConvertRow(dataType.getDownloadFields()));
     val output = header.union(records);
 
     writeOutput(dataType, taskContext, output);
@@ -97,7 +99,7 @@ public class ClinicalTask extends Task {
 
     val records = donors.mapToPair(new PairByFields(DONOR_FIELDS))
         .flatMapValues(new UnwindRow(ImmutableList.of(unwindPath)))
-        .map(new ConvertRecord(dataType.getDownloadFileds()));
+        .map(new ConvertRecord(dataType.getDownloadFields()));
 
     val header = getHeader(taskContext.getSparkContext(), dataType);
     val output = header.union(records);
@@ -115,7 +117,7 @@ public class ClinicalTask extends Task {
         .flatMapValues(new UnwindRow(ImmutableList.of(DONOR_SPECIMEN)))
         .mapToPair(new AddFieldsToKey(specimenFields))
         .flatMapValues(new UnwindRow(ImmutableList.of(DONOR_SAMPLE)))
-        .map(new ConvertRecord(dataType.getDownloadFileds()));
+        .map(new ConvertRecord(dataType.getDownloadFields()));
 
     val header = getHeader(taskContext.getSparkContext(), dataType);
     val output = header.union(records);

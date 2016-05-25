@@ -33,6 +33,7 @@ import org.apache.spark.sql.SQLContext;
 import org.icgc.dcc.common.core.model.FieldNames;
 import org.icgc.dcc.common.core.util.Joiners;
 import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.job.core.StaticDownloadJob;
 
 @Slf4j
 public abstract class Task {
@@ -46,7 +47,9 @@ public abstract class Task {
   }
 
   private static String getOutputPath(String jobId, String outputDir, DownloadDataType dataType) {
-    return outputDir + "/" + jobId + "/" + dataType.getId();
+    return StaticDownloadJob.STATIC_DIR_PATH.equals(jobId) ?
+        outputDir + "/" + dataType.getId() :
+        outputDir + "/" + jobId + "/" + dataType.getId();
   }
 
   protected static JavaRDD<String> getHeader(JavaSparkContext sparkContext, DownloadDataType dataType) {

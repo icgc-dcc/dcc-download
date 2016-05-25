@@ -17,33 +17,34 @@
  */
 package org.icgc.dcc.download.job.utils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.common.core.util.Joiners.TAB;
-import static org.icgc.dcc.download.job.util.TestRows.createExposureSchema;
-import static org.icgc.dcc.download.job.util.TestRows.createRow;
-import lombok.val;
+import static lombok.AccessLevel.PRIVATE;
+import lombok.NoArgsConstructor;
 
+import org.icgc.dcc.common.core.model.Marking;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.junit.Test;
+import org.icgc.dcc.download.job.task.GenericTask;
+import org.icgc.dcc.download.job.task.SecondaryTask;
+import org.icgc.dcc.download.job.task.SsmTask;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
-public class RecordConverterTest {
+@NoArgsConstructor(access = PRIVATE)
+public final class Tasks {
 
-  @Test
-  public void testConvert() throws Exception {
-    val exposureRow =
-        createRow(createExposureSchema(), "alco_hist", "alco_hist_int", 1, "exp_notes", "exp_type", null, 2);
-    val resolvedValues = ImmutableMap.of(
-        "_donor_id", "DO1",
-        "_project_id", "DCC-TEST",
-        "donor_id", "DID123");
+  public static GenericTask createTask(DownloadDataType dataType) {
+    if (dataType == DownloadDataType.SSM_OPEN) {
+      return new SsmTask(ImmutableSet.of(Marking.OPEN, Marking.MASKED));
+    }
 
-    val converter = new RecordConverter(DownloadDataType.DONOR_EXPOSURE.getDownloadFields());
-    val actualValue = converter.convert(resolvedValues, exposureRow);
-    val expectedValue = TAB.join("DO1", "DCC-TEST", "DID123", "exp_type", 1, "", 2, "alco_hist",
-        "alco_hist_int");
-    assertThat(actualValue).isEqualTo(expectedValue);
+    if (dataType == DownloadDataType.SSM_CONTROLLED) {
+      return new SsmTask(ImmutableSet.of(Marking.OPEN, Marking.CONTROLLED));
+    }
+
+    if (dataType.getFirstLevelFields().isEmpty() == false) {
+      return new SecondaryTask();
+    }
+
+    return new GenericTask();
   }
 
 }

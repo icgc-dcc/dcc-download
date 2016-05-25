@@ -35,7 +35,9 @@ public class GenericTask extends Task {
     checkState(dataTypes.size() == 1, "Unexpeceted datatypes {}", dataTypes);
     val dataType = dataTypes.iterator().next();
 
-    val filteredInput = readInput(taskContext, dataType).javaRDD();
+    val filteredInput = readInput(taskContext, dataType)
+        .javaRDD()
+        .coalesce(200);
 
     val records = process(filteredInput, dataType);
 
@@ -46,7 +48,7 @@ public class GenericTask extends Task {
   }
 
   protected JavaRDD<String> process(JavaRDD<Row> input, DownloadDataType dataType) {
-    return input.map(new ConvertRow(dataType.getDownloadFileds()));
+    return input.map(new ConvertRow(dataType.getDownloadFields()));
   }
 
 }

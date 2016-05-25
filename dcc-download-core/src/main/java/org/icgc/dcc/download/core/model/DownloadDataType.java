@@ -678,7 +678,7 @@ public enum DownloadDataType implements Identifiable {
     return getId().endsWith(OPEN_SUFFIX);
   }
 
-  public List<String> getDownloadFileds() {
+  public List<String> getDownloadFields() {
     return this.getFields().entrySet().stream()
         .map(e -> e.getKey())
         .collect(toImmutableList());

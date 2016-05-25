@@ -17,104 +17,77 @@
  */
 package org.icgc.dcc.download.job.core;
 
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
-import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
-import static org.icgc.dcc.download.core.model.DownloadDataType.hasClinicalDataTypes;
-import static org.icgc.dcc.download.job.utils.Tasks.createTask;
 
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.spark.api.java.JavaSparkContext;
 import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.util.DownloadJobs;
 import org.icgc.dcc.download.job.task.ClinicalTask;
+import org.icgc.dcc.download.job.task.ProjectStaticTask;
 import org.icgc.dcc.download.job.task.Task;
 import org.icgc.dcc.download.job.task.TaskContext;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 @Slf4j
-public class DefaultDownloadJob implements DownloadJob {
+public class StaticDownloadJob implements DownloadJob {
+
+  public static final String STATIC_DIR_PATH = "static";
 
   @Override
   public void execute(JobContext jobContext) {
-    log.info("Running spark job...");
+    log.info("Starting generate static download files job...");
     createTasks(jobContext).entrySet().parallelStream()
         .forEach(e -> {
           Task task = e.getKey();
           TaskContext context = e.getValue();
-          setJobName(context);
+          context.getSparkContext().setJobGroup("static-download", "static-download");
           task.execute(context);
         });
-  }
-
-  private static void setJobName(TaskContext taskContext) {
-    val jobId = taskContext.getJobId();
-    val dataTypes = taskContext.getDataTypes();
-    val dataType = hasClinicalDataTypes(dataTypes) ? DownloadDataType.DONOR : Iterables.get(dataTypes, 0);
-    val jobName = DownloadJobs.getJobName(jobId, dataType);
-
-    setJobGroupName(taskContext.getSparkContext(), jobName);
-  }
-
-  private static void setJobGroupName(JavaSparkContext sparkContext, String jobId) {
-    val desc = "Download Job " + jobId;
-    sparkContext.setJobGroup(jobId, desc);
+    log.info("Finished generate static download files job.");
   }
 
   private static Map<? extends Task, TaskContext> createTasks(JobContext jobContext) {
     val tasks = ImmutableMap.<Task, TaskContext> builder();
-    if (DownloadDataType.hasClinicalDataTypes(jobContext.getDataTypes())) {
-      tasks.put(createClinical(jobContext));
-    }
+    tasks.put(new ClinicalTask(), createTaskContext(jobContext, DownloadDataType.CLINICAL));
 
-    tasks.putAll(createNonClinicalTasks(jobContext));
+    for (val dataType : getNonClinicalDataTypes()) {
+      tasks.put(new ProjectStaticTask(), createTaskContext(jobContext, singleton(dataType)));
+    }
 
     return tasks.build();
   }
 
-  private static Map<? extends Task, TaskContext> createNonClinicalTasks(JobContext jobContext) {
-    val dataTypes = filterOutClinicalDataTypes(jobContext.getDataTypes());
+  private static Iterable<DownloadDataType> getNonClinicalDataTypes() {
+    val dataTypes = Sets.newHashSet(DownloadDataType.values());
+    dataTypes.removeAll(DownloadDataType.CLINICAL);
 
-    return dataTypes.stream()
-        .collect(toImmutableMap(dt -> createTask(dt), dt -> createTaskContext(jobContext, singleton(dt))));
-  }
-
-  private static Entry<? extends Task, ? extends TaskContext> createClinical(JobContext jobContext) {
-    val dataTypes = filterClinical(jobContext.getDataTypes());
-    val taskContext = createTaskContext(jobContext, dataTypes);
-
-    return Maps.immutableEntry(new ClinicalTask(), taskContext);
-  }
-
-  private static Set<DownloadDataType> filterClinical(Set<DownloadDataType> dataTypes) {
-    return Sets.intersection(CLINICAL, dataTypes);
-  }
-
-  private static Set<DownloadDataType> filterOutClinicalDataTypes(Set<DownloadDataType> dataTypes) {
-    val genericDataTypes = Sets.newHashSet(dataTypes);
-    genericDataTypes.removeAll(CLINICAL);
-
-    return genericDataTypes;
+    return dataTypes;
   }
 
   private static TaskContext createTaskContext(JobContext jobContext, Set<DownloadDataType> dataTypes) {
-    return new TaskContext(
-        jobContext.getJobId(),
-        jobContext.getInputDir(),
-        jobContext.getOutputDir(),
-        jobContext.getDonorIds(),
-        dataTypes,
-        jobContext.getSparkContext());
+    return TaskContext.builder()
+        .jobId(STATIC_DIR_PATH)
+        .inputDir(jobContext.getInputDir())
+        .outputDir(resolveOutputDir(jobContext.getOutputDir(), dataTypes))
+        .sparkContext(jobContext.getSparkContext())
+        .donorIds(emptySet())
+        .dataTypes(dataTypes)
+        .build();
+  }
+
+  private static String resolveOutputDir(String outputDir, Set<DownloadDataType> dataTypes) {
+    val staticDir = outputDir + "/" + STATIC_DIR_PATH;
+
+    return dataTypes.equals(DownloadDataType.CLINICAL) ?
+        staticDir + "/Summary" :
+        staticDir + "/Projects";
   }
 
 }

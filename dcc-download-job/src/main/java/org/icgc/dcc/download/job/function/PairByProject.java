@@ -15,35 +15,33 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.utils;
+package org.icgc.dcc.download.job.function;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.common.core.util.Joiners.TAB;
-import static org.icgc.dcc.download.job.util.TestRows.createExposureSchema;
-import static org.icgc.dcc.download.job.util.TestRows.createRow;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.icgc.dcc.download.job.utils.Tuples.tuple;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.junit.Test;
+import org.apache.spark.api.java.function.PairFunction;
+import org.icgc.dcc.common.core.util.Splitters;
 
-import com.google.common.collect.ImmutableMap;
+import scala.Tuple2;
 
-public class RecordConverterTest {
+import com.google.common.base.Splitter;
 
-  @Test
-  public void testConvert() throws Exception {
-    val exposureRow =
-        createRow(createExposureSchema(), "alco_hist", "alco_hist_int", 1, "exp_notes", "exp_type", null, 2);
-    val resolvedValues = ImmutableMap.of(
-        "_donor_id", "DO1",
-        "_project_id", "DCC-TEST",
-        "donor_id", "DID123");
+@RequiredArgsConstructor
+public class PairByProject implements PairFunction<String, String, String> {
 
-    val converter = new RecordConverter(DownloadDataType.DONOR_EXPOSURE.getDownloadFields());
-    val actualValue = converter.convert(resolvedValues, exposureRow);
-    val expectedValue = TAB.join("DO1", "DCC-TEST", "DID123", "exp_type", 1, "", 2, "alco_hist",
-        "alco_hist_int");
-    assertThat(actualValue).isEqualTo(expectedValue);
+  private static final Splitter SPLITTER = Splitters.TAB;
+
+  private final int projectIdIndex;
+
+  @Override
+  public Tuple2<String, String> call(String row) throws Exception {
+    val projectId = SPLITTER.splitToList(row).get(projectIdIndex);
+    checkState(!isNullOrEmpty(projectId));
+
+    return tuple(projectId, row);
   }
-
 }
