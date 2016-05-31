@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.regex.Pattern;
 
 import lombok.NonNull;
@@ -32,6 +31,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.utils.DownloadFileSystems;
 
 @Slf4j
 public class DownloadFileSystem extends AbstractDownloadFileSystem {
@@ -41,8 +42,9 @@ public class DownloadFileSystem extends AbstractDownloadFileSystem {
 
   private final RootView rootView;
 
-  public DownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem, @NonNull RootView rootView) {
-    super(rootDir, fileSystem);
+  public DownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
+      @NonNull DownloadFileSystemService fsService, @NonNull RootView rootView) {
+    super(rootDir, fileSystem, fsService);
     this.rootView = rootView;
   }
 
@@ -55,7 +57,7 @@ public class DownloadFileSystem extends AbstractDownloadFileSystem {
     val files = HadoopUtils.lsAll(fileSystem, fsPath);
     log.debug("{}: {}", path, files);
 
-    if (isReleaseDir(files)) {
+    if (DownloadFileSystems.isReleaseDir(files)) {
       // project
     } else {
       return rootView.listReleases();
@@ -72,22 +74,6 @@ public class DownloadFileSystem extends AbstractDownloadFileSystem {
 
   private static String relativize(String path) {
     return path.replaceFirst("^/", EMPTY_STRING);
-  }
-
-  private static boolean isReleaseDir(List<Path> files) {
-    boolean hasHeaders = false;
-    boolean hasData = false;
-
-    for (val file : files) {
-      val name = file.getName();
-      if (HEADERS_DIR.equals(name)) {
-        hasHeaders = true;
-      } else if (DATA_DIR.equals(name)) {
-        hasData = true;
-      }
-    }
-
-    return hasHeaders && hasData;
   }
 
   private static void verifyPath(String path) {

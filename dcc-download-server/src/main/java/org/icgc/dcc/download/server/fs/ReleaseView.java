@@ -17,24 +17,43 @@
  */
 package org.icgc.dcc.download.server.fs;
 
+import static java.lang.String.format;
+import static java.lang.System.currentTimeMillis;
+import static java.util.stream.Collectors.toList;
+import static org.icgc.dcc.download.server.model.DownloadFileType.DIRECTORY;
+
 import java.util.Collection;
 
 import lombok.NonNull;
+import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
 
 public class ReleaseView extends AbstractDownloadFileSystem {
 
-  public ReleaseView(String rootDir, FileSystem fileSystem) {
-    super(rootDir, fileSystem);
+  public ReleaseView(String rootDir, FileSystem fileSystem, @NonNull DownloadFileSystemService fsService) {
+    super(rootDir, fileSystem, fsService);
+  }
+
+  public Collection<DownloadFile> listFiles(@NonNull String releasePath) {
+    return null;
   }
 
   public Collection<DownloadFile> listRelease(@NonNull String releaseName) {
-    // README.txt
-    // Projects
-    // Summary
-    return null;
+    val releaseFiles = HadoopUtils.lsAll(fileSystem, toHdfsPath(releaseName));
+    val downloadFiles = releaseFiles.stream()
+        .filter(file -> isDfsEntity(file) == false)
+        .map(file -> convert2DownloadFile(file))
+        .collect(toList());
+
+    downloadFiles.add(createProjectsDir(releaseName));
+    downloadFiles.add(createSummaryDir(releaseName));
+
+    return downloadFiles;
   }
 
   public Collection<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
@@ -43,6 +62,28 @@ public class ReleaseView extends AbstractDownloadFileSystem {
 
   public Collection<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
     return null;
+  }
+
+  private DownloadFile createSummaryDir(String releaseName) {
+    return createDir(format("/%s/Summary", releaseName));
+  }
+
+  private DownloadFile createProjectsDir(String releaseName) {
+    return createDir(format("/%s/Projects", releaseName));
+  }
+
+  private DownloadFile createDir(String path) {
+    val dir = new DownloadFile();
+    dir.setName(path);
+    dir.setType(DIRECTORY);
+    dir.setDate(currentTimeMillis());
+
+    return dir;
+  }
+
+  private boolean isDfsEntity(Path file) {
+    val fileName = file.getName();
+    return fileName.equals(DATA_DIR) || fileName.equals(HEADERS_DIR);
   }
 
 }

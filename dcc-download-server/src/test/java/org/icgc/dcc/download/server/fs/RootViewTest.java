@@ -21,18 +21,26 @@ import static com.google.common.collect.ImmutableList.of;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 import lombok.val;
 
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.utils.AbstractFsTest;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class RootViewTest extends AbstractFsTest {
 
+  @Mock
+  DownloadFileSystemService fsService;
   RootView rootView;
 
   @Before
   @Override
   public void setUp() {
     super.setUp();
-    this.rootView = new RootView(rootDir, getDefaultLocalFileSystem());
+    this.rootView = new RootView(rootDir, getDefaultLocalFileSystem(), fsService);
   }
 
   @Test

@@ -15,18 +15,43 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.repository;
+package org.icgc.dcc.download.server.service;
 
-import java.util.List;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 
-import org.icgc.dcc.download.core.model.Job;
-import org.icgc.dcc.download.core.model.JobStatus;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import java.io.File;
+import java.util.Map;
 
-public interface JobRepository extends MongoRepository<Job, String> {
+import lombok.val;
 
-  Job findById(String id);
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.model.DataTypeFile;
+import org.icgc.dcc.download.server.utils.AbstractFsTest;
+import org.junit.Test;
 
-  List<Job> findByCompletionDateLessThanAndStatusNot(Long date, JobStatus status);
+public class DownloadFileSystemServiceTest extends AbstractFsTest {
+
+  @Test
+  public void testCreateReleaseCache() throws Exception {
+    val release21Dir = new File(workingDir, "release_21").getAbsolutePath();
+    val releaseTable =
+        DownloadFileSystemService.createReleaseCache(new Path(release21Dir), getDefaultLocalFileSystem());
+    assertThat(releaseTable.size()).isNotZero();
+    assertDonor(releaseTable.row("DO001"), "part-00000.gz", 8);
+    assertDonor(releaseTable.row("DO002"), "part-00000.gz", 8);
+    assertDonor(releaseTable.row("DO003"), "part-00001.gz", 6);
+    assertDonor(releaseTable.row("DO004"), "part-00001.gz", 6);
+  }
+
+  private void assertDonor(Map<DownloadDataType, DataTypeFile> row, String expectedPartFile, int expectedDataTypes) {
+    assertThat(row).hasSize(expectedDataTypes);
+    for (val dataTypeFile : row.values()) {
+      val partFiles = dataTypeFile.getPartFiles();
+      assertThat(partFiles).hasSize(1);
+      assertThat(partFiles.get(0)).isEqualTo(expectedPartFile);
+    }
+  }
 
 }

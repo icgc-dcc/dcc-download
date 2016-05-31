@@ -28,14 +28,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
 
 import com.google.common.collect.ImmutableList;
 
 @Slf4j
 public class RootView extends AbstractDownloadFileSystem {
 
-  public RootView(@NonNull String rootDir, @NonNull FileSystem fileSystem) {
-    super(rootDir, fileSystem);
+  public RootView(@NonNull String rootDir, @NonNull FileSystem fileSystem, @NonNull DownloadFileSystemService fsService) {
+    super(rootDir, fileSystem, fsService);
   }
 
   /**

@@ -35,11 +35,19 @@ import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.common.test.file.FileTests;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
 @Slf4j
+@RunWith(MockitoJUnitRunner.class)
 public class AbstractDownloadFileSystemTest extends AbstractTest {
+
+  @Mock
+  DownloadFileSystemService fsService;
 
   AbstractDownloadFileSystem dfs;
   FileSystem fileSystem;
@@ -59,11 +67,11 @@ public class AbstractDownloadFileSystemTest extends AbstractTest {
   }
 
   @Test
-    public void testToResponseFileName() throws Exception {
-      val release20 = HadoopUtils.lsDir(fileSystem, new Path(workingDir.getAbsolutePath())).get(0);
-      val responseFileName = dfs.toResponseFileName(release20);
-      assertThat(responseFileName).isEqualTo("/release_20");
-    }
+  public void testToResponseFileName() throws Exception {
+    val release20 = HadoopUtils.lsDir(fileSystem, new Path(workingDir.getAbsolutePath())).get(0);
+    val responseFileName = dfs.toResponseFileName(release20);
+    assertThat(responseFileName).isEqualTo("/release_20");
+  }
 
   @Test
   public void testConvert2DownloadFile_dir() throws Exception {
@@ -125,10 +133,10 @@ public class AbstractDownloadFileSystemTest extends AbstractTest {
     new File(workingDir, "release_20").mkdir();
   }
 
-  private static class TestDownloadFileSystem extends AbstractDownloadFileSystem {
+  private class TestDownloadFileSystem extends AbstractDownloadFileSystem {
 
     public TestDownloadFileSystem(String rootDir, FileSystem fileSystem) {
-      super(rootDir, fileSystem);
+      super(rootDir, fileSystem, fsService);
     }
 
   }

@@ -20,6 +20,7 @@ package org.icgc.dcc.download.server.fs;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.regex.Pattern.compile;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.checkExistence;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
@@ -36,31 +37,33 @@ import org.icgc.dcc.common.core.util.Separators;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
 
 import com.google.common.collect.Ordering;
 
 @Slf4j
 public abstract class AbstractDownloadFileSystem {
 
-  protected static final String RELEASE_DIR_PREFIX = "release_";
+  public static final String HEADERS_DIR = "headers";
+  public static final String DATA_DIR = "data";
+  public static final String RELEASE_DIR_PREFIX = "release_";
+
   protected static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + "\\d+";
   protected static final String CURRENT_RELEASE_NAME = "current";
   protected static final String CURRENT_PATH = "/" + CURRENT_RELEASE_NAME;
-
-  protected static final String HEADERS_DIR = "headers";
-  protected static final String DATA_DIR = "data";
 
   protected final String rootDir;
   protected final String currentRelease;
   protected final FileSystem fileSystem;
   protected final Path rootPath;
 
-  public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem) {
-    this(rootDir, resolveCurrentRelease(rootDir, fileSystem), fileSystem);
+  public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
+      @NonNull DownloadFileSystemService fsService) {
+    this(rootDir, resolveCurrentRelease(rootDir, fileSystem), fileSystem, fsService);
   }
 
   public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull String currentRelease,
-      @NonNull FileSystem fileSystem) {
+      @NonNull FileSystem fileSystem, @NonNull DownloadFileSystemService fsService) {
     verifyRootPath(rootDir, fileSystem);
     verifyCurrentRelease(currentRelease);
     val rootPath = new Path(rootDir);
@@ -72,6 +75,12 @@ public abstract class AbstractDownloadFileSystem {
     this.currentRelease = currentRelease;
     this.fileSystem = fileSystem;
     this.rootPath = rootPath;
+  }
+
+  protected Path toHdfsPath(@NonNull String dfsPath) {
+    val childPath = dfsPath.startsWith("/") ? dfsPath.replaceFirst("/", EMPTY_STRING) : dfsPath;
+
+    return new Path(rootPath, childPath);
   }
 
   protected DownloadFile convert2DownloadFile(Path file) {

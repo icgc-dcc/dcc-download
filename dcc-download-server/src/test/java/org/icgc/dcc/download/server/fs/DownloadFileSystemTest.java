@@ -30,11 +30,19 @@ import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DownloadFileSystemTest extends AbstractTest {
+
+  @Mock
+  DownloadFileSystemService fsService;
 
   DownloadFileSystem dfs;
 
@@ -45,8 +53,8 @@ public class DownloadFileSystemTest extends AbstractTest {
     prepareInput();
     val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
     FileSystem fs = getDefaultLocalFileSystem();
-    val rootView = new RootView(rootDir, fs);
-    this.dfs = new DownloadFileSystem(rootDir, fs, rootView);
+    val rootView = new RootView(rootDir, fs, fsService);
+    this.dfs = new DownloadFileSystem(rootDir, fs, fsService, rootView);
   }
 
   @Test(expected = IllegalArgumentException.class)

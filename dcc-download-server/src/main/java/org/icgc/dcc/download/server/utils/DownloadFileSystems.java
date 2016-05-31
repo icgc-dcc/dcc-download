@@ -15,19 +15,51 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.config;
+package org.icgc.dcc.download.server.utils;
 
-import org.icgc.dcc.download.server.ServerMain;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import static com.google.common.base.Preconditions.checkState;
+import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.download.server.fs.AbstractDownloadFileSystem.DATA_DIR;
+import static org.icgc.dcc.download.server.fs.AbstractDownloadFileSystem.HEADERS_DIR;
+import static org.icgc.dcc.download.server.fs.AbstractDownloadFileSystem.RELEASE_DIR_PREFIX;
 
-/**
- * Repository configuration.
- * <p>
- * See Spring annotation documentation for details.
- */
-@Configuration
-@EnableMongoRepositories(basePackageClasses = ServerMain.class)
-public class RepositoryConfig {
+import java.util.List;
+
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.val;
+
+import org.apache.hadoop.fs.Path;
+
+@NoArgsConstructor(access = PRIVATE)
+public final class DownloadFileSystems {
+
+  public static boolean isReleaseDir(List<Path> files) {
+    boolean hasHeaders = false;
+    boolean hasData = false;
+
+    for (val file : files) {
+      val name = file.getName();
+      if (HEADERS_DIR.equals(name)) {
+        hasHeaders = true;
+      } else if (DATA_DIR.equals(name)) {
+        hasData = true;
+      }
+    }
+
+    return hasHeaders && hasData;
+  }
+
+  public static String toDfsPath(@NonNull Path fsPath) {
+    return toDfsPath(fsPath.toString());
+  }
+
+  public static String toDfsPath(@NonNull String fsPath) {
+    val start = fsPath.indexOf(RELEASE_DIR_PREFIX);
+    checkState(start > 0);
+
+    // Include '/'
+    return fsPath.substring(start - 1);
+  }
 
 }

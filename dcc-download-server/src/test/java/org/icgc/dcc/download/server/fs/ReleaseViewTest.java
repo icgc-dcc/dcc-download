@@ -15,44 +15,56 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.endpoint;
+package org.icgc.dcc.download.server.fs;
 
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import static com.google.common.collect.ImmutableList.of;
+import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.core.request.RecordsSizeRequest;
-import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
-import org.icgc.dcc.download.server.service.RecordStatsService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.utils.AbstractFsTest;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
 @Slf4j
-@RestController
-@RequestMapping("/stats")
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
-public final class RecordsStatsController {
+@RunWith(MockitoJUnitRunner.class)
+public class ReleaseViewTest extends AbstractFsTest {
 
-  @NonNull
-  private final RecordStatsService recordStatsService;
+  @Mock
+  DownloadFileSystemService fsService;
 
-  @RequestMapping(method = POST)
-  public DataTypeSizesResponse estimateRecordsSizes(@RequestBody RecordsSizeRequest body) {
-    val ids = body.getDonorIds();
-    log.debug("Received get records sizes request for ids: '{}'", ids);
-    if (ids == null || ids.isEmpty()) {
-      log.info("Empty get records sizes request. Skipping...");
-      throw new BadRequestException("Empty get records sizes request");
-    }
+  ReleaseView releaseView;
 
-    val recordsSizes = recordStatsService.getRecordsSizes(ids);
-    log.debug("Record sizes: {}", recordsSizes);
+  @Before
+  @Override
+  public void setUp() {
+    super.setUp();
+    this.releaseView = new ReleaseView(rootDir, getDefaultLocalFileSystem(), fsService);
+  }
 
-    return new DataTypeSizesResponse(recordsSizes);
+  @Test
+  public void testListRelease_releaseName() throws Exception {
+    val files = releaseView.listRelease("release_21");
+    verifyDownloadFiles(files, of(newDir("/release_21/Projects"), newDir("/release_21/Summary"),
+        newFile("/release_21/README.txt")));
+    log.info("{}", files);
+  }
+
+  @Test
+  @Ignore("FIXME")
+  public void testListRelease_current() throws Exception {
+    val files = releaseView.listRelease("current");
+
+  }
+
+  @Test
+  public void testListReleaseProjects() throws Exception {
+    val files = releaseView.listReleaseProjects("release_21");
   }
 
 }

@@ -15,36 +15,17 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.health;
+package org.icgc.dcc.download.server.model;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
 
-import org.apache.spark.api.java.JavaSparkContext;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
-import org.springframework.stereotype.Component;
+import lombok.Value;
 
-@Slf4j
-@Component
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
-public class SparkHealthIndicator implements HealthIndicator {
+@Value
+public class DataTypeFile {
 
-  @NonNull
-  private final JavaSparkContext sparkContext;
-
-  @Override
-  public Health health() {
-    try {
-      sparkContext.statusTracker().getActiveJobIds();
-    } catch (Exception e) {
-      log.error("Failed to check Spark health: \n", e);
-      return Health.down().build();
-    }
-
-    return Health.up().build();
-  }
+  String path;
+  List<String> partFiles;
+  long totalSize;
 
 }
