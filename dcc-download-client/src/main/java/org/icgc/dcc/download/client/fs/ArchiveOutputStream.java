@@ -39,7 +39,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.util.Archives;
 
 import com.google.common.collect.ImmutableMap;

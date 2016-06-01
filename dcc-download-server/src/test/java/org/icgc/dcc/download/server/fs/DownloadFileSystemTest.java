@@ -43,6 +43,8 @@ public class DownloadFileSystemTest extends AbstractTest {
 
   @Mock
   DownloadFileSystemService fsService;
+  @Mock
+  ViewController viewController;
 
   DownloadFileSystem dfs;
 
@@ -54,7 +56,7 @@ public class DownloadFileSystemTest extends AbstractTest {
     val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
     FileSystem fs = getDefaultLocalFileSystem();
     val rootView = new RootView(rootDir, fs, fsService);
-    this.dfs = new DownloadFileSystem(rootDir, fs, fsService, rootView);
+    this.dfs = new DownloadFileSystem(rootDir, fs, fsService, rootView, viewController);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -78,6 +80,15 @@ public class DownloadFileSystemTest extends AbstractTest {
 
   private DownloadFile newFile(String name) {
     return new DownloadFile(name, DownloadFileType.FILE, 0, 0);
+  }
+
+  @Test
+  public void testVerifyPath() throws Exception {
+    // DownloadFileSystem.verifyPath("/");
+    // DownloadFileSystem.verifyPath("/release_21");
+    // DownloadFileSystem.verifyPath("/release_21/Projects");
+    // DownloadFileSystem.verifyPath("/release_21/Summary");
+    DownloadFileSystem.verifyPath("/release_21/Projects/TST-CA");
   }
 
 }

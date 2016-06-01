@@ -17,7 +17,6 @@
  */
 package org.icgc.dcc.download.server.utils;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
@@ -30,6 +29,8 @@ import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
+
+import com.google.common.collect.Iterables;
 
 public abstract class AbstractFsTest extends AbstractTest {
 
@@ -47,34 +48,37 @@ public abstract class AbstractFsTest extends AbstractTest {
     return new DownloadFile(name, DownloadFileType.DIRECTORY, 0, 0);
   }
 
+  protected static DownloadFile newDir(String name, long creationDate) {
+    return newDir(name, 0, creationDate);
+  }
+
+  protected static DownloadFile newDir(String name, long size, long creationDate) {
+    return new DownloadFile(name, DownloadFileType.DIRECTORY, size, creationDate);
+  }
+
   protected static DownloadFile newFile(String name) {
     return new DownloadFile(name, DownloadFileType.FILE, 0, 0);
+  }
+
+  protected static DownloadFile newFile(String name, long size, long creationDate) {
+    return new DownloadFile(name, DownloadFileType.FILE, size, creationDate);
   }
 
   protected static void verifyDownloadFiles(@NonNull Collection<DownloadFile> actual,
       @NonNull Collection<DownloadFile> expected) {
     assertThat(actual).hasSameSizeAs(expected);
-    for (val actualFile : actual) {
-      val expectedFile = find(expected, actualFile);
+    for (int i = 0; i < expected.size(); i++) {
+      val actualFile = Iterables.get(actual, i);
+      val expectedFile = Iterables.get(expected, i);
       assertDownloadFiles(actualFile, expectedFile);
     }
-
   }
 
   private static void assertDownloadFiles(DownloadFile actualFile, DownloadFile expectedFile) {
-    // Not asserting size and date, as we're sure they are calculated correctly in the AbstractDownloadFileSystem
     assertThat(actualFile.getName()).isEqualTo(expectedFile.getName());
     assertThat(actualFile.getType()).isEqualTo(expectedFile.getType());
-  }
-
-  private static DownloadFile find(Collection<DownloadFile> expected, DownloadFile actualFile) {
-    val actualFileName = actualFile.getName();
-    val expectedOpt = expected.stream()
-        .filter(file -> file.getName().equals(actualFileName))
-        .findFirst();
-    checkState(expectedOpt.isPresent(), "Failed to find {} in {}", actualFile, expected);
-
-    return expectedOpt.get();
+    assertThat(actualFile.getDate()).isEqualTo(expectedFile.getDate());
+    assertThat(actualFile.getSize()).isEqualTo(expectedFile.getSize());
   }
 
 }

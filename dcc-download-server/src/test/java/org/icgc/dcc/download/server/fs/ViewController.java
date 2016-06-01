@@ -15,35 +15,23 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.model;
+package org.icgc.dcc.download.server.fs;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.DownloadDataType.CNSM;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SGV_CONTROLLED;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_CONTROLLED;
+import java.util.Collection;
 
-import org.junit.Test;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
-public class DownloadDataTypeTest {
+import org.icgc.dcc.download.server.model.DownloadFile;
 
-  @Test
-  public void testGetCanonicalName() throws Exception {
-    assertThat(DownloadDataType.SSM_OPEN.getCanonicalName()).isEqualTo("ssm");
-    assertThat(DownloadDataType.SSM_CONTROLLED.getCanonicalName()).isEqualTo("ssm");
-  }
+@RequiredArgsConstructor
+public class ViewController {
 
-  @Test
-  public void testFromCanonical() throws Exception {
-    assertThat(DownloadDataType.fromCanonical("ssm")).isEqualTo(DownloadDataType.SSM_CONTROLLED);
-    assertThat(DownloadDataType.fromCanonical("donor")).isEqualTo(DownloadDataType.DONOR);
-  }
+  private final RootView rootView;
+  private final ReleaseView releaseView;
 
-  @Test
-  public void testToControlledIfPossible() throws Exception {
-    assertThat(DownloadDataType.toControlledIfPossible("cnsm")).isEqualTo(CNSM);
-    assertThat(DownloadDataType.toControlledIfPossible("CNSM")).isEqualTo(CNSM);
-    assertThat(DownloadDataType.toControlledIfPossible("ssm")).isEqualTo(SSM_CONTROLLED);
-    assertThat(DownloadDataType.toControlledIfPossible("sgv")).isEqualTo(SGV_CONTROLLED);
+  public Collection<DownloadFile> listFiles(@NonNull String path) {
+    return null;
   }
 
 }

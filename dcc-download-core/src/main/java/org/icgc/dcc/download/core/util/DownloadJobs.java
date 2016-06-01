@@ -21,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.model.DownloadDataType;
 
 @NoArgsConstructor(access = PRIVATE)
 public final class DownloadJobs {

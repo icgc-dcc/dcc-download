@@ -25,10 +25,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.JSON_UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SAMPLE;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SPECIMEN;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_CONTROLLED;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SPECIMEN;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_CONTROLLED;
 
 import java.util.Collections;
 

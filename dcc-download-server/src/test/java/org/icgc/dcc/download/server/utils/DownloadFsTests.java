@@ -15,31 +15,47 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.task;
+package org.icgc.dcc.download.server.utils;
 
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SGV_CONTROLLED;
+import static com.google.common.collect.ImmutableList.of;
+import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
+import lombok.NoArgsConstructor;
 import lombok.val;
 
-import org.icgc.dcc.download.job.core.AbstractSparkJobTest;
-import org.icgc.dcc.download.job.core.StaticDownloadJob;
-import org.junit.Test;
+import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.model.DataTypeFile;
 
-public class ProjectStaticTaskTest extends AbstractSparkJobTest {
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
 
-  ProjectStaticTask task = new ProjectStaticTask();
+@NoArgsConstructor(access = PRIVATE)
+public final class DownloadFsTests {
 
-  @Test
-  public void testExecute() throws Exception {
-    prepareInput();
-    val taskContext = createTaskContext();
-    task.execute(taskContext);
-    // prepareVerificationFiles();
+  public static Table<String, DownloadDataType, DataTypeFile> createDonorFileTypesTable() {
+    val releaseTable = HashBasedTable.<String, DownloadDataType, DataTypeFile> create();
+    releaseTable.put("DO001", DONOR,
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
+    releaseTable.put("DO001", SAMPLE,
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
+    releaseTable.put("DO002", DONOR,
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO002/donor", of("part-00000.gz"), 3));
+    releaseTable.put("DO003", DONOR,
+        new DataTypeFile("/somepath/release_21/TST2-CA/DO003/donor", of("part-00000.gz"), 4));
+
+    return releaseTable;
   }
 
-  private TaskContext createTaskContext() {
-    return createTaskContext(StaticDownloadJob.STATIC_DIR_PATH, emptySet(), singleton(SGV_CONTROLLED));
+  public static Multimap<String, String> createProjectDonors() {
+    val projectDonors = ArrayListMultimap.<String, String> create();
+    projectDonors.put("TST1-CA", "DO001");
+    projectDonors.put("TST1-CA", "DO002");
+    projectDonors.put("TST2-CA", "DO003");
+
+    return projectDonors;
   }
 
 }

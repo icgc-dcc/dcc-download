@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.client.DownloadClient;
-import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 

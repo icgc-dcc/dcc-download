@@ -34,10 +34,10 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Separators;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
 import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.collect.Ordering;
 
@@ -56,6 +56,7 @@ public abstract class AbstractDownloadFileSystem {
   protected final String currentRelease;
   protected final FileSystem fileSystem;
   protected final Path rootPath;
+  protected final DownloadFileSystemService fsService;
 
   public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
       @NonNull DownloadFileSystemService fsService) {
@@ -75,6 +76,7 @@ public abstract class AbstractDownloadFileSystem {
     this.currentRelease = currentRelease;
     this.fileSystem = fileSystem;
     this.rootPath = rootPath;
+    this.fsService = fsService;
   }
 
   protected Path toHdfsPath(@NonNull String dfsPath) {
@@ -113,6 +115,33 @@ public abstract class AbstractDownloadFileSystem {
     return fileName.startsWith("/" + currentRelease);
   }
 
+  protected DownloadFile createDownloadDir(String path, String releaseName) {
+    return createDownloadDir(path, fsService.getReleaseDate(releaseName));
+  }
+
+  protected DownloadFile createDownloadDir(String path, long releaseDate) {
+    val dir = new DownloadFile();
+    dir.setName(path);
+    dir.setType(DIRECTORY);
+    dir.setDate(releaseDate);
+
+    return dir;
+  }
+
+  protected DownloadFile createDownloadFile(String path, long size, long releaseDate) {
+    val file = new DownloadFile();
+    file.setName(path);
+    file.setType(FILE);
+    file.setDate(releaseDate);
+    file.setSize(size);
+
+    return file;
+  }
+
+  protected FileStatus getFileStatus(Path file) {
+    return HadoopUtils2.getFileStatus(fileSystem, file);
+  }
+
   private DownloadFileType resolveFileType(Path file) {
     return isDirectory(fileSystem, file) ? DIRECTORY : FILE;
   }
@@ -127,13 +156,6 @@ public abstract class AbstractDownloadFileSystem {
     val status = getFileStatus(file);
 
     return status.getLen();
-  }
-
-  private FileStatus getFileStatus(Path file) {
-    val statusOpt = HadoopUtils.getFileStatus(fileSystem, file);
-    checkState(statusOpt.isPresent(), "File doesn't exist. '%s'", file);
-
-    return statusOpt.get();
   }
 
   static String resolveCurrentRelease(String rootPath, FileSystem fileSystem) {

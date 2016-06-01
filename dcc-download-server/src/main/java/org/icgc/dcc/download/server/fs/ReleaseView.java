@@ -18,31 +18,40 @@
 package org.icgc.dcc.download.server.fs;
 
 import static java.lang.String.format;
-import static java.lang.System.currentTimeMillis;
 import static java.util.stream.Collectors.toList;
-import static org.icgc.dcc.download.server.model.DownloadFileType.DIRECTORY;
+import static org.icgc.dcc.common.core.util.Joiners.PATH;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map.Entry;
 
 import lombok.NonNull;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.service.DownloadFileSystemService;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
+
+@Slf4j
 public class ReleaseView extends AbstractDownloadFileSystem {
+
+  public static final String SUMMARY_FILES = "summary_files";
 
   public ReleaseView(String rootDir, FileSystem fileSystem, @NonNull DownloadFileSystemService fsService) {
     super(rootDir, fileSystem, fsService);
   }
 
-  public Collection<DownloadFile> listFiles(@NonNull String releasePath) {
-    return null;
-  }
-
+  // Projects
+  // README.txt
+  // Summary
   public Collection<DownloadFile> listRelease(@NonNull String releaseName) {
     val releaseFiles = HadoopUtils.lsAll(fileSystem, toHdfsPath(releaseName));
     val downloadFiles = releaseFiles.stream()
@@ -57,33 +66,105 @@ public class ReleaseView extends AbstractDownloadFileSystem {
   }
 
   public Collection<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
-    return null;
+    val projects = fsService.getReleaseProjects(releaseName);
+    val releaseDate = fsService.getReleaseDate(releaseName);
+
+    return projects.stream()
+        .map(project -> format("/%s/Projects/%s", releaseName, project))
+        .map(path -> createDownloadDir(path, releaseDate))
+        .collect(toImmutableList());
   }
 
   public Collection<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
-    return null;
+    val releaseDate = fsService.getReleaseDate(releaseName);
+    val clinicalSizes = fsService.getClinicalSizes(releaseName);
+
+    val clinicalFiles = clinicalSizes.entrySet().stream()
+        .map(entry -> createSummaryFile(releaseName, entry, releaseDate))
+        .collect(toImmutableList());
+
+    val summaryFiles = getSummaryFiles(releaseName);
+    log.debug("Summary files: {}", summaryFiles);
+    summaryFiles.addAll(clinicalFiles);
+    summaryFiles.sort(ReleaseView::sortByPath);
+
+    return ImmutableList.copyOf(summaryFiles);
+  }
+
+  public Collection<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
+    val releaseDate = fsService.getReleaseDate(releaseName);
+    val projectSizes = fsService.getProjectSizes(releaseName, project);
+
+    // No need to sort the output files, as the input is already sorted
+    return projectSizes.entrySet().stream()
+        .map(entry -> createProjectFile(entry, releaseName, project, releaseDate))
+        .collect(toImmutableList());
+
+  }
+
+  private DownloadFile createProjectFile(Entry<DownloadDataType, Long> entry, String releaseName, String project,
+      long releaseDate) {
+    val type = entry.getKey();
+    val name = format("%s.%s.tsv.gz", type.getId(), project);
+    val path = format("/%s/Projects/%s/%s", releaseName, project, name);
+    val size = entry.getValue();
+
+    return createDownloadFile(path, size, releaseDate);
+  }
+
+  private List<DownloadFile> getSummaryFiles(String releaseName) {
+    val files = HadoopUtils.lsFile(fileSystem, getSummaryFilesPath(releaseName));
+
+    return files.stream()
+        .map(file -> createSummaryFile(file, releaseName))
+        .collect(toList());
+  }
+
+  private DownloadFile createSummaryFile(Path file, String releaseName) {
+    val fileName = file.getName();
+    val path = format("/%s/Summary/%s", releaseName, fileName);
+    val status = getFileStatus(file);
+    val size = status.getLen();
+    val creationDate = status.getModificationTime();
+
+    return createDownloadFile(path, size, creationDate);
+  }
+
+  private Path getSummaryFilesPath(String releaseName) {
+    val summaryPath = new Path(PATH.join(rootDir, releaseName, SUMMARY_FILES));
+    log.debug("'{}' summary path: {}", releaseName, summaryPath);
+
+    return summaryPath;
   }
 
   private DownloadFile createSummaryDir(String releaseName) {
-    return createDir(format("/%s/Summary", releaseName));
+    return createDownloadDir(format("/%s/Summary", releaseName), releaseName);
   }
 
   private DownloadFile createProjectsDir(String releaseName) {
-    return createDir(format("/%s/Projects", releaseName));
+    return createDownloadDir(format("/%s/Projects", releaseName), releaseName);
   }
 
-  private DownloadFile createDir(String path) {
-    val dir = new DownloadFile();
-    dir.setName(path);
-    dir.setType(DIRECTORY);
-    dir.setDate(currentTimeMillis());
+  private DownloadFile createSummaryFile(String releaseName, Entry<DownloadDataType, Long> entry, long releaseDate) {
+    val type = entry.getKey();
+    val size = entry.getValue();
+    val fileName = format("%s.all_projects.tsv.gz", type.getId());
+    val path = format("/%s/Summary/%s", releaseName, fileName);
 
-    return dir;
+    return createDownloadFile(path, size, releaseDate);
   }
 
-  private boolean isDfsEntity(Path file) {
+  private static boolean isDfsEntity(Path file) {
     val fileName = file.getName();
-    return fileName.equals(DATA_DIR) || fileName.equals(HEADERS_DIR);
+
+    return fileName.equals(DATA_DIR) || fileName.equals(HEADERS_DIR) || fileName.equals(SUMMARY_FILES);
+  }
+
+  private static int sortByPath(DownloadFile left, DownloadFile right) {
+    val leftPath = left.getName();
+    val rightPath = right.getName();
+
+    return Ordering.natural().compare(leftPath, rightPath);
   }
 
 }

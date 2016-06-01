@@ -18,7 +18,11 @@
 package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.collect.ImmutableList.of;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_OPEN;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.mockito.Mockito.when;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,6 +34,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 @Slf4j
 @RunWith(MockitoJUnitRunner.class)
@@ -64,7 +71,42 @@ public class ReleaseViewTest extends AbstractFsTest {
 
   @Test
   public void testListReleaseProjects() throws Exception {
+    when(fsService.getReleaseProjects("release_21")).thenReturn(ImmutableList.of("TST1-CA", "TST2-CA"));
+    when(fsService.getReleaseDate("release_21")).thenReturn(123L);
+
     val files = releaseView.listReleaseProjects("release_21");
+    verifyDownloadFiles(files,
+        of(newDir("/release_21/Projects/TST1-CA", 123), newDir("/release_21/Projects/TST2-CA", 123)));
+  }
+
+  @Test
+  public void testListReleaseSummary() throws Exception {
+    when(fsService.getReleaseDate("release_21")).thenReturn(321L);
+    when(fsService.getClinicalSizes("release_21")).thenReturn(ImmutableMap.of(SAMPLE, 2L, DONOR, 8L));
+
+    val files = releaseView.listReleaseSummary("release_21");
+    verifyDownloadFiles(files,
+        of(
+            newFile("/release_21/Summary/README.txt", 22, 1464800156000L),
+            newFile("/release_21/Summary/donor.all_projects.tsv.gz", 8, 321),
+            newFile("/release_21/Summary/sample.all_projects.tsv.gz", 2, 321),
+            newFile("/release_21/Summary/simple_somatic_mutation.aggregated.vcf.gz", 8, 1464800207000L)
+        ));
+  }
+
+  @Test
+  public void testListProject() throws Exception {
+    when(fsService.getReleaseDate("release_21")).thenReturn(321L);
+    when(fsService.getProjectSizes("release_21", "TST1-CA")).thenReturn(
+        ImmutableMap.of(DONOR, 8L, SAMPLE, 2L, SSM_OPEN, 10L));
+
+    val tst1Files = releaseView.listProject("release_21", "TST1-CA");
+    verifyDownloadFiles(tst1Files,
+        of(
+            newFile("/release_21/Projects/TST1-CA/donor.TST1-CA.tsv.gz", 8, 321),
+            newFile("/release_21/Projects/TST1-CA/sample.TST1-CA.tsv.gz", 2, 321),
+            newFile("/release_21/Projects/TST1-CA/ssm_open.TST1-CA.tsv.gz", 10, 321)
+        ));
   }
 
 }

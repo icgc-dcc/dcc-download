@@ -17,157 +17,109 @@
  */
 package org.icgc.dcc.download.server.service;
 
+import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
-import static org.icgc.dcc.download.server.fs.AbstractDownloadFileSystem.DATA_DIR;
-import static org.icgc.dcc.download.server.utils.DownloadFileSystems.isReleaseDir;
-import static org.icgc.dcc.download.server.utils.DownloadFileSystems.toDfsPath;
+import static com.google.common.collect.ImmutableList.copyOf;
+import static com.google.common.collect.Sets.newTreeSet;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.elasticsearch.common.collect.ImmutableMap;
-import org.icgc.dcc.common.core.util.Splitters;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.fs.DownloadFilesReader;
 import org.icgc.dcc.download.server.model.DataTypeFile;
-import org.icgc.dcc.download.server.utils.DownloadFileSystems;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Table;
 
-@Slf4j
 public class DownloadFileSystemService {
 
-  /**
-   * Row - release; Column - donor; Cell - project.<br>
-   * <b>NB:</b> Don't use directly. Call getDonorProjects()
-   */
-  private final Table<String, String, String> releaseDonorProjects = HashBasedTable.<String, String, String> create();
-  private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseFileTypes;
+  private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes;
+  private final Map<String, Multimap<String, String>> releaseProjectDonors;
+  private final Map<String, Long> releaseTimes;
+  @Getter
+  private final String currentRelease;
 
-  public DownloadFileSystemService(String rootDir, FileSystem fileSystem) {
-    this.releaseFileTypes = createReleaseFileTypes(rootDir, fileSystem);
+  public DownloadFileSystemService(@NonNull DownloadFilesReader reader) {
+    this.releaseDonorFileTypes = reader.getReleaseDonorFileTypes();
+    this.releaseProjectDonors = reader.getReleaseProjectDonors();
+    this.releaseTimes = reader.getReleaseTimes();
+    validateIntegrity();
+
+    this.currentRelease = resolveCurrentRelease();
   }
 
-  public long getReleaseTime(@NonNull String release) {
-    // TODO: implement
-    return 0L;
+  public List<String> getReleaseProjects(@NonNull String release) {
+    val projectDonors = releaseProjectDonors.get(release);
+    checkNotNull(projectDonors, "Failed to resolve project donors for release %s", release);
+
+    // Return sorted
+    return copyOf(newTreeSet(projectDonors.keySet()));
   }
 
-  private Map<String, String> getProjectDonors(String release) {
-    val donorProjects = releaseDonorProjects.row(release);
-    if (donorProjects == null || donorProjects.isEmpty()) {
-      createDonorProjects(release);
-      return releaseDonorProjects.row(release);
+  public long getReleaseDate(@NonNull String release) {
+    val releaseTime = releaseTimes.get(release);
+    checkNotNull(releaseTime, "Failed to resolve release date for release %s", release);
+
+    return releaseTime;
+  }
+
+  public Map<DownloadDataType, Long> getClinicalSizes(@NonNull String release) {
+    val donorFileTypes = releaseDonorFileTypes.get(release);
+    checkNotNull(donorFileTypes);
+
+    return DownloadDataType.CLINICAL.stream()
+        .map(clinical -> Maps.immutableEntry(clinical, getClinicalSize(donorFileTypes.column(clinical))))
+        .filter(entry -> entry.getValue() > 0)
+        .collect(toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+  }
+
+  public Map<DownloadDataType, Long> getProjectSizes(@NonNull String release, @NonNull String project) {
+    val projectDonors = releaseProjectDonors.get(release);
+    val donorFileTypes = releaseDonorFileTypes.get(release);
+
+    val projectSizes = Maps.<DownloadDataType, Long> newTreeMap();
+    for (val donor : projectDonors.get(project)) {
+      for (val typeEntry : donorFileTypes.row(donor).entrySet()) {
+        val type = typeEntry.getKey();
+        val file = typeEntry.getValue();
+        val size = firstNonNull(projectSizes.get(type), 0L);
+        projectSizes.put(type, size + file.getTotalSize());
+      }
     }
 
-    return donorProjects;
+    return ImmutableMap.copyOf(projectSizes);
   }
 
-  private void createDonorProjects(String release) {
-    val fileTypes = releaseFileTypes.get(release);
+  private void validateIntegrity() {
+    val releaseTimesSize = releaseTimes.size();
+    val releaseProjectDonorsSize = releaseProjectDonors.size();
+    val releaseDonorFileTypesSize = releaseDonorFileTypes.size();
+    checkState(releaseTimesSize == releaseProjectDonorsSize);
+    checkState(releaseTimesSize == releaseDonorFileTypesSize);
   }
 
-  private Map<String, Table<String, DownloadDataType, DataTypeFile>> createReleaseFileTypes(String rootDir,
-      FileSystem fileSystem) {
-    val releaseFileTypes = ImmutableMap.<String, Table<String, DownloadDataType, DataTypeFile>> builder();
-    val releases = HadoopUtils.lsDir(fileSystem, new Path(rootDir));
-    for (val release : releases) {
-      val releaseName = toDfsPath(release).replace("/", EMPTY_STRING);
-      releaseFileTypes.put(releaseName, createReleaseCache(release, fileSystem));
-    }
+  private String resolveCurrentRelease() {
+    val latestRelease = releaseTimes.keySet().stream()
+        .max(Ordering.natural());
+    checkState(latestRelease.isPresent(), "Failed to resolve current release");
 
-    return releaseFileTypes.build();
+    return latestRelease.get();
   }
 
-  static Table<String, DownloadDataType, DataTypeFile> createReleaseCache(Path releasePath, FileSystem fileSystem) {
-    log.debug("Creating cache table for '{}'", releasePath);
-    val releaseTable = HashBasedTable.<String, DownloadDataType, DataTypeFile> create();
-    val releaseDirs = HadoopUtils.lsDir(fileSystem, releasePath);
-    checkState(isReleaseDir(releaseDirs), "'%s' is not the release dir.");
-    val allFiles = HadoopUtils.lsRecursive(fileSystem, new Path(releasePath, DATA_DIR));
-    for (val file : allFiles) {
-      addFile(fileSystem, releaseTable, file);
-    }
-
-    return releaseTable;
-  }
-
-  private static void addFile(
-      FileSystem fileSystem,
-      HashBasedTable<String, DownloadDataType, DataTypeFile> releaseTable,
-      String file) {
-
-    log.debug("Processing file '{}'", file);
-    val dfsPath = DownloadFileSystems.toDfsPath(file);
-    log.debug("DFS path: {}", dfsPath);
-
-    val fileParts = getFileParts(dfsPath);
-    val donorId = fileParts.get(0);
-    val dataType = getDataType(fileParts.get(1));
-    val partFile = fileParts.get(2);
-    log.debug("Resolved:  donor - {}, data type - {}, part file - {}", donorId, dataType, partFile);
-
-    val dataTypeFile = releaseTable.get(donorId, dataType);
-    val updatedDataTypeFile = updateDataTypeFile(fileSystem, dataTypeFile, file, partFile);
-    log.debug("Adding {}", updatedDataTypeFile);
-    releaseTable.put(donorId, dataType, updatedDataTypeFile);
-  }
-
-  private static DataTypeFile updateDataTypeFile(FileSystem fileSystem, DataTypeFile dataTypeFile, String file,
-      String partFile) {
-    val fileSize = getFileSize(fileSystem, file);
-    if (dataTypeFile == null) {
-      return createDataTypeFile(file, partFile, fileSize);
-    }
-
-    return updateDataTypeFile(dataTypeFile, partFile, fileSize);
-  }
-
-  private static DataTypeFile updateDataTypeFile(DataTypeFile dataTypeFile, String partFile, long fileSize) {
-    val path = dataTypeFile.getPath();
-    val partFiles = Sets.newTreeSet(dataTypeFile.getPartFiles());
-    partFiles.add(partFile);
-    val totalSize = dataTypeFile.getTotalSize() + fileSize;
-
-    return new DataTypeFile(path, ImmutableList.copyOf(partFiles), totalSize);
-  }
-
-  private static DataTypeFile createDataTypeFile(String file, String partFile, long fileSize) {
-    return new DataTypeFile(getCommonPath(file), Collections.singletonList(partFile), fileSize);
-  }
-
-  private static String getCommonPath(String file) {
-    return file.replaceFirst("/part-\\d{5}.gz", EMPTY_STRING);
-  }
-
-  private static long getFileSize(FileSystem fileSystem, String file) {
-    val statusOpt = HadoopUtils.getFileStatus(fileSystem, new Path(file));
-    checkState(statusOpt.isPresent(), "File doesn't exist. '%s'", file);
-    val status = statusOpt.get();
-
-    return status.getLen();
-  }
-
-  private static List<String> getFileParts(String dfsPath) {
-    val parts = Splitters.PATH.splitToList(dfsPath);
-    checkState(parts.size() == 7, "Parts: %s", parts);
-
-    return parts.subList(4, parts.size());
-  }
-
-  private static DownloadDataType getDataType(String dataType) {
-    return DownloadDataType.valueOf(dataType.toUpperCase());
+  private static long getClinicalSize(Map<String, DataTypeFile> donorFileTypes) {
+    return donorFileTypes.values().stream()
+        .mapToLong(file -> file.getTotalSize())
+        .sum();
   }
 
 }

@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 
 import java.util.Collection;
@@ -29,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.service.DownloadFileSystemService;
@@ -37,20 +39,24 @@ import org.icgc.dcc.download.server.utils.DownloadFileSystems;
 @Slf4j
 public class DownloadFileSystem extends AbstractDownloadFileSystem {
 
-  private static final String ANY_PATH_REGEX = "^/(" + RELEASE_DIR_REGEX + "|current)?";
-  private static final Pattern ANY_PATH_PATTERN = Pattern.compile(ANY_PATH_REGEX);
+  private static final Pattern RELEASE_PATTERN = Pattern.compile(RELEASE_DIR_REGEX + "|current");
+  private static final Pattern RELEASE_DIR_PATTERN = Pattern.compile("Projects|Summary");
+  private static final Pattern PROJECT_NAME_PATTERN = Pattern.compile("\\w{2,4}-\\w{2}");
 
   private final RootView rootView;
+  private final ViewController viewController;
 
   public DownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
-      @NonNull DownloadFileSystemService fsService, @NonNull RootView rootView) {
+      @NonNull DownloadFileSystemService fsService, @NonNull RootView rootView, ViewController viewController) {
     super(rootDir, fileSystem, fsService);
     this.rootView = rootView;
+    this.viewController = viewController;
   }
 
   public Collection<DownloadFile> listFiles(@NonNull String path) {
     log.debug("Listing files for path '{}'...", path);
     verifyPath(path);
+
     val fsPath = toFsPath(path);
     log.debug("Listing files for real path '{}'...", fsPath);
 
@@ -63,7 +69,7 @@ public class DownloadFileSystem extends AbstractDownloadFileSystem {
       return rootView.listReleases();
     }
 
-    return null;
+    return viewController.listFiles(path);
   }
 
   private Path toFsPath(String path) {
@@ -73,11 +79,43 @@ public class DownloadFileSystem extends AbstractDownloadFileSystem {
   }
 
   private static String relativize(String path) {
+    // TODO: user toDfs
     return path.replaceFirst("^/", EMPTY_STRING);
   }
 
-  private static void verifyPath(String path) {
-    checkArgument(ANY_PATH_PATTERN.matcher(path).matches(), "Invalid path '%s'", path);
+  static void verifyPath(String path) {
+    if ("/".equals(path)) {
+      return;
+    }
+
+    val pathParts = Splitters.PATH.splitToList(path);
+    checkArgument(pathParts.size() < 5, "Invalid path '%s'", path);
+    for (int i = 0; i < pathParts.size(); i++) {
+      verifyPathPart(i, pathParts.get(i));
+    }
+  }
+
+  private static void verifyPathPart(int i, String part) {
+    switch (i) {
+    case 0:
+      checkArgument(part.isEmpty());
+      break;
+    case 1:
+      checkArgument(RELEASE_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
+          RELEASE_PATTERN);
+      break;
+    case 2:
+      checkArgument(RELEASE_DIR_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
+          RELEASE_DIR_PATTERN);
+      break;
+    case 3:
+      checkArgument(PROJECT_NAME_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
+          PROJECT_NAME_PATTERN);
+      break;
+    default:
+      throw new IllegalArgumentException(format("Unexpected argument: %s at position %s", part, i));
+    }
+
   }
 
 }

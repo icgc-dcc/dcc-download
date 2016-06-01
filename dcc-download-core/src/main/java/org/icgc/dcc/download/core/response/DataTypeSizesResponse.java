@@ -23,7 +23,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.model.DownloadDataType;
 
 @Data
 @AllArgsConstructor

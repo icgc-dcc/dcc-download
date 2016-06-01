@@ -21,9 +21,9 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.JSON_UTF_8;
 import static java.lang.System.currentTimeMillis;
+import static org.icgc.dcc.common.core.model.DownloadDataType.CLINICAL;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
-import static org.icgc.dcc.download.core.model.DownloadDataType.CLINICAL;
-import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
 
 import java.io.OutputStream;
 import java.util.List;
@@ -42,13 +42,13 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
+import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.security.DumbX509TrustManager;
 import org.icgc.dcc.common.core.util.Joiners;
 import org.icgc.dcc.download.client.DownloadClient;
 import org.icgc.dcc.download.client.DownloadClientConfig;
 import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
 import org.icgc.dcc.download.client.response.HealthResponse;
-import org.icgc.dcc.download.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.request.RecordsSizeRequest;

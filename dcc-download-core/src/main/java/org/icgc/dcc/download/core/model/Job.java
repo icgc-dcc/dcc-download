@@ -22,6 +22,8 @@ import java.util.Set;
 
 import lombok.Data;
 
+import org.icgc.dcc.common.core.model.DownloadDataType;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 

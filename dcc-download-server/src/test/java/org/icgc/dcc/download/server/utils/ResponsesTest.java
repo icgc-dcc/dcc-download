@@ -21,7 +21,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
 import static org.icgc.dcc.download.server.utils.Responses.createJobResponse;
 import lombok.val;

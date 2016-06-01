@@ -15,18 +15,27 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.job.utils;
+package org.icgc.dcc.download.server.utils;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
-import scala.Tuple2;
+import lombok.val;
 
-// TODO: Move to commons
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
+
+// TODO: merge with commons
 @NoArgsConstructor(access = PRIVATE)
-public final class Tuples {
+public final class HadoopUtils2 {
 
-  public static <K, V> Tuple2<K, V> tuple(K key, V value) {
-    return new Tuple2<K, V>(key, value);
+  public static FileStatus getFileStatus(FileSystem fileSystem, Path path) {
+    val statusOpt = HadoopUtils.getFileStatus(fileSystem, path);
+    checkArgument(statusOpt.isPresent(), "Path '%s' not found", path);
+
+    return statusOpt.get();
   }
 
 }

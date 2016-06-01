@@ -20,6 +20,7 @@ package org.icgc.dcc.download.server.fs;
 import static java.nio.file.Paths.get;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -38,16 +39,9 @@ import org.icgc.dcc.download.server.model.DownloadFileType;
 import org.icgc.dcc.download.server.service.DownloadFileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
 
 @Slf4j
-@RunWith(MockitoJUnitRunner.class)
 public class AbstractDownloadFileSystemTest extends AbstractTest {
-
-  @Mock
-  DownloadFileSystemService fsService;
 
   AbstractDownloadFileSystem dfs;
   FileSystem fileSystem;
@@ -133,10 +127,10 @@ public class AbstractDownloadFileSystemTest extends AbstractTest {
     new File(workingDir, "release_20").mkdir();
   }
 
-  private class TestDownloadFileSystem extends AbstractDownloadFileSystem {
+  private static class TestDownloadFileSystem extends AbstractDownloadFileSystem {
 
     public TestDownloadFileSystem(String rootDir, FileSystem fileSystem) {
-      super(rootDir, fileSystem, fsService);
+      super(rootDir, fileSystem, mock(DownloadFileSystemService.class));
     }
 
   }

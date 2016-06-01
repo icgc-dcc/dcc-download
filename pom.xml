@@ -51,7 +51,6 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
   <modules>
     <module>dcc-download-server</module>
     <module>dcc-download-core</module>
-    <module>dcc-download-job</module>
     <module>dcc-download-client</module>
     <module>dcc-download-test</module>
   </modules>

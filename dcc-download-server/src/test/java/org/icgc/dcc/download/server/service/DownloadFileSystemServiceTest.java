@@ -18,40 +18,59 @@
 package org.icgc.dcc.download.server.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
-
-import java.io.File;
-import java.util.Map;
-
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
+import static org.icgc.dcc.download.server.utils.DownloadFsTests.createDonorFileTypesTable;
+import static org.icgc.dcc.download.server.utils.DownloadFsTests.createProjectDonors;
+import static org.mockito.Mockito.when;
 import lombok.val;
 
-import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.download.core.model.DownloadDataType;
-import org.icgc.dcc.download.server.model.DataTypeFile;
-import org.icgc.dcc.download.server.utils.AbstractFsTest;
+import org.icgc.dcc.download.server.fs.DownloadFilesReader;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-public class DownloadFileSystemServiceTest extends AbstractFsTest {
+import com.google.common.collect.ImmutableMap;
 
-  @Test
-  public void testCreateReleaseCache() throws Exception {
-    val release21Dir = new File(workingDir, "release_21").getAbsolutePath();
-    val releaseTable =
-        DownloadFileSystemService.createReleaseCache(new Path(release21Dir), getDefaultLocalFileSystem());
-    assertThat(releaseTable.size()).isNotZero();
-    assertDonor(releaseTable.row("DO001"), "part-00000.gz", 8);
-    assertDonor(releaseTable.row("DO002"), "part-00000.gz", 8);
-    assertDonor(releaseTable.row("DO003"), "part-00001.gz", 6);
-    assertDonor(releaseTable.row("DO004"), "part-00001.gz", 6);
+@RunWith(MockitoJUnitRunner.class)
+public class DownloadFileSystemServiceTest {
+
+  @Mock
+  DownloadFilesReader reader;
+
+  DownloadFileSystemService service;
+
+  @Before
+  public void setUp() {
+    when(reader.getReleaseTimes()).thenReturn(ImmutableMap.of("release_21", 123L));
+    when(reader.getReleaseProjectDonors()).thenReturn(ImmutableMap.of("release_21", createProjectDonors()));
+    when(reader.getReleaseDonorFileTypes()).thenReturn(ImmutableMap.of("release_21", createDonorFileTypesTable()));
+    service = new DownloadFileSystemService(reader);
   }
 
-  private void assertDonor(Map<DownloadDataType, DataTypeFile> row, String expectedPartFile, int expectedDataTypes) {
-    assertThat(row).hasSize(expectedDataTypes);
-    for (val dataTypeFile : row.values()) {
-      val partFiles = dataTypeFile.getPartFiles();
-      assertThat(partFiles).hasSize(1);
-      assertThat(partFiles.get(0)).isEqualTo(expectedPartFile);
-    }
+  @Test
+  public void testGetReleaseProjects() throws Exception {
+    val projects = service.getReleaseProjects("release_21");
+    assertThat(projects).containsExactly("TST1-CA", "TST2-CA");
+  }
+
+  @Test
+  public void testGetReleaseDate() throws Exception {
+    assertThat(service.getReleaseDate("release_21")).isEqualTo(123);
+  }
+
+  @Test
+  public void testGetClinicalSizes() throws Exception {
+    val clinicalSizes = service.getClinicalSizes("release_21");
+    assertThat(clinicalSizes).isEqualTo(ImmutableMap.of(DONOR, 8L, SAMPLE, 2L));
+  }
+
+  @Test
+  public void testGetProjectSizes() throws Exception {
+    assertThat(service.getProjectSizes("release_21", "TST1-CA")).isEqualTo(ImmutableMap.of(DONOR, 4L, SAMPLE, 2L));
+    assertThat(service.getProjectSizes("release_21", "TST2-CA")).isEqualTo(ImmutableMap.of(DONOR, 4L));
   }
 
 }
