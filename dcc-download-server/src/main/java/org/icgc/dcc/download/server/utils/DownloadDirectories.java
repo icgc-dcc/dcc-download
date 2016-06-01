@@ -15,38 +15,16 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.fs;
+package org.icgc.dcc.download.server.utils;
 
-import static com.google.common.collect.ImmutableList.of;
-import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
-import lombok.val;
+import static lombok.AccessLevel.PRIVATE;
+import lombok.NoArgsConstructor;
 
-import org.icgc.dcc.download.server.service.FileSystemService;
-import org.icgc.dcc.download.server.utils.AbstractFsTest;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+@NoArgsConstructor(access = PRIVATE)
+public final class DownloadDirectories {
 
-@RunWith(MockitoJUnitRunner.class)
-public class RootViewTest extends AbstractFsTest {
-
-  @Mock
-  FileSystemService fsService;
-  RootView rootView;
-
-  @Before
-  @Override
-  public void setUp() {
-    super.setUp();
-    this.rootView = new RootView(rootDir, getDefaultLocalFileSystem(), fsService);
-  }
-
-  @Test
-  public void testListReleases() throws Exception {
-    val releases = rootView.listReleases();
-    verifyDownloadFiles(releases, of(newDir("/current"), newDir("/release_21")));
-  }
+  public static final String SUMMARY_FILES = "summary_files";
+  public static final String DATA_DIR = "data";
+  public static final String HEADERS_DIR = "headers";
 
 }

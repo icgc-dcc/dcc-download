@@ -36,7 +36,7 @@ import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.common.test.file.FileTests;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
-import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Test;
 
@@ -130,7 +130,7 @@ public class AbstractDownloadFileSystemTest extends AbstractTest {
   private static class TestDownloadFileSystem extends AbstractDownloadFileSystem {
 
     public TestDownloadFileSystem(String rootDir, FileSystem fileSystem) {
-      super(rootDir, fileSystem, mock(DownloadFileSystemService.class));
+      super(rootDir, fileSystem, mock(FileSystemService.class));
     }
 
   }

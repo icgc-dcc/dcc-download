@@ -33,7 +33,7 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
-import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.DownloadFileSystems;
 
 @Slf4j
@@ -47,7 +47,7 @@ public class DownloadFileSystem extends AbstractDownloadFileSystem {
   private final ViewController viewController;
 
   public DownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
-      @NonNull DownloadFileSystemService fsService, @NonNull RootView rootView, ViewController viewController) {
+      @NonNull FileSystemService fsService, @NonNull RootView rootView, ViewController viewController) {
     super(rootDir, fileSystem, fsService);
     this.rootView = rootView;
     this.viewController = viewController;

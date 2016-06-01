@@ -22,8 +22,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Sets.newTreeSet;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +43,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Table;
 
-public class DownloadFileSystemService {
+public class FileSystemService {
 
   private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes;
   private final Map<String, Multimap<String, String>> releaseProjectDonors;
@@ -49,7 +51,7 @@ public class DownloadFileSystemService {
   @Getter
   private final String currentRelease;
 
-  public DownloadFileSystemService(@NonNull DownloadFilesReader reader) {
+  public FileSystemService(@NonNull DownloadFilesReader reader) {
     this.releaseDonorFileTypes = reader.getReleaseDonorFileTypes();
     this.releaseProjectDonors = reader.getReleaseProjectDonors();
     this.releaseTimes = reader.getReleaseTimes();
@@ -98,6 +100,17 @@ public class DownloadFileSystemService {
     }
 
     return ImmutableMap.copyOf(projectSizes);
+  }
+
+  public List<DataTypeFile> getDataTypeFiles(@NonNull String release, @NonNull Collection<String> donors,
+      @NonNull Collection<DownloadDataType> dataTypes) {
+    val donorFileTypes = releaseDonorFileTypes.get(release);
+
+    return dataTypes.stream()
+        .flatMap(dataType -> donorFileTypes.column(dataType).entrySet().stream())
+        .filter(donorFileTypeEntry -> donors.contains(donorFileTypeEntry.getKey()))
+        .map(donorFileTypeEntry -> donorFileTypeEntry.getValue())
+        .collect(toImmutableList());
   }
 
   private void validateIntegrity() {

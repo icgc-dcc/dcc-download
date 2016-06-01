@@ -42,7 +42,7 @@ public final class DownloadFsTests {
     releaseTable.put("DO001", SAMPLE,
         new DataTypeFile("/somepath/release_21/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
     releaseTable.put("DO002", DONOR,
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO002/donor", of("part-00000.gz"), 3));
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
     releaseTable.put("DO003", DONOR,
         new DataTypeFile("/somepath/release_21/TST2-CA/DO003/donor", of("part-00000.gz"), 4));
 

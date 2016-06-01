@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.AbstractFsTest;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -43,7 +43,7 @@ import com.google.common.collect.ImmutableMap;
 public class ReleaseViewTest extends AbstractFsTest {
 
   @Mock
-  DownloadFileSystemService fsService;
+  FileSystemService fsService;
 
   ReleaseView releaseView;
 

@@ -36,7 +36,7 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Separators;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
-import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.collect.Ordering;
@@ -44,8 +44,6 @@ import com.google.common.collect.Ordering;
 @Slf4j
 public abstract class AbstractDownloadFileSystem {
 
-  public static final String HEADERS_DIR = "headers";
-  public static final String DATA_DIR = "data";
   public static final String RELEASE_DIR_PREFIX = "release_";
 
   protected static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + "\\d+";
@@ -56,15 +54,15 @@ public abstract class AbstractDownloadFileSystem {
   protected final String currentRelease;
   protected final FileSystem fileSystem;
   protected final Path rootPath;
-  protected final DownloadFileSystemService fsService;
+  protected final FileSystemService fsService;
 
   public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
-      @NonNull DownloadFileSystemService fsService) {
+      @NonNull FileSystemService fsService) {
     this(rootDir, resolveCurrentRelease(rootDir, fileSystem), fileSystem, fsService);
   }
 
   public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull String currentRelease,
-      @NonNull FileSystem fileSystem, @NonNull DownloadFileSystemService fsService) {
+      @NonNull FileSystem fileSystem, @NonNull FileSystemService fsService) {
     verifyRootPath(rootDir, fileSystem);
     verifyCurrentRelease(currentRelease);
     val rootPath = new Path(rootDir);

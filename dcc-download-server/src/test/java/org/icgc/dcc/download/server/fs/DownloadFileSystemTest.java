@@ -30,7 +30,7 @@ import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.download.server.model.DownloadFile;
 import org.icgc.dcc.download.server.model.DownloadFileType;
-import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +42,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class DownloadFileSystemTest extends AbstractTest {
 
   @Mock
-  DownloadFileSystemService fsService;
+  FileSystemService fsService;
   @Mock
   ViewController viewController;
 

@@ -21,6 +21,9 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +38,7 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DownloadFile;
-import org.icgc.dcc.download.server.service.DownloadFileSystemService;
+import org.icgc.dcc.download.server.service.FileSystemService;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -43,9 +46,7 @@ import com.google.common.collect.Ordering;
 @Slf4j
 public class ReleaseView extends AbstractDownloadFileSystem {
 
-  public static final String SUMMARY_FILES = "summary_files";
-
-  public ReleaseView(String rootDir, FileSystem fileSystem, @NonNull DownloadFileSystemService fsService) {
+  public ReleaseView(String rootDir, FileSystem fileSystem, @NonNull FileSystemService fsService) {
     super(rootDir, fileSystem, fsService);
   }
 

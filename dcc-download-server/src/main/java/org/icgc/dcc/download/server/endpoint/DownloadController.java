@@ -15,38 +15,26 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.fs;
+package org.icgc.dcc.download.server.endpoint;
 
-import static com.google.common.collect.ImmutableList.of;
-import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
-import lombok.val;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import lombok.RequiredArgsConstructor;
 
-import org.icgc.dcc.download.server.service.FileSystemService;
-import org.icgc.dcc.download.server.utils.AbstractFsTest;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@RunWith(MockitoJUnitRunner.class)
-public class RootViewTest extends AbstractFsTest {
+@RestController
+@RequestMapping("/downloads")
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+public class DownloadController {
 
-  @Mock
-  FileSystemService fsService;
-  RootView rootView;
-
-  @Before
-  @Override
-  public void setUp() {
-    super.setUp();
-    this.rootView = new RootView(rootDir, getDefaultLocalFileSystem(), fsService);
-  }
-
-  @Test
-  public void testListReleases() throws Exception {
-    val releases = rootView.listReleases();
-    verifyDownloadFiles(releases, of(newDir("/current"), newDir("/release_21")));
+  @RequestMapping(method = GET)
+  public ResponseEntity<InputStreamResource> download() {
+    // See: http://stackoverflow.com/a/26537519/3646559
+    return null;
   }
 
 }

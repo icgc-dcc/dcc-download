@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.server.service;
 
+import static com.google.common.collect.ImmutableList.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
@@ -26,28 +27,30 @@ import static org.mockito.Mockito.when;
 import lombok.val;
 
 import org.icgc.dcc.download.server.fs.DownloadFilesReader;
+import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DownloadFileSystemServiceTest {
+public class FileSystemServiceTest {
 
   @Mock
   DownloadFilesReader reader;
 
-  DownloadFileSystemService service;
+  FileSystemService service;
 
   @Before
   public void setUp() {
     when(reader.getReleaseTimes()).thenReturn(ImmutableMap.of("release_21", 123L));
     when(reader.getReleaseProjectDonors()).thenReturn(ImmutableMap.of("release_21", createProjectDonors()));
     when(reader.getReleaseDonorFileTypes()).thenReturn(ImmutableMap.of("release_21", createDonorFileTypesTable()));
-    service = new DownloadFileSystemService(reader);
+    service = new FileSystemService(reader);
   }
 
   @Test
@@ -73,4 +76,17 @@ public class DownloadFileSystemServiceTest {
     assertThat(service.getProjectSizes("release_21", "TST2-CA")).isEqualTo(ImmutableMap.of(DONOR, 4L));
   }
 
+  @Test
+  public void testGetDataTypeFiles() throws Exception {
+    val files = service.getDataTypeFiles("release_21", ImmutableList.of("DO002", "DO001"),
+        ImmutableList.of(SAMPLE, DONOR));
+    assertThat(files).hasSize(3);
+    assertThat(files.get(0)).isEqualTo(
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
+    assertThat(files.get(1)).isEqualTo(
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
+    assertThat(files.get(2)).isEqualTo(
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
+
+  }
 }
