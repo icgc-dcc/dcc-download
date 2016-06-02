@@ -145,6 +145,7 @@ public class GzipStreamer extends InputStream {
     }
 
     else if (isLastPartFile()) {
+      log.debug("Current input stream is the last part file.");
       setNextDataFile();
     }
 
@@ -163,8 +164,13 @@ public class GzipStreamer extends InputStream {
   private void setNextDataFile() throws IOException {
     val nextDataFile = getNextDataFile();
     log.debug("Next data type file is {}", nextDataFile);
-    ++currentDataFileIndex;
+
+    if (!isFirstHeaderFile()) {
+      ++currentDataFileIndex;
+    }
+
     currentPartFileIndex = 0;
+    header = false;
     val path = getPath(nextDataFile, currentPartFileIndex);
     setInputStream(path);
   }

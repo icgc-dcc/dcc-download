@@ -19,7 +19,6 @@ package org.icgc.dcc.download.server.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.util.Collection;
 
 import lombok.NonNull;
@@ -41,7 +40,7 @@ public abstract class AbstractFsTest extends AbstractTest {
   public void setUp() {
     super.setUp();
     prepareInput();
-    this.rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
+    this.rootDir = workingDir.getAbsolutePath();
   }
 
   protected static DownloadFile newDir(String name) {
