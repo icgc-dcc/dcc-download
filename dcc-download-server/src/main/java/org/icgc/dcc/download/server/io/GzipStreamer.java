@@ -99,6 +99,21 @@ public class GzipStreamer extends InputStream {
     return nextByte;
   }
 
+  protected DownloadDataType getCurrentDownloadDataType() {
+    return getDownloadDataType(getCurrentDataFile());
+  }
+
+  /**
+   * Checks if the current input stream is the very first header file.
+   */
+  protected boolean isFirstHeaderFile() {
+    return header && currentDataFileIndex == 0 && currentPartFileIndex == 0;
+  }
+
+  protected boolean isCurrentHeaderFile() {
+    return header;
+  }
+
   private void checkArguments() {
     checkArgument(!downloadFiles.isEmpty());
     checkArgument(!downloadFiles.get(0).getPartFiles().isEmpty());
@@ -120,13 +135,6 @@ public class GzipStreamer extends InputStream {
     }
 
     return !isLastPartFile() || !isLastDataFile();
-  }
-
-  /**
-   * Checks if the current input stream is the very first header file.
-   */
-  private boolean isFirstHeaderFile() {
-    return header && currentDataFileIndex == 0 && currentPartFileIndex == 0;
   }
 
   private void setUpNextInputStream() throws IOException {
@@ -184,19 +192,11 @@ public class GzipStreamer extends InputStream {
     currentInputStream = fileSystem.open(path);
   }
 
-  private boolean isCurrentHeaderFile() {
-    return header;
-  }
-
   /**
    * Checks if the next {@code DataTypeFile} starts a new {@code DownloadDataType} stream.
    */
   private boolean isNextDataType() {
     return getCurrentDownloadDataType() != getNextDownloadDataType();
-  }
-
-  private DownloadDataType getCurrentDownloadDataType() {
-    return getDownloadDataType(getCurrentDataFile());
   }
 
   private DownloadDataType getNextDownloadDataType() {
