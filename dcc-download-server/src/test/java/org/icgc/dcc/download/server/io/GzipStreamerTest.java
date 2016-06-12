@@ -18,13 +18,16 @@
 package org.icgc.dcc.download.server.io;
 
 import static com.google.common.collect.ImmutableList.of;
-import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Collections;
@@ -33,6 +36,7 @@ import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 import lombok.Cleanup;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -45,30 +49,97 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 @Slf4j
 public class GzipStreamerTest extends AbstractTest {
 
   String rootDir;
   GzipStreamer gzipStreamer;
+  File testFile;
 
   @Before
   @Override
+  @SneakyThrows
   public void setUp() {
     this.rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
+    testFile = File.createTempFile("gzip", "test", workingDir);
   }
 
   @Test
   public void testRead() throws Exception {
-    gzipStreamer = new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), emptyMap(), getHeaders());
+    val output = new BufferedOutputStream(new FileOutputStream(testFile));
+
+    gzipStreamer =
+        new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output);
+
+    try {
+      assertThat(gzipStreamer.hasNext()).isTrue();
+      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("donor.gz");
+      assertThat(gzipStreamer.getNextEntryLength()).isEqualTo(706L);
+
+      gzipStreamer.streamEntry();
+      assertThat(gzipStreamer.hasNext()).isFalse();
+    } finally {
+      output.close();
+    }
+
+    assertDonorTestFile();
+  }
+
+  @Test
+  public void testRead_multipleTypes() throws Exception {
+    val output = new BufferedOutputStream(new FileOutputStream(testFile));
+
+    gzipStreamer = new GzipStreamer(getDefaultLocalFileSystem(), getMultipleDownloadFiles(),
+        getMultipleDownloadSizes(), getMultipleHeaders(), output);
+
+    try {
+      assertThat(gzipStreamer.hasNext()).isTrue();
+      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("donor.gz");
+      assertThat(gzipStreamer.getNextEntryLength()).isEqualTo(706L);
+
+      gzipStreamer.streamEntry();
+
+      assertThat(gzipStreamer.hasNext()).isTrue();
+      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("sample.gz");
+      assertThat(gzipStreamer.getNextEntryLength()).isEqualTo(314L);
+
+      gzipStreamer.streamEntry();
+
+      assertThat(gzipStreamer.hasNext()).isFalse();
+    } finally {
+      output.close();
+    }
+
+    assertDonorSampleTestFile();
+  }
+
+  private void assertDonorTestFile() throws Exception {
+    val lines = readTestFile();
+    assertThat(lines).hasSize(5);
+    assertDonor(lines);
+  }
+
+  private void assertDonorSampleTestFile() throws Exception {
+    val lines = readTestFile();
+    assertThat(lines).hasSize(9);
+    assertDonor(lines);
+    assertSample(lines);
+  }
+
+  private List<String> readTestFile() throws Exception {
     @Cleanup
-    val gzipInput = new GZIPInputStream(gzipStreamer);
+    val gzipInput = new GZIPInputStream(new FileInputStream(testFile));
     val lines = readInMemory(gzipInput);
 
     lines.stream()
         .forEach(line -> log.info(line));
 
-    assertThat(lines).hasSize(5);
+    return lines;
+  }
+
+  private static void assertDonor(@NonNull List<String> lines) {
     assertDonorLine(lines.get(0), "icgc_donor_id");
     assertDonorLine(lines.get(1), "DO001");
     assertDonorLine(lines.get(2), "DO002");
@@ -76,9 +147,34 @@ public class GzipStreamerTest extends AbstractTest {
     assertDonorLine(lines.get(4), "DO004");
   }
 
-  private void assertDonorLine(String line, String firstPart) {
+  private static void assertSample(@NonNull List<String> lines) {
+    assertSampleLine(lines.get(5), "icgc_sample_id");
+    assertSampleLine(lines.get(6), "SA000001");
+    assertSampleLine(lines.get(7), "SA000002");
+    assertSampleLine(lines.get(8), "SA000002");
+  }
+
+  private static Map<DownloadDataType, Long> getDownloadSizes() {
+    return Collections.singletonMap(DONOR, 472L);
+  }
+
+  private static Map<DownloadDataType, Long> getMultipleDownloadSizes() {
+    return ImmutableMap.of(
+        DONOR, 472L,
+        SAMPLE, 194L);
+  }
+
+  private static void assertDonorLine(String line, String firstPart) {
+    assertLine(line, firstPart, 21);
+  }
+
+  private static void assertSampleLine(String line, String firstPart) {
+    assertLine(line, firstPart, 11);
+  }
+
+  private static void assertLine(String line, String firstPart, int colNum) {
     val parts = Splitters.TAB.splitToList(line);
-    assertThat(parts).hasSize(21);
+    assertThat(parts).hasSize(colNum);
     assertThat(parts.get(0)).isEqualTo(firstPart);
   }
 
@@ -100,12 +196,30 @@ public class GzipStreamerTest extends AbstractTest {
     return Collections.singletonMap(DONOR, headerPath);
   }
 
+  private Map<DownloadDataType, String> getMultipleHeaders() {
+    val headerPath = rootDir + "/release_21/headers/";
+
+    return ImmutableMap.of(
+        DONOR, headerPath + "donor.tsv.gz",
+        SAMPLE, headerPath + "sample.tsv.gz");
+  }
+
   private List<DataTypeFile> getDownloadFiles() {
     return of(
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 0),
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz"), 0),
-        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO003/donor", of("part-00001.gz"), 0),
-        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO004/donor", of("part-00001.gz"), 0));
+        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 130),
+        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz"), 111),
+        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO003/donor", of("part-00001.gz"), 119),
+        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO004/donor", of("part-00001.gz"), 112));
+  }
+
+  private List<DataTypeFile> getMultipleDownloadFiles() {
+    return of(
+        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 130),
+        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz"), 111),
+        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO003/donor", of("part-00001.gz"), 119),
+        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO004/donor", of("part-00001.gz"), 112),
+        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/sample", of("part-00000.gz"), 97),
+        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/sample", of("part-00000.gz"), 97));
   }
 
 }

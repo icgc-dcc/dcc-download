@@ -18,13 +18,16 @@
 package org.icgc.dcc.download.server.io;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -34,211 +37,146 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.server.model.DataTypeFile;
+import org.icgc.dcc.download.server.utils.HadoopUtils2;
+
+import com.google.common.io.ByteStreams;
 
 @Slf4j
-public class GzipStreamer extends InputStream {
-
-  /**
-   * Constants.
-   */
-  private static final int EOS = -1; // END_OF_STREAM
+public class GzipStreamer {
 
   /**
    * Dependencies.
    */
-  protected final FileSystem fileSystem;
-  protected final List<DataTypeFile> downloadFiles;
-  protected final Map<DownloadDataType, Long> fileSizes;
-  protected final Map<DownloadDataType, String> headers;
+  private final FileSystem fileSystem;
+  private final List<DataTypeFile> downloadFiles;
+  private final Map<DownloadDataType, Long> fileSizes;
+  private final Map<DownloadDataType, String> headers;
+  private final OutputStream output;
 
   /**
    * State.
    */
   private int currentDataFileIndex = 0;
-  private int currentPartFileIndex = 0;
-  private InputStream currentInputStream;
-  private boolean header = false;
 
   public GzipStreamer(
       @NonNull FileSystem fileSystem,
       @NonNull List<DataTypeFile> downloadFiles,
       @NonNull Map<DownloadDataType, Long> fileSizes,
-      @NonNull Map<DownloadDataType, String> headers) {
-    checkArgument(headers.size() == 1);
+      @NonNull Map<DownloadDataType, String> headers,
+      @NonNull OutputStream output) {
     this.fileSystem = fileSystem;
     this.downloadFiles = downloadFiles;
     this.fileSizes = fileSizes;
     this.headers = headers;
+    this.output = output;
     checkArguments();
-    setFirstHeader();
   }
 
-  @Override
-  public void close() throws IOException {
-    if (currentInputStream != null) {
-      currentInputStream.close();
+  public boolean hasNext() {
+    return currentDataFileIndex < downloadFiles.size();
+  }
+
+  public String getNextEntryName() {
+    val currentDownloadDataType = getCurrentDownloadDataType();
+
+    val nextEntryName = currentDownloadDataType.getCanonicalName() + ".gz";
+    log.debug("Next entry name: {}", nextEntryName);
+
+    return nextEntryName;
+  }
+
+  public long getNextEntryLength() {
+    val headerLength = getCurrentHeaderLength();
+    val currentDownloadDataType = getCurrentDownloadDataType();
+    val filesSize = fileSizes.get(currentDownloadDataType);
+    checkNotNull(fileSizes, "Failed to resolve file size for data type '%s'", currentDownloadDataType);
+
+    val nextEntryLength = headerLength + filesSize;
+    log.debug("Next entry length is {} bytes.", nextEntryLength);
+
+    return nextEntryLength;
+  }
+
+  @SneakyThrows
+  public void streamEntry() {
+    val currentDownloadDataType = getCurrentDownloadDataType();
+    log.debug("Streaming '{}' entry...", currentDownloadDataType.getCanonicalName());
+    streamHeader();
+
+    while (hasNext() && isSameDownloadDataType(currentDownloadDataType)) {
+      streamCurrentDataType();
+      currentDataFileIndex++;
+    }
+    log.debug("Finished Streaming '{}' entry.", currentDownloadDataType.getCanonicalName());
+  }
+
+  private boolean isSameDownloadDataType(DownloadDataType currentDownloadDataType) {
+    return getCurrentDownloadDataType() == currentDownloadDataType;
+  }
+
+  private void streamCurrentDataType() throws IOException {
+    log.debug("Streaming data file '{}'", getCurrentDataFile().getPath());
+    for (val partFile : getPartFiles()) {
+      val path = new Path(partFile);
+      log.debug("Streaming path '{}'", path);
+
+      @Cleanup
+      val input = fileSystem.open(path);
+      ByteStreams.copy(input, output);
     }
   }
 
-  @Override
-  public int read() throws IOException {
-    int nextByte = currentInputStream.read();
+  private List<String> getPartFiles() {
+    val dataFile = getCurrentDataFile();
+    val dataFilePath = dataFile.getPath();
 
-    if (nextByte == EOS) {
-      log.debug("Reached end of current input stream.");
-      if (hasMoreInput()) {
-        log.debug("The reader has more input.");
-        setUpNextInputStream();
-        nextByte = currentInputStream.read();
-      } else {
-        log.debug("No more input to read. Returning END_OF_STREAM");
-        return EOS;
-      }
-    }
+    return dataFile.getPartFiles().stream()
+        .map(partFile -> PATH.join(dataFilePath, partFile))
+        .collect(toImmutableList());
 
-    return nextByte;
   }
 
-  protected DownloadDataType getCurrentDownloadDataType() {
-    return getDownloadDataType(getCurrentDataFile());
+  private void streamHeader() throws IOException {
+    val header = getCurrentHeader();
+    log.debug("Streaming header '{}'", header);
+
+    @Cleanup
+    val headerInput = fileSystem.open(header);
+    ByteStreams.copy(headerInput, output);
   }
 
-  /**
-   * Checks if the current input stream is the very first header file.
-   */
-  protected boolean isFirstHeaderFile() {
-    return header && currentDataFileIndex == 0 && currentPartFileIndex == 0;
-  }
+  private long getCurrentHeaderLength() {
+    val header = getCurrentHeader();
+    val status = HadoopUtils2.getFileStatus(fileSystem, header);
 
-  protected boolean isCurrentHeaderFile() {
-    return header;
+    return status.getLen();
   }
 
   private void checkArguments() {
     checkArgument(!downloadFiles.isEmpty());
     checkArgument(!downloadFiles.get(0).getPartFiles().isEmpty());
+    checkArgument(!headers.isEmpty());
   }
 
-  @SneakyThrows
-  private void setFirstHeader() {
+  private Path getCurrentHeader() {
     val currentDownloadDataType = getCurrentDownloadDataType();
-    val headerFile = new Path(headers.get(currentDownloadDataType));
-    log.debug("Setting input stream to {}", headerFile);
-    setInputStream(headerFile);
-    header = true;
+
+    return new Path(headers.get(currentDownloadDataType));
   }
 
-  private boolean hasMoreInput() {
-    // The very first header
-    if (isFirstHeaderFile()) {
-      return true;
-    }
-
-    return !isLastPartFile() || !isLastDataFile();
-  }
-
-  private void setUpNextInputStream() throws IOException {
-    log.debug("Closing current input stream...");
-    currentInputStream.close();
-
-    if (isCurrentHeaderFile()) {
-      log.debug("Current input stream was header. Setting up next data type...");
-      setNextDataFile();
-    }
-
-    else if (isNextDataType()) {
-      val headerFile = getNextHeaderFile();
-      log.debug("Setting up header as next input: {}", headerFile);
-      setInputStream(headerFile);
-    }
-
-    else if (isLastPartFile()) {
-      log.debug("Current input stream is the last part file.");
-      setNextDataFile();
-    }
-
-    else {
-      val currentDataFile = getCurrentDataFile();
-      ++currentPartFileIndex;
-      val path = getPath(currentDataFile, currentPartFileIndex);
-      log.debug("Setting up next part file as next input: {}", path);
-      setInputStream(path);
-    }
-  }
-
-  /**
-   * Sets the next {@code DataTypeFile} from the {@code downloadFiles} list as the {@code currentInputStream}.
-   */
-  private void setNextDataFile() throws IOException {
-    val nextDataFile = getNextDataFile();
-    log.debug("Next data type file is {}", nextDataFile);
-
-    if (!isFirstHeaderFile()) {
-      ++currentDataFileIndex;
-    }
-
-    currentPartFileIndex = 0;
-    header = false;
-    val path = getPath(nextDataFile, currentPartFileIndex);
-    setInputStream(path);
-  }
-
-  private Path getNextHeaderFile() {
-    val nextDownloadDataType = getNextDownloadDataType();
-    return new Path(headers.get(nextDownloadDataType));
-  }
-
-  private void setInputStream(Path path) throws IOException {
-    currentInputStream = fileSystem.open(path);
-  }
-
-  /**
-   * Checks if the next {@code DataTypeFile} starts a new {@code DownloadDataType} stream.
-   */
-  private boolean isNextDataType() {
-    return getCurrentDownloadDataType() != getNextDownloadDataType();
-  }
-
-  private DownloadDataType getNextDownloadDataType() {
-    return getDownloadDataType(getNextDataFile());
-  }
-
-  private boolean isLastDataFile() {
-    return downloadFiles.size() == currentDataFileIndex + 1;
-  }
-
-  /**
-   * Checks if the {@code currentInputStream} is the last part file in the current {@code DataTypeFile}.
-   */
-  private boolean isLastPartFile() {
-    val currentDataFile = getCurrentDataFile();
-    val partFiles = currentDataFile.getPartFiles();
-
-    return partFiles.size() == currentPartFileIndex + 1;
+  private DownloadDataType getCurrentDownloadDataType() {
+    return getDownloadDataType(getCurrentDataFile());
   }
 
   private DataTypeFile getCurrentDataFile() {
     return downloadFiles.get(currentDataFileIndex);
   }
 
-  private DataTypeFile getNextDataFile() {
-    // Special case after the first header file
-    if (isFirstHeaderFile()) {
-      return downloadFiles.get(currentDataFileIndex);
+  private static DownloadDataType getDownloadDataType(DataTypeFile file) {
+    if (file == null) {
+      return null;
     }
 
-    return downloadFiles.get(currentDataFileIndex + 1);
-  }
-
-  private static Path getPath(DataTypeFile dataFile, int partFileIndex) {
-    val partFileName = dataFile.getPartFiles().get(partFileIndex);
-    val path = PATH.join(dataFile.getPath(), partFileName);
-    log.debug("Resolved path '{}' from part file index '{}' and data file {}", path, partFileIndex, dataFile);
-
-    return new Path(path);
-  }
-
-  private static DownloadDataType getDownloadDataType(DataTypeFile file) {
     // TODO: Is this cheaper to use Guava's PATH Splitter here?
     val dataTypeName = new Path(file.getPath()).getName();
 
