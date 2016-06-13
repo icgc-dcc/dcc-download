@@ -72,7 +72,7 @@ public class TarStreamerTest extends AbstractTest {
     val gzipStremer = createGzipStreamer(tarOutput);
 
     tarStreamer = new TarStreamer(tarOutput, gzipStremer);
-    tarStreamer.streamArchive();
+    tarStreamer.stream();
     tarOutput.close();
     verifyTar();
   }

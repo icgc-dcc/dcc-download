@@ -17,24 +17,122 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
+import static java.lang.String.format;
+import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import lombok.RequiredArgsConstructor;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
+import java.io.IOException;
+import java.util.Optional;
+
+import javax.servlet.http.HttpServletResponse;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+import org.icgc.dcc.download.core.request.RecordsSizeRequest;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
+import org.icgc.dcc.download.core.response.JobResponse;
+import org.icgc.dcc.download.server.service.ArchiveDownloadService;
+import org.icgc.dcc.download.server.utils.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.google.common.io.Files;
+import com.google.common.net.MediaType;
+
+@Slf4j
 @RestController
 @RequestMapping("/downloads")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class DownloadController {
 
-  @RequestMapping(method = GET)
-  public ResponseEntity<InputStreamResource> download() {
-    // See: http://stackoverflow.com/a/26537519/3646559
-    return null;
+  @NonNull
+  private final ArchiveDownloadService downloadService;
+
+  @RequestMapping(method = POST)
+  public String submitJob(@RequestBody SubmitJobRequest request) {
+    log.debug("Received submit job request {}", request);
+    if (!isValid(request)) {
+      log.info("Malformed submission job request. Skipping submission... {}", request);
+      throw new BadRequestException("Malformed submission job request");
+    }
+
+    return downloadService.submitDownloadRequest(request);
+  }
+
+  @RequestMapping(value = "/{jobId:.+}", method = GET)
+  public void download(@PathVariable("jobId") String jobId, HttpServletResponse response) throws IOException {
+    val output = response.getOutputStream();
+    val streamerOpt = downloadService.getArchiveStreamer(jobId, output);
+    checkJobExistence(jobId, streamerOpt);
+
+    val streamer = streamerOpt.get();
+    val filename = streamer.getName();
+
+    response.setContentType(getFileMimeType(filename));
+    response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
+
+    streamer.stream();
+    streamer.close();
+  }
+
+  @RequestMapping(value = "/{jobId:.+}/info", method = GET)
+  public JobResponse getArchiveInfo(@PathVariable("jobId") String jobId) {
+    val infoOpt = downloadService.getArchiveInfo(jobId);
+    checkJobExistence(jobId, infoOpt);
+
+    return infoOpt.get();
+  }
+
+  @RequestMapping(value = "/size", method = POST)
+  public DataTypeSizesResponse getSizes(@RequestBody RecordsSizeRequest request) {
+    val filesSize = downloadService.getFilesSize(request.getDonorIds());
+
+    return new DataTypeSizesResponse(filesSize);
+  }
+
+  private static boolean isValid(SubmitJobRequest request) {
+    boolean valid = true;
+    val donorIds = request.getDonorIds();
+    val dataTypes = request.getDataTypes();
+    if (Collections.isNullOrEmpty(donorIds)
+        || Collections.isNullOrEmpty(dataTypes)
+        || request.getSubmissionTime() == 0) {
+      valid = false;
+    }
+
+    val jobInfo = request.getJobInfo();
+    if (jobInfo == null) {
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  private static String getFileMimeType(String filename) {
+    val extension = Files.getFileExtension(filename);
+    switch (extension) {
+    case "gz":
+      return MediaType.GZIP.toString();
+    case "tar":
+      return MediaType.TAR.toString();
+    default:
+      log.error("Failed to resolve Mime-Type from file name '{}'", filename);
+      throw new BadRequestException("Invalid request");
+    }
+  }
+
+  private static void checkJobExistence(String jobId, Optional<?> optional) {
+    if (!optional.isPresent()) {
+      throw new NotFoundException(format("Job '%s' was not found.", jobId));
+    }
   }
 
 }

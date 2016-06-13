@@ -17,6 +17,11 @@
  */
 package org.icgc.dcc.download.server.io;
 
+import static java.lang.String.format;
+import static java.lang.System.currentTimeMillis;
+
+import java.io.IOException;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -28,7 +33,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 
 @Slf4j
 @RequiredArgsConstructor
-public class TarStreamer {
+public class TarStreamer implements ArchiveStreamer {
 
   /**
    * Dependencies.
@@ -38,8 +43,14 @@ public class TarStreamer {
   @NonNull
   private final GzipStreamer gzipStreamer;
 
+  @Override
+  public String getName() {
+    return format("icgc-dataset-%s.tar", currentTimeMillis());
+  }
+
+  @Override
   @SneakyThrows
-  public void streamArchive() {
+  public void stream() {
     log.debug("Starting tar streaming...");
     while (gzipStreamer.hasNext()) {
       val entryName = gzipStreamer.getNextEntryName();
@@ -48,7 +59,13 @@ public class TarStreamer {
       gzipStreamer.streamEntry();
       closeCurrentTarEntry();
     }
+    tarOut.finish();
     log.debug("Finished tar streaming.");
+  }
+
+  @Override
+  public void close() throws IOException {
+    tarOut.close();
   }
 
   @SneakyThrows

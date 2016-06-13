@@ -62,7 +62,7 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   @Before
   public void setUp() {
     val config = new DownloadClientConfig().baseUrl(getServerUrl()).requestLoggingEnabled(true);
-    downloadClient = new HttpDownloadClient(outputStream, config);
+    downloadClient = new HttpDownloadClient(config);
   }
 
   @Test

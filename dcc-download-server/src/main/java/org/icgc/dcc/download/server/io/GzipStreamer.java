@@ -37,12 +37,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.server.model.DataTypeFile;
+import org.icgc.dcc.download.server.utils.DataTypeFiles;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.io.ByteStreams;
 
 @Slf4j
-public class GzipStreamer {
+public class GzipStreamer implements ArchiveStreamer {
 
   /**
    * Dependencies.
@@ -70,6 +71,21 @@ public class GzipStreamer {
     this.headers = headers;
     this.output = output;
     checkArguments();
+  }
+
+  @Override
+  public void stream() {
+    streamEntry();
+  }
+
+  @Override
+  public String getName() {
+    return getNextEntryName();
+  }
+
+  @Override
+  public void close() throws IOException {
+    output.close();
   }
 
   public boolean hasNext() {
@@ -165,22 +181,11 @@ public class GzipStreamer {
   }
 
   private DownloadDataType getCurrentDownloadDataType() {
-    return getDownloadDataType(getCurrentDataFile());
+    return DataTypeFiles.getDownloadDataType(getCurrentDataFile());
   }
 
   private DataTypeFile getCurrentDataFile() {
     return downloadFiles.get(currentDataFileIndex);
-  }
-
-  private static DownloadDataType getDownloadDataType(DataTypeFile file) {
-    if (file == null) {
-      return null;
-    }
-
-    // TODO: Is this cheaper to use Guava's PATH Splitter here?
-    val dataTypeName = new Path(file.getPath()).getName();
-
-    return DownloadDataType.valueOf(dataTypeName.toUpperCase());
   }
 
 }

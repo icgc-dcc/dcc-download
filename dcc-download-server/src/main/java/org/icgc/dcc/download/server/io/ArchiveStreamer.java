@@ -15,51 +15,14 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.io;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singleton;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
-import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
-import static org.icgc.dcc.download.server.utils.Responses.createJobResponse;
-import lombok.val;
+import java.io.Closeable;
 
-import org.icgc.dcc.download.core.model.JobUiInfo;
-import org.icgc.dcc.download.server.model.Job;
-import org.junit.Test;
+public interface ArchiveStreamer extends Closeable {
 
-import com.google.common.collect.ImmutableList;
+  void stream();
 
-public class ResponsesTest {
-
-  @Test
-  public void testCreateJobResponse_empty() throws Exception {
-    val actualJob = createJobResponse(createJob(), emptyList());
-    val expectedJob = Job.builder().id("1").build();
-    assertThat(actualJob).isEqualTo(expectedJob);
-  }
-
-  @Test
-  public void testCreateJobResponse_some() throws Exception {
-    val actualJob = createJobResponse(createJob(), ImmutableList.of("submissionDate", "ttlHours"));
-    val expectedJob = Job.builder()
-        .id("1")
-        .submissionDate(1L)
-        .build();
-    assertThat(actualJob).isEqualTo(expectedJob);
-  }
-
-  private static Job createJob() {
-    return Job.builder()
-        .id("1")
-        .donorIds(singleton("DO1"))
-        .dataTypes(singleton(DONOR))
-        .status(SUCCEEDED)
-        .submissionDate(1L)
-        .jobInfo(JobUiInfo.builder().build())
-        .fileSizeBytes(1L)
-        .build();
-  }
+  String getName();
 
 }

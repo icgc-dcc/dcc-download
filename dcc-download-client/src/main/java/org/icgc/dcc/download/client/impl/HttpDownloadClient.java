@@ -25,8 +25,6 @@ import static org.icgc.dcc.common.core.model.DownloadDataType.CLINICAL;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
 
-import java.io.OutputStream;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,7 +33,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 
-import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -44,19 +41,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.security.DumbX509TrustManager;
-import org.icgc.dcc.common.core.util.Joiners;
 import org.icgc.dcc.download.client.DownloadClient;
 import org.icgc.dcc.download.client.DownloadClientConfig;
-import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
 import org.icgc.dcc.download.client.response.HealthResponse;
-import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
+import org.icgc.dcc.download.core.response.JobResponse;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
@@ -72,18 +66,15 @@ public class HttpDownloadClient implements DownloadClient {
   /**
    * Constants.
    */
-  public static final String JOBS_PATH = "/jobs";
-  public static final String STATS_PATH = "/stats";
+  public static final String DOWNLOADS_PATH = "/downloads";
   public static final String HEALTH_PATH = "/health";
 
   /**
    * Dependencies.
    */
-  private final ArchiveOutputStream outputStream;
   private final WebResource resource;
 
-  public HttpDownloadClient(@NonNull ArchiveOutputStream outputStream, @NonNull DownloadClientConfig config) {
-    this.outputStream = outputStream;
+  public HttpDownloadClient(@NonNull DownloadClientConfig config) {
     val jerseyClient = configureHttpClient(config);
     this.resource = jerseyClient.resource(config.baseUrl());
   }
@@ -117,67 +108,38 @@ public class HttpDownloadClient implements DownloadClient {
         .submissionTime(currentTimeMillis())
         .build();
 
-    return resource.path(JOBS_PATH)
+    return resource.path(DOWNLOADS_PATH)
         .header(CONTENT_TYPE, JSON_UTF_8)
         .post(String.class, submitJobRequest);
   }
 
   @Override
-  public void cancelJob(@NonNull String jobId) {
-    resource.path(JOBS_PATH).path(jobId)
-        .delete();
-  }
+  public JobResponse getJob(@NonNull String jobId, @NonNull Iterable<String> fields) {
+    val request = resource.path(DOWNLOADS_PATH).path(jobId).path("info");
 
-  @Override
-  public Job getJob(@NonNull String jobId, @NonNull Iterable<String> fields) {
-    WebResource request = resource.path(JOBS_PATH).path(jobId);
-    if (!Iterables.isEmpty(fields)) {
-      request = request.queryParam("field", joinValues(fields));
-    }
-
-    return request.get(Job.class);
+    return request.get(JobResponse.class);
   }
 
   @Override
   public void setActiveDownload(@NonNull String jobId) {
-    resource.path(JOBS_PATH).path(jobId).path("active")
+    resource.path(DOWNLOADS_PATH).path(jobId).path("active")
         .put();
   }
 
   @Override
   public void unsetActiveDownload(@NonNull String jobId) {
-    resource.path(JOBS_PATH).path(jobId).path("active")
+    resource.path(DOWNLOADS_PATH).path(jobId).path("active")
         .delete();
   }
 
   @Override
   public Map<DownloadDataType, Long> getSizes(@NonNull Set<String> donorIds) {
     val body = new RecordsSizeRequest(donorIds);
-    val response = resource.path(STATS_PATH)
+    val response = resource.path(DOWNLOADS_PATH).path("size")
         .header(CONTENT_TYPE, JSON_UTF_8)
         .post(DataTypeSizesResponse.class, body);
 
     return response.getSizes();
-  }
-
-  @Override
-  @SneakyThrows
-  public boolean streamArchiveInGz(@NonNull OutputStream out, @NonNull String downloadId,
-      @NonNull DownloadDataType dataType) {
-    @Cleanup
-    val managedOut = out;
-
-    return outputStream.streamArchiveInGz(managedOut, downloadId, dataType);
-  }
-
-  @Override
-  @SneakyThrows
-  public boolean streamArchiveInTarGz(@NonNull OutputStream out, @NonNull String downloadId,
-      @NonNull List<DownloadDataType> downloadDataTypes) {
-    @Cleanup
-    val managedOut = out;
-
-    return outputStream.streamArchiveInTarGz(managedOut, downloadId, downloadDataTypes);
   }
 
   private Set<DownloadDataType> resolveDataTypes(Set<String> donorIds, Set<DownloadDataType> dataTypes) {
@@ -196,10 +158,6 @@ public class HttpDownloadClient implements DownloadClient {
             .addAll(CLINICAL)
             .build() :
         dataTypes;
-  }
-
-  private static String joinValues(Iterable<String> values) {
-    return Joiners.COMMA.join(values);
   }
 
   // HttpClient configuration

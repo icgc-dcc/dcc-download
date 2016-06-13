@@ -31,9 +31,9 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.common.core.util.stream.Streams;
-import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
+import org.icgc.dcc.download.server.model.Job;
 
 import com.google.common.collect.ImmutableSet;
 

@@ -15,19 +15,23 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.core.model;
+package org.icgc.dcc.download.server.model;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
+import lombok.Builder;
 import lombok.Data;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.JobStatus;
+import org.icgc.dcc.download.core.model.JobUiInfo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @Data
+@Builder
 @JsonInclude(Include.NON_NULL)
 public class Job {
 
@@ -36,88 +40,11 @@ public class Job {
   private Set<DownloadDataType> dataTypes;
   private JobStatus status;
   private Long submissionDate;
-  private Long completionDate;
 
   private JobUiInfo jobInfo;
 
   private Long fileSizeBytes;
-  private Integer ttlHours;
 
-  private Map<DownloadDataType, TaskProgress> progress;
-
-  public static JobBuilder builder() {
-    return new JobBuilder();
-  }
-
-  // Can't use lombok @Builder because it removes the public no-args Job constructor required by the Jackson
-  public static class JobBuilder {
-
-    private final Job job = new Job();
-
-    public JobBuilder id(String id) {
-      job.id = id;
-
-      return this;
-    }
-
-    public JobBuilder donorIds(Set<String> donorIds) {
-      job.donorIds = donorIds;
-
-      return this;
-    }
-
-    public JobBuilder dataTypes(Set<DownloadDataType> dataTypes) {
-      job.dataTypes = dataTypes;
-
-      return this;
-    }
-
-    public JobBuilder status(JobStatus status) {
-      job.status = status;
-
-      return this;
-    }
-
-    public JobBuilder submissionDate(Long submissionDate) {
-      job.submissionDate = submissionDate;
-
-      return this;
-    }
-
-    public JobBuilder completionDate(Long completionDate) {
-      job.completionDate = completionDate;
-
-      return this;
-    }
-
-    public JobBuilder jobInfo(JobUiInfo jobInfo) {
-      job.jobInfo = jobInfo;
-
-      return this;
-    }
-
-    public JobBuilder fileSizeBytes(Long fileSizeBytes) {
-      job.fileSizeBytes = fileSizeBytes;
-
-      return this;
-    }
-
-    public JobBuilder ttlHours(Integer ttlHours) {
-      job.ttlHours = ttlHours;
-
-      return this;
-    }
-
-    public JobBuilder progress(Map<DownloadDataType, TaskProgress> progress) {
-      job.progress = progress;
-
-      return this;
-    }
-
-    public Job build() {
-      return job;
-    }
-
-  }
+  List<DataTypeFile> dataFiles;
 
 }

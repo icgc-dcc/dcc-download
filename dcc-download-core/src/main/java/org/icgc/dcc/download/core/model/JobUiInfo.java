@@ -34,7 +34,6 @@ public class JobUiInfo {
 
   private String filter;
   private String uiQueryStr;
-  private String email;
   private boolean controlled;
 
 }

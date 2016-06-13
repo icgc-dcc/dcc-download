@@ -18,27 +18,48 @@
 package org.icgc.dcc.download.server.service;
 
 import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.collect.Maps.immutableEntry;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
+import static org.icgc.dcc.common.core.util.Separators.DASH;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
+import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
+import static org.icgc.dcc.download.server.utils.DataTypeFiles.getDownloadDataType;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 
-import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.request.SubmitJobRequest;
+import org.icgc.dcc.download.core.response.JobResponse;
+import org.icgc.dcc.download.server.io.ArchiveStreamer;
+import org.icgc.dcc.download.server.io.GzipStreamer;
+import org.icgc.dcc.download.server.io.TarStreamer;
 import org.icgc.dcc.download.server.model.DataTypeFile;
+import org.icgc.dcc.download.server.model.Job;
+import org.icgc.dcc.download.server.repository.JobRepository;
+import org.springframework.stereotype.Service;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
+@Slf4j
+@Service
 @RequiredArgsConstructor
 public class ArchiveDownloadService {
 
@@ -48,54 +69,121 @@ public class ArchiveDownloadService {
   private final FileSystemService fileSystemService;
   @NonNull
   private final FileSystem fileSystem;
+  @NonNull
+  private final JobRepository jobRepository;
 
-  public InputStream downloadArchive(@NonNull String release, @NonNull Collection<String> donors,
-      @NonNull Collection<DownloadDataType> dataTypes) {
-    // resolve files
-    val downloadFiles = fileSystemService.getDataTypeFiles(release, donors, dataTypes);
+  public String submitDownloadRequest(SubmitJobRequest request) {
+    val downloadFiles = getDataTypeFiles(request);
+    val jobId = generateId();
+    val job = Job.builder()
+        .fileSizeBytes(resolveFileSize(downloadFiles))
+        .donorIds(request.getDonorIds())
+        .dataTypes(request.getDataTypes())
+        .dataFiles(downloadFiles)
+        .id(jobId)
+        .jobInfo(request.getJobInfo())
+        .status(SUCCEEDED)
+        .submissionDate(request.getSubmissionTime())
+        .build();
+    jobRepository.save(job);
 
-    // resolve size for each dataType
+    return jobId;
+  }
+
+  public Map<DownloadDataType, Long> getFilesSize(@NonNull Collection<String> donorIds) {
+    val downloadDataTypes = ImmutableSet.copyOf(DownloadDataType.values());
+    val dataTypes = getDataTypeFiles(donorIds, downloadDataTypes);
+
+    return dataTypes.stream()
+        .map(dataType -> immutableEntry(getDownloadDataType(dataType), dataType.getTotalSize()))
+        .collect(() -> Maps.<DownloadDataType, Long> newHashMap(),
+            ArchiveDownloadService::accumulate,
+            ArchiveDownloadService::combine);
+
+  }
+
+  public Optional<JobResponse> getArchiveInfo(@NonNull String jobId) {
+    val job = jobRepository.findById(jobId);
+    if (job == null || job.getStatus() == EXPIRED) {
+      return Optional.empty();
+    }
+
+    return Optional.of(new JobResponse(job.getJobInfo(), job.getFileSizeBytes()));
+  }
+
+  public Optional<ArchiveStreamer> getArchiveStreamer(@NonNull String jobId, @NonNull OutputStream output) {
+    val job = jobRepository.findById(jobId);
+    if (job == null || job.getStatus() == EXPIRED) {
+      return Optional.empty();
+    }
+
+    val release = fileSystemService.getCurrentRelease();
+    val downloadFiles = job.getDataFiles();
+    val dataTypes = job.getDataTypes();
+
+    return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
+  }
+
+  public ArchiveStreamer getArchiveStreamer(
+      @NonNull String release,
+      @NonNull List<DataTypeFile> downloadFiles,
+      @NonNull Collection<DownloadDataType> dataTypes,
+      @NonNull OutputStream output) {
+    // Resolve size for each dataType
     val fileSizes = resolveFileSizes(downloadFiles);
 
-    // resolve headers for the dataTypes
+    // Resolve headers for the dataTypes
     val headers = resolveHeaders(release, dataTypes);
 
-    // stream back as gzip if single dataType, as tar if multiple datatypes
+    // Stream back as gzip if single dataType, as tar if multiple datatypes
     // during streaming insert headers and create tar entities when required.
 
     // Convert OutputStream to InputStream http://blog.ostermiller.org/convert-java-outputstream-inputstream
     if (headers.size() == 1) {
-      return streamGzip(downloadFiles, fileSizes, headers);
+      return getGzipStreamer(downloadFiles, fileSizes, headers, output);
     } else {
-      return streamTar(downloadFiles, fileSizes, headers);
+      return getTarStreamer(downloadFiles, fileSizes, headers, output);
     }
   }
 
-  private InputStream streamTar(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
-      Map<DownloadDataType, Path> headers) {
-    // TODO Auto-generated method stub
-    return null;
+  private ArchiveStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
+      Map<DownloadDataType, String> headers, OutputStream output) {
+    val tarOut = createTarOutputStream(output);
+    val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut);
+    return new TarStreamer(tarOut, gzipStreamer);
   }
 
-  private InputStream streamGzip(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
-      Map<DownloadDataType, Path> headers) {
-    // TODO Auto-generated method stub
-    return null;
+  private GzipStreamer getGzipStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
+      Map<DownloadDataType, String> headers, OutputStream output) {
+    return new GzipStreamer(fileSystem, downloadFiles, fileSizes, headers, output);
   }
 
-  private Map<DownloadDataType, Path> resolveHeaders(String release, Collection<DownloadDataType> dataTypes) {
+  private Map<DownloadDataType, String> resolveHeaders(String release, Collection<DownloadDataType> dataTypes) {
     return dataTypes.stream()
         .collect(toImmutableMap(dataType -> dataType, dataType -> getHeaderPath(release, dataType)));
 
   }
 
-  private Path getHeaderPath(String release, DownloadDataType dataType) {
-    val headerPath = PATH.join(release, HEADERS_DIR, dataType.getId() + ".tsv");
+  private String getHeaderPath(String release, DownloadDataType dataType) {
+    val headerPath = PATH.join(rootPath, release, HEADERS_DIR, dataType.getId() + ".tsv");
 
-    return new Path(rootPath, headerPath);
+    return headerPath;
   }
 
-  private Map<DownloadDataType, Long> resolveFileSizes(List<DataTypeFile> downloadFiles) {
+  private List<DataTypeFile> getDataTypeFiles(SubmitJobRequest request) {
+    val donors = request.getDonorIds();
+    val dataTypes = request.getDataTypes();
+
+    return getDataTypeFiles(donors, dataTypes);
+  }
+
+  private List<DataTypeFile> getDataTypeFiles(Collection<String> donors, Collection<DownloadDataType> dataTypes) {
+    val release = fileSystemService.getCurrentRelease();
+
+    return fileSystemService.getDataTypeFiles(release, donors, dataTypes);
+  }
+
+  private static Map<DownloadDataType, Long> resolveFileSizes(List<DataTypeFile> downloadFiles) {
     val fileSizes = Maps.<DownloadDataType, Long> newHashMap();
     for (val file : downloadFiles) {
       val type = resolveType(file);
@@ -110,6 +198,45 @@ public class ArchiveDownloadService {
     val name = new Path(file.getPath()).getName();
 
     return DownloadDataType.valueOf(name.toUpperCase());
+  }
+
+  // TODO: explicitly specify apache-common dependency
+  private static TarArchiveOutputStream createTarOutputStream(OutputStream out) {
+    log.debug("Creating tar output stream...");
+    val tarOut = new TarArchiveOutputStream(out);
+    tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+    tarOut.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
+
+    return tarOut;
+  }
+
+  private static String generateId() {
+    return UUID.randomUUID()
+        .toString()
+        .replace(DASH, EMPTY_STRING);
+  }
+
+  private static Long resolveFileSize(List<DataTypeFile> downloadFiles) {
+    // TODO: Calculate tar overhead
+    return resolveFileSizes(downloadFiles).values().stream()
+        .mapToLong(value -> value)
+        .sum();
+  }
+
+  private static void accumulate(Map<DownloadDataType, Long> accumulator, Map.Entry<DownloadDataType, Long> entry) {
+    val type = entry.getKey();
+    val value = entry.getValue();
+    val currentValue = accumulator.get(type);
+    accumulator.put(type, add(currentValue, value));
+  }
+
+  private static void combine(Map<DownloadDataType, Long> left, Map<DownloadDataType, Long> right) {
+    right.entrySet().stream()
+        .forEach(e -> accumulate(left, e));
+  }
+
+  private static Long add(Long currentValue, Long value) {
+    return currentValue == null ? value : currentValue + value;
   }
 
 }

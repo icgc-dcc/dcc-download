@@ -17,15 +17,13 @@
  */
 package org.icgc.dcc.download.client.impl;
 
-import java.io.OutputStream;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.client.DownloadClient;
-import org.icgc.dcc.download.core.model.Job;
 import org.icgc.dcc.download.core.model.JobUiInfo;
+import org.icgc.dcc.download.core.response.JobResponse;
 
 public class NoOpDownloadClient implements DownloadClient {
 
@@ -35,27 +33,12 @@ public class NoOpDownloadClient implements DownloadClient {
   }
 
   @Override
-  public void cancelJob(String jobId) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public Map<DownloadDataType, Long> getSizes(Set<String> donorIds) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public void setActiveDownload(String jobId) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean streamArchiveInGz(OutputStream out, String downloadId, DownloadDataType dataType) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean streamArchiveInTarGz(OutputStream out, String downloadId, List<DownloadDataType> downloadDataTypes) {
     throw new UnsupportedOperationException();
   }
 
@@ -70,7 +53,7 @@ public class NoOpDownloadClient implements DownloadClient {
   }
 
   @Override
-  public Job getJob(String jobId, Iterable<String> fields) {
+  public JobResponse getJob(String jobId, Iterable<String> fields) {
     throw new UnsupportedOperationException();
   }
 

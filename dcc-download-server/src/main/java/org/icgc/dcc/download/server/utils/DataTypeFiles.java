@@ -17,49 +17,26 @@
  */
 package org.icgc.dcc.download.server.utils;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singleton;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
-import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
-import static org.icgc.dcc.download.server.utils.Responses.createJobResponse;
+import static lombok.AccessLevel.PRIVATE;
+import lombok.NoArgsConstructor;
 import lombok.val;
 
-import org.icgc.dcc.download.core.model.JobUiInfo;
-import org.icgc.dcc.download.server.model.Job;
-import org.junit.Test;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.model.DataTypeFile;
 
-import com.google.common.collect.ImmutableList;
+@NoArgsConstructor(access = PRIVATE)
+public class DataTypeFiles {
 
-public class ResponsesTest {
+  public static DownloadDataType getDownloadDataType(DataTypeFile file) {
+    if (file == null) {
+      return null;
+    }
 
-  @Test
-  public void testCreateJobResponse_empty() throws Exception {
-    val actualJob = createJobResponse(createJob(), emptyList());
-    val expectedJob = Job.builder().id("1").build();
-    assertThat(actualJob).isEqualTo(expectedJob);
-  }
+    // TODO: Is this cheaper to use Guava's PATH Splitter here?
+    val dataTypeName = new Path(file.getPath()).getName();
 
-  @Test
-  public void testCreateJobResponse_some() throws Exception {
-    val actualJob = createJobResponse(createJob(), ImmutableList.of("submissionDate", "ttlHours"));
-    val expectedJob = Job.builder()
-        .id("1")
-        .submissionDate(1L)
-        .build();
-    assertThat(actualJob).isEqualTo(expectedJob);
-  }
-
-  private static Job createJob() {
-    return Job.builder()
-        .id("1")
-        .donorIds(singleton("DO1"))
-        .dataTypes(singleton(DONOR))
-        .status(SUCCEEDED)
-        .submissionDate(1L)
-        .jobInfo(JobUiInfo.builder().build())
-        .fileSizeBytes(1L)
-        .build();
+    return DownloadDataType.valueOf(dataTypeName.toUpperCase());
   }
 
 }
