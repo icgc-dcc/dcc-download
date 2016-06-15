@@ -18,37 +18,17 @@
 package org.icgc.dcc.download.core.util;
 
 import static lombok.AccessLevel.PRIVATE;
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isPartFile;
-
-import java.util.List;
-
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.common.core.model.DownloadDataType;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 
-@Slf4j
 @NoArgsConstructor(access = PRIVATE)
 public final class Archives {
-
-  public static long calculateArchiveSize(@NonNull FileSystem fileSystem, @NonNull Path jobPath) {
-    if (!HadoopUtils.exists(fileSystem, jobPath)) {
-      log.warn("Failed to calculate download size for non-existing path '{}'", jobPath);
-
-      return 0;
-    }
-
-    return getDataTypePaths(fileSystem, jobPath).stream()
-        .mapToLong(dtPath -> calculateDataTypeArchiveSize(fileSystem, dtPath))
-        .sum();
-  }
 
   @SneakyThrows
   public static long calculateDataTypeArchiveSize(@NonNull FileSystem fileSystem, @NonNull Path downloadTypePath) {
@@ -63,12 +43,6 @@ public final class Archives {
     }
 
     return totalSize;
-  }
-
-  private static List<Path> getDataTypePaths(FileSystem fileSystem, Path jobPath) {
-    return HadoopUtils.lsDir(fileSystem, jobPath).stream()
-        .filter(path -> DownloadDataType.canCreateFrom(path.getName().toUpperCase()))
-        .collect(toImmutableList());
   }
 
 }

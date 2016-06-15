@@ -45,13 +45,13 @@ public class SecurityConfig {
       http.requestMatchers()
 
           // Start security configuration for endpoints matching the patterns
-          .antMatchers("/jobs/**", "/stats")
+          .antMatchers("/downloads/**", "/list/**")
           .and()
 
           // Set access permissions for particular endpoints
           .authorizeRequests()
-          .antMatchers("/jobs/**").authenticated()
-          .antMatchers("/stats").authenticated()
+          .antMatchers("/downloads/**").authenticated()
+          .antMatchers("/list/**").authenticated()
           .and()
 
           // Require the BASIC authentication for all auth requests

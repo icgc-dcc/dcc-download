@@ -101,32 +101,6 @@ public class DownloadController {
     streamArchive(Optional.empty(), streamerOpt, response);
   }
 
-  private static String getFsPath(String requestUrl) {
-    val fsPath = requestUrl
-        .replaceFirst("/downloads", EMPTY_STRING)
-        .replaceFirst("/static", EMPTY_STRING)
-        .replaceFirst("/$", EMPTY_STRING);
-
-    return fsPath.isEmpty() ? "/" : fsPath;
-  }
-
-  private static void streamArchive(Optional<String> jobId, Optional<ArchiveStreamer> streamerOpt,
-      HttpServletResponse response)
-      throws IOException {
-    if (jobId.isPresent()) {
-      checkJobExistence(jobId.get(), streamerOpt);
-    }
-
-    val streamer = streamerOpt.get();
-    val filename = streamer.getName();
-
-    response.setContentType(getFileMimeType(filename));
-    response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
-
-    streamer.stream();
-    streamer.close();
-  }
-
   @RequestMapping(value = "/{jobId:.+}/info", method = GET)
   public JobResponse getArchiveInfo(@PathVariable("jobId") String jobId) {
     val infoOpt = downloadService.getArchiveInfo(jobId);
@@ -177,6 +151,32 @@ public class DownloadController {
     if (!optional.isPresent()) {
       throw new NotFoundException(format("Job '%s' was not found.", jobId));
     }
+  }
+
+  private static String getFsPath(String requestUrl) {
+    val fsPath = requestUrl
+        .replaceFirst("/downloads", EMPTY_STRING)
+        .replaceFirst("/static", EMPTY_STRING)
+        .replaceFirst("/$", EMPTY_STRING);
+
+    return fsPath.isEmpty() ? "/" : fsPath;
+  }
+
+  private static void streamArchive(Optional<String> jobId, Optional<ArchiveStreamer> streamerOpt,
+      HttpServletResponse response)
+      throws IOException {
+    if (jobId.isPresent()) {
+      checkJobExistence(jobId.get(), streamerOpt);
+    }
+
+    val streamer = streamerOpt.get();
+    val filename = streamer.getName();
+
+    response.setContentType(getFileMimeType(filename));
+    response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
+
+    streamer.stream();
+    streamer.close();
   }
 
 }
