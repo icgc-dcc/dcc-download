@@ -19,7 +19,7 @@ package org.icgc.dcc.download.server.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collection;
+import java.util.List;
 
 import lombok.NonNull;
 import lombok.val;
@@ -28,8 +28,6 @@ import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.DownloadFileType;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
-
-import com.google.common.collect.Iterables;
 
 public abstract class AbstractFsTest extends AbstractTest {
 
@@ -55,20 +53,16 @@ public abstract class AbstractFsTest extends AbstractTest {
     return new DownloadFile(name, DownloadFileType.DIRECTORY, size, creationDate);
   }
 
-  protected static DownloadFile newFile(String name) {
-    return new DownloadFile(name, DownloadFileType.FILE, 0, 0);
-  }
-
   protected static DownloadFile newFile(String name, long size, long creationDate) {
     return new DownloadFile(name, DownloadFileType.FILE, size, creationDate);
   }
 
-  protected static void verifyDownloadFiles(@NonNull Collection<DownloadFile> actual,
-      @NonNull Collection<DownloadFile> expected) {
+  protected static void verifyDownloadFiles(@NonNull List<DownloadFile> actual,
+      @NonNull List<DownloadFile> expected) {
     assertThat(actual).hasSameSizeAs(expected);
     for (int i = 0; i < expected.size(); i++) {
-      val actualFile = Iterables.get(actual, i);
-      val expectedFile = Iterables.get(expected, i);
+      val actualFile = actual.get(i);
+      val expectedFile = expected.get(i);
       assertDownloadFiles(actualFile, expectedFile);
     }
   }

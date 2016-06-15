@@ -19,6 +19,7 @@ package org.icgc.dcc.download.core.model;
 
 public enum DownloadFileType {
 
+  // Order is important as the enum is used in comparison
   FILE, DIRECTORY;
 
   public String getSymbol() {

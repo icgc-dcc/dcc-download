@@ -44,6 +44,7 @@ import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_REGEX;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 import lombok.NoArgsConstructor;
@@ -52,6 +53,7 @@ import lombok.val;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.util.Splitters;
+import org.icgc.dcc.download.server.endpoint.NotFoundException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -60,8 +62,9 @@ import com.google.common.collect.HashBiMap;
 public final class DfsPaths {
 
   private static final Pattern RELEASE_PATTERN = Pattern.compile(RELEASE_DIR_REGEX + "|current");
-  private static final Pattern RELEASE_DIR_PATTERN = Pattern.compile("Projects|Summary");
+  private static final Pattern RELEASE_DIR_PATTERN = Pattern.compile("Projects|Summary|README.txt");
   private static final Pattern PROJECT_NAME_PATTERN = Pattern.compile("\\w{2,4}-\\w{2}");
+  private static final Pattern FILE_NAME_PATTERN = Pattern.compile(".*\\.(vcf|tsv)\\.gz$");
 
   private static final BiMap<DownloadDataType, String> FILE_NAMES = defineFileNames();
 
@@ -115,35 +118,47 @@ public final class DfsPaths {
     val pathParts = Splitters.PATH.splitToList(path);
     checkArgument(pathParts.size() < 6, "Invalid path '%s'", path);
     for (int i = 0; i < pathParts.size(); i++) {
-      verifyPathPart(i, pathParts.get(i));
+      verifyPathPart(i, pathParts);
     }
   }
 
-  private static void verifyPathPart(int i, String part) {
+  private static void verifyPathPart(int i, List<String> parts) {
+    val part = parts.get(i);
     switch (i) {
     case 0:
       checkArgument(part.isEmpty());
       break;
     case 1:
-      checkArgument(RELEASE_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
-          RELEASE_PATTERN);
+      verifyPathPart(RELEASE_PATTERN, part);
       break;
     case 2:
-      checkArgument(RELEASE_DIR_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
-          RELEASE_DIR_PATTERN);
+      verifyPathPart(RELEASE_DIR_PATTERN, part);
       break;
     case 3:
-      // TODO: allow donor.all_projects.tsv.gz in path "/release_21/Summary/donor.all_projects.tsv.gz"
-      checkArgument(PROJECT_NAME_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
-          PROJECT_NAME_PATTERN);
+      val parent = parts.get(2);
+      if ("Summary".equals(parent)) {
+        verifyFileName(part);
+      } else {
+        verifyPathPart(PROJECT_NAME_PATTERN, part);
+      }
       break;
     case 4:
-      // TODO: verify download file name
+      verifyFileName(part);
       break;
     default:
       throw new IllegalArgumentException(format("Unexpected argument: %s at position %s", part, i));
     }
 
+  }
+
+  private static void verifyFileName(String part) {
+    verifyPathPart(FILE_NAME_PATTERN, part);
+  }
+
+  private static void verifyPathPart(Pattern pattern, String part) {
+    if (!pattern.matcher(part).matches()) {
+      throw new NotFoundException(format("'%s' doesn't match release pattern %s", part, pattern));
+    }
   }
 
   private static BiMap<DownloadDataType, String> defineFileNames() {

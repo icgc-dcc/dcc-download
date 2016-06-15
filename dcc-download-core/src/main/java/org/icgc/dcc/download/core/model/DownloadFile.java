@@ -20,15 +20,26 @@ package org.icgc.dcc.download.core.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.val;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DownloadFile {
+public class DownloadFile implements Comparable<DownloadFile> {
 
   String name;
   DownloadFileType type;
   long size;
   long date;
+
+  @Override
+  public int compareTo(DownloadFile other) {
+    val typesCompared = type.compareTo(other.type);
+    if (typesCompared == 0) {
+      return name.compareTo(other.name);
+    }
+
+    return typesCompared;
+  }
 
 }

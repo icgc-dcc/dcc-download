@@ -19,6 +19,9 @@ package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.collect.ImmutableList.of;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+
+import java.io.File;
+
 import lombok.val;
 
 import org.icgc.dcc.download.server.service.FileSystemService;
@@ -40,13 +43,14 @@ public class RootViewTest extends AbstractFsTest {
   @Override
   public void setUp() {
     super.setUp();
+    val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
     this.rootView = new RootView(rootDir, getDefaultLocalFileSystem(), fsService);
   }
 
   @Test
   public void testListReleases() throws Exception {
     val releases = rootView.listReleases();
-    verifyDownloadFiles(releases, of(newDir("/current"), newDir("/release_21")));
+    verifyDownloadFiles(releases, of(newDir("/current", 1464896955000L), newDir("/release_21", 1464896955000L)));
   }
 
 }

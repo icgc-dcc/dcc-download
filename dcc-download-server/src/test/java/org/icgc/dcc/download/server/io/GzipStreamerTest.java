@@ -18,10 +18,13 @@
 package org.icgc.dcc.download.server.io;
 
 import static com.google.common.collect.ImmutableList.of;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.mockito.Mockito.mock;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -30,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +45,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.download.server.model.DataTypeFile;
@@ -113,6 +118,17 @@ public class GzipStreamerTest extends AbstractTest {
     }
 
     assertDonorSampleTestFile();
+  }
+
+  @Test
+  public void testGetNextEntryName() throws Exception {
+    gzipStreamer = new GzipStreamer(
+        mock(FileSystem.class),
+        singletonList(new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/ssm_open", of("part-00000.gz"), 1)),
+        emptyMap(),
+        getHeaders(),
+        mock(OutputStream.class));
+    assertThat(gzipStreamer.getName()).isEqualTo("simple_somatic_mutation.open.tsv.gz");
   }
 
   private void assertDonorTestFile() throws Exception {

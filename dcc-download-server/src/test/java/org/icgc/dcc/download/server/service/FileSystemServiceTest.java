@@ -56,7 +56,7 @@ public class FileSystemServiceTest {
   @Test
   public void testGetReleaseProjects() throws Exception {
     val projects = service.getReleaseProjects("release_21");
-    assertThat(projects).containsExactly("TST1-CA", "TST2-CA");
+    assertThat(projects.get()).containsExactly("TST1-CA", "TST2-CA");
   }
 
   @Test
@@ -82,9 +82,9 @@ public class FileSystemServiceTest {
         ImmutableList.of(SAMPLE, DONOR));
     assertThat(files).hasSize(3);
     assertThat(files.get(0)).isEqualTo(
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
-    assertThat(files.get(1)).isEqualTo(
         new DataTypeFile("/somepath/release_21/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
+    assertThat(files.get(1)).isEqualTo(
+        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
     assertThat(files.get(2)).isEqualTo(
         new DataTypeFile("/somepath/release_21/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
 

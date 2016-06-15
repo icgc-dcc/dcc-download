@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.checkExistence;
@@ -36,7 +37,9 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Separators;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.DownloadFileType;
+import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.service.FileSystemService;
+import org.icgc.dcc.download.server.utils.DfsPaths;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.collect.Ordering;
@@ -83,8 +86,8 @@ public abstract class AbstractFileSystemView {
     return new Path(rootPath, childPath);
   }
 
-  protected DownloadFile convert2DownloadFile(Path file) {
-    val fileName = toResponseFileName(file);
+  protected DownloadFile convert2DownloadFile(Path file, boolean current) {
+    val fileName = toResponseFileName(file, current);
     val type = resolveFileType(file);
     val size = type == DIRECTORY ? 0L : getFileSize(file);
     val date = getFileDate(file);
@@ -95,7 +98,7 @@ public abstract class AbstractFileSystemView {
     return downloadFile;
   }
 
-  protected String toResponseFileName(Path file) {
+  protected String toResponseFileName(Path file, boolean current) {
     log.debug("Getting response file name for file '{}'...", file);
     val uri = file.toUri();
     log.debug("File as URI: '{}'", uri);
@@ -103,6 +106,11 @@ public abstract class AbstractFileSystemView {
     val fileName = filePath.replace(rootDir, Separators.EMPTY_STRING);
     log.debug("File name: {}", fileName);
     checkState(fileName.startsWith("/"), "File name is not an absolute path: '%s'", fileName);
+
+    if (current) {
+      val release = DfsPaths.getRelease(fileName);
+      return fileName.replaceFirst(release, "current");
+    }
 
     return fileName;
   }
@@ -114,7 +122,7 @@ public abstract class AbstractFileSystemView {
   }
 
   protected DownloadFile createDownloadDir(String path, String releaseName) {
-    return createDownloadDir(path, fsService.getReleaseDate(releaseName));
+    return createDownloadDir(path, getReleaseDate(releaseName));
   }
 
   protected DownloadFile createDownloadDir(String path, long releaseDate) {
@@ -138,6 +146,14 @@ public abstract class AbstractFileSystemView {
 
   protected FileStatus getFileStatus(Path file) {
     return HadoopUtils2.getFileStatus(fileSystem, file);
+  }
+
+  protected Long getReleaseDate(String release) {
+    val releaseDateOpt = fsService.getReleaseDate(release);
+    if (!releaseDateOpt.isPresent()) {
+      throwNotFoundException(format("Release '%s' doesn't exist.", release));
+    }
+    return releaseDateOpt.get();
   }
 
   private DownloadFileType resolveFileType(Path file) {
@@ -170,6 +186,11 @@ public abstract class AbstractFileSystemView {
   private static void verifyCurrentRelease(String currentLink) {
     checkArgument(currentLink.matches(RELEASE_DIR_REGEX), "Current release link('%s') is invalid.",
         currentLink);
+  }
+
+  protected static void throwNotFoundException(String warnMessage) {
+    log.warn(warnMessage);
+    throw new NotFoundException("Malformed path");
   }
 
 }

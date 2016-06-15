@@ -17,22 +17,18 @@
  */
 package org.icgc.dcc.download.server.utils;
 
-import org.junit.Test;
+import static lombok.AccessLevel.PRIVATE;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.val;
 
-public class DfsPathsTest {
+@NoArgsConstructor(access = PRIVATE)
+public final class Releases {
 
-  @Test
-  public void testValidatePath() throws Exception {
-    DfsPaths.validatePath("/");
-    DfsPaths.validatePath("/release_21");
-    DfsPaths.validatePath("/current");
-    DfsPaths.validatePath("/release_21/Projects");
-    DfsPaths.validatePath("/release_21/Summary");
-    DfsPaths.validatePath("/current/Summary");
-    DfsPaths.validatePath("/release_21/Projects/TST-CA");
-    DfsPaths.validatePath("/release_21/Projects/TST-CA/simple_somatic_mutation.open.ALL-US.tsv.gz");
-    DfsPaths.validatePath("/release_21/Summary/simple_somatic_mutation.aggregated.vcf.gz");
-    DfsPaths.validatePath("/current/Summary/sample.all_projects.tsv.gz");
+  public static String getActualReleaseName(@NonNull String releaseName, @NonNull String currentRelease) {
+    val current = "current".equals(releaseName);
+    val actualReleaseName = current ? currentRelease : releaseName;
+    return actualReleaseName;
   }
 
 }

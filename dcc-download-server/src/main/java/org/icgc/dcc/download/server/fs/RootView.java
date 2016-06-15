@@ -17,22 +17,21 @@
  */
 package org.icgc.dcc.download.server.fs;
 
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
 
-import java.util.Collection;
+import java.util.List;
 
 import lombok.NonNull;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.server.service.FileSystemService;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-@Slf4j
 public class RootView extends AbstractFileSystemView {
 
   public RootView(@NonNull String rootDir, @NonNull FileSystem fileSystem, @NonNull FileSystemService fsService) {
@@ -42,23 +41,20 @@ public class RootView extends AbstractFileSystemView {
   /**
    * Lists releases in the root directory.
    */
-  public Collection<DownloadFile> listReleases() {
+  public List<DownloadFile> listReleases() {
     val allFiles = HadoopUtils.lsAll(fileSystem, rootPath);
-    log.debug("[/]: {}", allFiles);
-
-    val dfsFilesBuilder = ImmutableList.<DownloadFile> builder();
+    val dfsFiles = Lists.<DownloadFile> newArrayList();
     for (val file : allFiles) {
-      val rootFile = convert2DownloadFile(file);
-      dfsFilesBuilder.add(rootFile);
+      val rootFile = convert2DownloadFile(file, false);
+      dfsFiles.add(rootFile);
       if (isCurrentReleaseFile(rootFile)) {
-        dfsFilesBuilder.add(addCurrentLinkFile(rootFile));
+        dfsFiles.add(addCurrentLinkFile(rootFile));
       }
     }
 
-    val dfsFiles = dfsFilesBuilder.build();
-    log.debug("DFS files: {}", dfsFiles);
-
-    return dfsFiles;
+    return dfsFiles.stream()
+        .sorted()
+        .collect(toImmutableList());
   }
 
   private static DownloadFile addCurrentLinkFile(DownloadFile file) {

@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.endpoint;
 
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.download.server.utils.Requests.getRequestPath;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 import java.io.IOException;
@@ -34,7 +35,6 @@ import org.icgc.dcc.download.server.fs.DownloadFileSystem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.HandlerMapping;
 
 @RestController
 @RequestMapping("/list/**")
@@ -46,8 +46,7 @@ public class StaticFilesController {
 
   @RequestMapping(method = GET)
   public Collection<DownloadFile> list(HttpServletRequest request) throws IOException {
-    val requestPath = (String) request.getAttribute(
-        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+    val requestPath = getRequestPath(request);
 
     return downloadFileSystem.listFiles(getFsPath(requestPath));
   }

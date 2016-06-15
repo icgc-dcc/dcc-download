@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -93,9 +94,7 @@ public class GzipStreamer implements ArchiveStreamer {
   }
 
   public String getNextEntryName() {
-    val currentDownloadDataType = getCurrentDownloadDataType();
-
-    val nextEntryName = currentDownloadDataType.getCanonicalName() + ".gz";
+    val nextEntryName = getFileName(getCurrentDownloadDataType()) + ".tsv.gz";
     log.debug("Next entry name: {}", nextEntryName);
 
     return nextEntryName;

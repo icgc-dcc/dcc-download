@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.endpoint;
 
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.download.server.utils.Requests.getRequestPath;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -47,7 +48,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.HandlerMapping;
 
 import com.google.common.io.Files;
 import com.google.common.net.MediaType;
@@ -92,8 +92,7 @@ public class DownloadController {
 
   @RequestMapping(value = "/static/**", method = GET)
   public void staticDownload(HttpServletRequest request, HttpServletResponse response) throws IOException {
-    val requestPath = (String) request.getAttribute(
-        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+    val requestPath = getRequestPath(request);
     val filePath = getFsPath(requestPath);
 
     val output = response.getOutputStream();

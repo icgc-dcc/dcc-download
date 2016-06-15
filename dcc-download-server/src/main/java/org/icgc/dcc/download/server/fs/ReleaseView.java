@@ -25,8 +25,8 @@ import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
+import static org.icgc.dcc.download.server.utils.Releases.getActualReleaseName;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -41,9 +41,6 @@ import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.server.service.FileSystemService;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Ordering;
-
 @Slf4j
 public class ReleaseView extends AbstractFileSystemView {
 
@@ -51,55 +48,71 @@ public class ReleaseView extends AbstractFileSystemView {
     super(rootDir, fileSystem, fsService);
   }
 
-  // Projects
-  // README.txt
-  // Summary
-  public Collection<DownloadFile> listRelease(@NonNull String releaseName) {
-    val releaseFiles = HadoopUtils.lsAll(fileSystem, toHdfsPath(releaseName));
+  public List<DownloadFile> listRelease(@NonNull String releaseName) {
+    val current = "current".equals(releaseName);
+    val actualReleaseName = current ? currentRelease : releaseName;
+    val hdfsPath = toHdfsPath(actualReleaseName);
+    ensurePathExistence(hdfsPath);
+
+    val releaseFiles = HadoopUtils.lsAll(fileSystem, hdfsPath);
     val downloadFiles = releaseFiles.stream()
         .filter(file -> isDfsEntity(file) == false)
-        .map(file -> convert2DownloadFile(file))
+        .map(file -> convert2DownloadFile(file, current))
         .collect(toList());
 
     downloadFiles.add(createProjectsDir(releaseName));
     downloadFiles.add(createSummaryDir(releaseName));
 
-    return downloadFiles;
-  }
-
-  public Collection<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
-    val projects = fsService.getReleaseProjects(releaseName);
-    val releaseDate = fsService.getReleaseDate(releaseName);
-
-    return projects.stream()
-        .map(project -> format("/%s/Projects/%s", releaseName, project))
-        .map(path -> createDownloadDir(path, releaseDate))
+    return downloadFiles.stream()
+        .sorted()
         .collect(toImmutableList());
   }
 
-  public Collection<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
-    val releaseDate = fsService.getReleaseDate(releaseName);
-    val clinicalSizes = fsService.getClinicalSizes(releaseName);
+  public List<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+
+    val projects = fsService.getReleaseProjects(actualReleaseName);
+    if (!projects.isPresent()) {
+      throwNotFoundException(format("Release '%s' doesn't exist.", actualReleaseName));
+    }
+    val releaseDate = getReleaseDate(actualReleaseName);
+
+    return projects.get().stream()
+        .map(project -> format("/%s/Projects/%s", releaseName, project))
+        .map(path -> createDownloadDir(path, releaseDate))
+        .sorted()
+        .collect(toImmutableList());
+  }
+
+  public List<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+
+    val releaseDate = getReleaseDate(actualReleaseName);
+    val clinicalSizes = fsService.getClinicalSizes(actualReleaseName);
 
     val clinicalFiles = clinicalSizes.entrySet().stream()
         .map(entry -> createSummaryFile(releaseName, entry, releaseDate))
         .collect(toImmutableList());
+    log.debug("Clinical Files: {}", clinicalFiles);
 
     val summaryFiles = getSummaryFiles(releaseName);
     log.debug("Summary files: {}", summaryFiles);
     summaryFiles.addAll(clinicalFiles);
-    summaryFiles.sort(ReleaseView::sortByPath);
 
-    return ImmutableList.copyOf(summaryFiles);
+    return summaryFiles.stream()
+        .sorted()
+        .collect(toImmutableList());
   }
 
-  public Collection<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
-    val releaseDate = fsService.getReleaseDate(releaseName);
-    val projectSizes = fsService.getProjectSizes(releaseName, project);
+  public List<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val releaseDate = getReleaseDate(actualReleaseName);
+    val projectSizes = fsService.getProjectSizes(actualReleaseName, project);
 
     // No need to sort the output files, as the input is already sorted
     return projectSizes.entrySet().stream()
         .map(entry -> createProjectFile(entry, releaseName, project, releaseDate))
+        .sorted()
         .collect(toImmutableList());
 
   }
@@ -115,7 +128,8 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   private List<DownloadFile> getSummaryFiles(String releaseName) {
-    val files = HadoopUtils.lsFile(fileSystem, getSummaryFilesPath(releaseName));
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val files = HadoopUtils.lsFile(fileSystem, getSummaryFilesPath(actualReleaseName));
 
     return files.stream()
         .map(file -> createSummaryFile(file, releaseName))
@@ -123,6 +137,7 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   private DownloadFile createSummaryFile(Path file, String releaseName) {
+    log.debug("Creating summary file for '{}'", file);
     val fileName = file.getName();
     val path = format("/%s/Summary/%s", releaseName, fileName);
     val status = getFileStatus(file);
@@ -156,17 +171,16 @@ public class ReleaseView extends AbstractFileSystemView {
     return createDownloadFile(path, size, releaseDate);
   }
 
+  private void ensurePathExistence(Path hdfsPath) {
+    if (!HadoopUtils.exists(fileSystem, hdfsPath)) {
+      throwNotFoundException(format("File not exists: '%s'", hdfsPath));
+    }
+  }
+
   private static boolean isDfsEntity(Path file) {
     val fileName = file.getName();
 
     return fileName.equals(DATA_DIR) || fileName.equals(HEADERS_DIR) || fileName.equals(SUMMARY_FILES);
-  }
-
-  private static int sortByPath(DownloadFile left, DownloadFile right) {
-    val leftPath = left.getName();
-    val rightPath = right.getName();
-
-    return Ordering.natural().compare(leftPath, rightPath);
   }
 
 }

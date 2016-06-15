@@ -24,11 +24,13 @@ import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Sets.newTreeSet;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.download.server.utils.Releases.getActualReleaseName;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import lombok.Getter;
 import lombok.NonNull;
@@ -61,19 +63,23 @@ public class FileSystemService {
     this.currentRelease = resolveCurrentRelease();
   }
 
-  public List<String> getReleaseProjects(@NonNull String release) {
+  public Optional<List<String>> getReleaseProjects(@NonNull String release) {
     val projectDonors = releaseProjectDonors.get(release);
-    checkNotNull(projectDonors, "Failed to resolve project donors for release %s", release);
+    if (projectDonors == null) {
+      return Optional.empty();
+    }
 
     // Return sorted
-    return copyOf(newTreeSet(projectDonors.keySet()));
+    return Optional.of(copyOf(newTreeSet(projectDonors.keySet())));
   }
 
-  public long getReleaseDate(@NonNull String release) {
-    val releaseTime = releaseTimes.get(release);
-    checkNotNull(releaseTime, "Failed to resolve release date for release %s", release);
+  public Optional<Long> getReleaseDate(@NonNull String release) {
+    val releaseTime = releaseTimes.get(getActualReleaseName(release, currentRelease));
+    if (releaseTime == null) {
+      return Optional.empty();
+    }
 
-    return releaseTime;
+    return Optional.of(releaseTime);
   }
 
   public Map<DownloadDataType, Long> getClinicalSizes(@NonNull String release) {
@@ -111,6 +117,7 @@ public class FileSystemService {
         .flatMap(dataType -> donorFileTypes.column(dataType).entrySet().stream())
         .filter(donorFileTypeEntry -> donors.contains(donorFileTypeEntry.getKey()))
         .map(donorFileTypeEntry -> donorFileTypeEntry.getValue())
+        .sorted()
         .collect(toImmutableList());
   }
 

@@ -22,10 +22,15 @@ import java.util.List;
 import lombok.Value;
 
 @Value
-public class DataTypeFile {
+public class DataTypeFile implements Comparable<DataTypeFile> {
 
   String path;
   List<String> partFiles;
   long totalSize;
+
+  @Override
+  public int compareTo(DataTypeFile other) {
+    return path.compareTo(other.getPath());
+  }
 
 }

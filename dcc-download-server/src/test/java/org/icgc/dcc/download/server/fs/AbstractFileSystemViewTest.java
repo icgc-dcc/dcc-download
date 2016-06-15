@@ -63,7 +63,7 @@ public class AbstractFileSystemViewTest extends AbstractTest {
   @Test
   public void testToResponseFileName() throws Exception {
     val release20 = HadoopUtils.lsDir(fileSystem, new Path(workingDir.getAbsolutePath())).get(0);
-    val responseFileName = dfs.toResponseFileName(release20);
+    val responseFileName = dfs.toResponseFileName(release20, false);
     assertThat(responseFileName).isEqualTo("/release_20");
   }
 
@@ -72,7 +72,7 @@ public class AbstractFileSystemViewTest extends AbstractTest {
     val srcFile = new File(new File(workingDir, "release_21"), "Projects");
     srcFile.mkdir();
 
-    val dfsFile = dfs.convert2DownloadFile(new Path(srcFile.getAbsolutePath()));
+    val dfsFile = dfs.convert2DownloadFile(new Path(srcFile.getAbsolutePath()), false);
     assertThat(dfsFile.getName()).isEqualTo("/release_21/Projects");
     assertThat(dfsFile.getSize()).isEqualTo(0);
     assertThat(dfsFile.getType()).isEqualTo(DownloadFileType.DIRECTORY);
@@ -87,7 +87,7 @@ public class AbstractFileSystemViewTest extends AbstractTest {
     out.write("Test string");
     out.close();
 
-    val dfsFile = dfs.convert2DownloadFile(new Path(srcFile.getAbsolutePath()));
+    val dfsFile = dfs.convert2DownloadFile(new Path(srcFile.getAbsolutePath()), false);
     assertThat(dfsFile.getName()).isEqualTo("/zzz123.txt");
     assertThat(dfsFile.getType()).isEqualTo(DownloadFileType.FILE);
     assertCreationDate(srcFile, dfsFile.getDate());
