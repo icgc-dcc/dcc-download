@@ -19,7 +19,7 @@ package org.icgc.dcc.download.server.utils;
 
 import static com.google.common.base.Preconditions.checkState;
 import static lombok.AccessLevel.PRIVATE;
-import static org.icgc.dcc.download.server.fs.AbstractDownloadFileSystem.RELEASE_DIR_PREFIX;
+import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 

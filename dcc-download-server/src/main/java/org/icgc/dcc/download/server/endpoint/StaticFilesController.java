@@ -15,20 +15,47 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.endpoint;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class DownloadFile {
+import java.io.IOException;
+import java.util.Collection;
 
-  String name;
-  DownloadFileType type;
-  long size;
-  long date;
+import javax.servlet.http.HttpServletRequest;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
+
+import org.icgc.dcc.download.core.model.DownloadFile;
+import org.icgc.dcc.download.server.fs.DownloadFileSystem;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.HandlerMapping;
+
+@RestController
+@RequestMapping("/list/**")
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+public class StaticFilesController {
+
+  @NonNull
+  private final DownloadFileSystem downloadFileSystem;
+
+  @RequestMapping(method = GET)
+  public Collection<DownloadFile> list(HttpServletRequest request) throws IOException {
+    val requestPath = (String) request.getAttribute(
+        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+
+    return downloadFileSystem.listFiles(getFsPath(requestPath));
+  }
+
+  private static String getFsPath(String requestUrl) {
+    val fsPath = requestUrl.replaceFirst("/list", EMPTY_STRING).replaceFirst("/$", EMPTY_STRING);
+
+    return fsPath.isEmpty() ? "/" : fsPath;
+  }
 
 }

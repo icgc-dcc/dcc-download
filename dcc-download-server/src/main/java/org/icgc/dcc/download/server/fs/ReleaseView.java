@@ -21,6 +21,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
@@ -37,14 +38,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
-import org.icgc.dcc.download.server.model.DownloadFile;
+import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.server.service.FileSystemService;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
 @Slf4j
-public class ReleaseView extends AbstractDownloadFileSystem {
+public class ReleaseView extends AbstractFileSystemView {
 
   public ReleaseView(String rootDir, FileSystem fileSystem, @NonNull FileSystemService fsService) {
     super(rootDir, fileSystem, fsService);
@@ -106,7 +107,7 @@ public class ReleaseView extends AbstractDownloadFileSystem {
   private DownloadFile createProjectFile(Entry<DownloadDataType, Long> entry, String releaseName, String project,
       long releaseDate) {
     val type = entry.getKey();
-    val name = format("%s.%s.tsv.gz", type.getId(), project);
+    val name = format("%s.%s.tsv.gz", getFileName(type), project);
     val path = format("/%s/Projects/%s/%s", releaseName, project, name);
     val size = entry.getValue();
 

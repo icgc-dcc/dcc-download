@@ -17,16 +17,18 @@
  */
 package org.icgc.dcc.download.client;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.response.JobResponse;
 
 public interface DownloadClient {
 
-  JobResponse getJob(String jobId, Iterable<String> fields);
+  JobResponse getJob(String jobId);
 
   Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
 
@@ -37,5 +39,7 @@ public interface DownloadClient {
   void unsetActiveDownload(String jobId);
 
   String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo);
+
+  Collection<DownloadFile> listFiles(String path);
 
 }

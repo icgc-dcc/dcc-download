@@ -15,10 +15,20 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.utils;
 
-public enum DownloadFileType {
+import org.junit.Test;
 
-  FILE, DIRECTORY;
+public class DfsPathsTest {
+
+  @Test
+  public void testValidatePath() throws Exception {
+    // TODO: verify current
+    DfsPaths.validatePath("/");
+    DfsPaths.validatePath("/release_21");
+    DfsPaths.validatePath("/release_21/Projects");
+    DfsPaths.validatePath("/release_21/Summary");
+    DfsPaths.validatePath("/release_21/Projects/TST-CA");
+  }
 
 }

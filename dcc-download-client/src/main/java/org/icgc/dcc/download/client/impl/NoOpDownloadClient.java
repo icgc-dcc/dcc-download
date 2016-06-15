@@ -17,11 +17,13 @@
  */
 package org.icgc.dcc.download.client.impl;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.client.DownloadClient;
+import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.response.JobResponse;
 
@@ -53,7 +55,12 @@ public class NoOpDownloadClient implements DownloadClient {
   }
 
   @Override
-  public JobResponse getJob(String jobId, Iterable<String> fields) {
+  public JobResponse getJob(String jobId) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Collection<DownloadFile> listFiles(String path) {
     throw new UnsupportedOperationException();
   }
 

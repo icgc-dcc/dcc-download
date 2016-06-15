@@ -26,6 +26,7 @@ import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -111,6 +112,16 @@ public class FileSystemService {
         .filter(donorFileTypeEntry -> donors.contains(donorFileTypeEntry.getKey()))
         .map(donorFileTypeEntry -> donorFileTypeEntry.getValue())
         .collect(toImmutableList());
+  }
+
+  public List<DataTypeFile> getDataTypeFiles(
+      @NonNull String release,
+      @NonNull String project,
+      @NonNull DownloadDataType dataType) {
+    val projectDonors = releaseProjectDonors.get(release);
+    val donors = projectDonors.get(project);
+
+    return getDataTypeFiles(release, donors, Collections.singleton(dataType));
   }
 
   private void validateIntegrity() {

@@ -15,59 +15,20 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.fs;
+package org.icgc.dcc.download.core.model;
 
-import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.util.Collection;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DownloadFile {
 
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.hadoop.fs.FileSystem;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
-import org.icgc.dcc.download.core.model.DownloadFile;
-import org.icgc.dcc.download.server.service.FileSystemService;
-
-import com.google.common.collect.ImmutableList;
-
-@Slf4j
-public class RootView extends AbstractFileSystemView {
-
-  public RootView(@NonNull String rootDir, @NonNull FileSystem fileSystem, @NonNull FileSystemService fsService) {
-    super(rootDir, fileSystem, fsService);
-  }
-
-  /**
-   * Lists releases in the root directory.
-   */
-  public Collection<DownloadFile> listReleases() {
-    val allFiles = HadoopUtils.lsAll(fileSystem, rootPath);
-    log.debug("[/]: {}", allFiles);
-
-    val dfsFilesBuilder = ImmutableList.<DownloadFile> builder();
-    for (val file : allFiles) {
-      val rootFile = convert2DownloadFile(file);
-      dfsFilesBuilder.add(rootFile);
-      if (isCurrentReleaseFile(rootFile)) {
-        dfsFilesBuilder.add(addCurrentLinkFile(rootFile));
-      }
-    }
-
-    val dfsFiles = dfsFilesBuilder.build();
-    log.debug("DFS files: {}", dfsFiles);
-
-    return dfsFiles;
-  }
-
-  private static DownloadFile addCurrentLinkFile(DownloadFile file) {
-    val currentLinkFile = new DownloadFile();
-    currentLinkFile.setDate(file.getDate());
-    currentLinkFile.setName(CURRENT_PATH);
-    currentLinkFile.setType(DIRECTORY);
-
-    return currentLinkFile;
-  }
+  String name;
+  DownloadFileType type;
+  long size;
+  long date;
 
 }

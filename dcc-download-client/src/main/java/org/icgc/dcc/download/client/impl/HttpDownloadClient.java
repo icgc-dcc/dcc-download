@@ -25,6 +25,7 @@ import static org.icgc.dcc.common.core.model.DownloadDataType.CLINICAL;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,6 +45,7 @@ import org.icgc.dcc.common.core.security.DumbX509TrustManager;
 import org.icgc.dcc.download.client.DownloadClient;
 import org.icgc.dcc.download.client.DownloadClientConfig;
 import org.icgc.dcc.download.client.response.HealthResponse;
+import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
@@ -52,6 +54,7 @@ import org.icgc.dcc.download.core.response.JobResponse;
 
 import com.google.common.collect.ImmutableSet;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
@@ -67,6 +70,7 @@ public class HttpDownloadClient implements DownloadClient {
    * Constants.
    */
   public static final String DOWNLOADS_PATH = "/downloads";
+  public static final String LIST_FILES_PATH = "/list";
   public static final String HEALTH_PATH = "/health";
 
   /**
@@ -114,7 +118,7 @@ public class HttpDownloadClient implements DownloadClient {
   }
 
   @Override
-  public JobResponse getJob(@NonNull String jobId, @NonNull Iterable<String> fields) {
+  public JobResponse getJob(@NonNull String jobId) {
     val request = resource.path(DOWNLOADS_PATH).path(jobId).path("info");
 
     return request.get(JobResponse.class);
@@ -140,6 +144,12 @@ public class HttpDownloadClient implements DownloadClient {
         .post(DataTypeSizesResponse.class, body);
 
     return response.getSizes();
+  }
+
+  @Override
+  public Collection<DownloadFile> listFiles(String path) {
+    return resource.path(LIST_FILES_PATH).path(path)
+        .get(new GenericType<Collection<DownloadFile>>() {});
   }
 
   private Set<DownloadDataType> resolveDataTypes(Set<String> donorIds, Set<DownloadDataType> dataTypes) {

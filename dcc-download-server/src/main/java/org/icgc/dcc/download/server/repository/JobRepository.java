@@ -27,6 +27,6 @@ public interface JobRepository extends MongoRepository<Job, String> {
 
   Job findById(String id);
 
-  List<Job> findByCompletionDateLessThanAndStatusNot(Long date, JobStatus status);
+  List<Job> findBySubmissionDateLessThanAndStatusNot(Long date, JobStatus status);
 
 }

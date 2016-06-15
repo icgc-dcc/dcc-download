@@ -17,72 +17,63 @@
  */
 package org.icgc.dcc.download.server.config;
 
-import static com.google.common.collect.Maps.newLinkedHashMap;
+import java.io.File;
 
-import java.util.Map;
+import lombok.val;
 
-import lombok.Data;
-
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.server.config.Properties.JobProperties;
+import org.icgc.dcc.download.server.fs.DownloadFileSystem;
+import org.icgc.dcc.download.server.fs.DownloadFilesReader;
+import org.icgc.dcc.download.server.fs.ReleaseView;
+import org.icgc.dcc.download.server.fs.RootView;
+import org.icgc.dcc.download.server.repository.JobRepository;
+import org.icgc.dcc.download.server.service.ArchiveDownloadService;
+import org.icgc.dcc.download.server.service.FileSystemService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Data
 @Configuration
-public class Properties {
+public class ServiceConfig {
+
+  @Autowired
+  private JobProperties jobProperties;
+  @Autowired
+  private JobRepository jobRepository;
+  @Autowired
+  private FileSystem fileSystem;
 
   @Bean
-  @ConfigurationProperties(prefix = "job")
-  public JobProperties jobProperties() {
-    return new JobProperties();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "download.server")
-  public DownloadServerProperties downloadServerProperties() {
-    return new DownloadServerProperties();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "hadoop")
-  public HadoopProperties hadoopProperties() {
-    return new HadoopProperties();
+  public ArchiveDownloadService archiveDownloadService(FileSystemService fileSystemService) {
+    return new ArchiveDownloadService(getRootPath(), fileSystemService, fileSystem, jobRepository);
   }
 
   @Bean
-  @ConfigurationProperties(prefix = "mail")
-  public MailProperties mailProperties() {
-    return new MailProperties();
+  public DownloadFileSystem downloadFileSystem(FileSystemService fileSystemService) {
+    val rootDir = getRootDir(jobProperties.getInputDir());
+    val rootView = new RootView(rootDir, fileSystem, fileSystemService);
+    val releaseView = new ReleaseView(rootDir, fileSystem, fileSystemService);
+
+    return new DownloadFileSystem(rootView, releaseView);
   }
 
-  @Data
-  public static class JobProperties {
-
-    private String inputDir;
-    private String outputDir;
-
+  @Bean
+  public FileSystemService fileSystemService() {
+    return new FileSystemService(downloadFilesReader());
   }
 
-  @Data
-  public static class DownloadServerProperties {
-
+  private DownloadFilesReader downloadFilesReader() {
+    return new DownloadFilesReader(getRootPath(), fileSystem);
   }
 
-  @Data
-  public static class HadoopProperties {
-
-    private Map<String, String> properties = newLinkedHashMap();
-
+  private Path getRootPath() {
+    return new Path(jobProperties.getInputDir());
   }
 
-  @Data
-  public static class MailProperties {
-
-    private boolean enabled = true;
-    private String serviceUrl;
-    private String portalUrl;
-    private Map<String, String> properties = newLinkedHashMap();
-
+  private static String getRootDir(String inputDir) {
+    return inputDir.startsWith("/") ? inputDir : new File(inputDir).getAbsolutePath();
   }
 
 }

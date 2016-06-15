@@ -17,105 +17,65 @@
  */
 package org.icgc.dcc.download.server.fs;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
-import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 
 import java.util.Collection;
-import java.util.regex.Pattern;
 
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Splitters;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
-import org.icgc.dcc.download.server.model.DownloadFile;
-import org.icgc.dcc.download.server.service.FileSystemService;
-import org.icgc.dcc.download.server.utils.DownloadFileSystems;
+import org.icgc.dcc.download.core.model.DownloadFile;
+import org.icgc.dcc.download.server.utils.DfsPaths;
 
 @Slf4j
-public class DownloadFileSystem extends AbstractDownloadFileSystem {
+@RequiredArgsConstructor
+public class DownloadFileSystem {
 
-  private static final Pattern RELEASE_PATTERN = Pattern.compile(RELEASE_DIR_REGEX + "|current");
-  private static final Pattern RELEASE_DIR_PATTERN = Pattern.compile("Projects|Summary");
-  private static final Pattern PROJECT_NAME_PATTERN = Pattern.compile("\\w{2,4}-\\w{2}");
-
+  @NonNull
   private final RootView rootView;
-  private final ViewController viewController;
-
-  public DownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
-      @NonNull FileSystemService fsService, @NonNull RootView rootView, ViewController viewController) {
-    super(rootDir, fileSystem, fsService);
-    this.rootView = rootView;
-    this.viewController = viewController;
-  }
+  @NonNull
+  private final ReleaseView releaseView;
 
   public Collection<DownloadFile> listFiles(@NonNull String path) {
     log.debug("Listing files for path '{}'...", path);
-    verifyPath(path);
+    DfsPaths.validatePath(path);
 
-    val fsPath = toFsPath(path);
-    log.debug("Listing files for real path '{}'...", fsPath);
-
-    val files = HadoopUtils.lsAll(fileSystem, fsPath);
-    log.debug("{}: {}", path, files);
-
-    if (DownloadFileSystems.isReleaseDir(files)) {
-      // project
-    } else {
+    // "/"
+    if ("/".equals(path)) {
       return rootView.listReleases();
     }
 
-    return viewController.listFiles(path);
-  }
-
-  private Path toFsPath(String path) {
-    val relativePath = relativize(path);
-
-    return EMPTY_STRING.equals(relativePath) ? rootPath : new Path(rootPath, relativePath);
-  }
-
-  private static String relativize(String path) {
-    // TODO: user toDfs
-    return path.replaceFirst("^/", EMPTY_STRING);
-  }
-
-  static void verifyPath(String path) {
-    if ("/".equals(path)) {
-      return;
-    }
-
     val pathParts = Splitters.PATH.splitToList(path);
-    checkArgument(pathParts.size() < 5, "Invalid path '%s'", path);
-    for (int i = 0; i < pathParts.size(); i++) {
-      verifyPathPart(i, pathParts.get(i));
-    }
-  }
-
-  private static void verifyPathPart(int i, String part) {
-    switch (i) {
-    case 0:
-      checkArgument(part.isEmpty());
-      break;
-    case 1:
-      checkArgument(RELEASE_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
-          RELEASE_PATTERN);
-      break;
-    case 2:
-      checkArgument(RELEASE_DIR_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
-          RELEASE_DIR_PATTERN);
-      break;
-    case 3:
-      checkArgument(PROJECT_NAME_PATTERN.matcher(part).matches(), "'%s' doesn't match release pattern %s", part,
-          PROJECT_NAME_PATTERN);
-      break;
-    default:
-      throw new IllegalArgumentException(format("Unexpected argument: %s at position %s", part, i));
+    val releaseName = pathParts.get(1);
+    // "/release_21"
+    if (pathParts.size() == 2) {
+      return releaseView.listRelease(releaseName);
     }
 
+    // "/release_21/{Projects|Summary}"
+    if (pathParts.size() == 3) {
+      val dir = pathParts.get(2);
+      switch (dir) {
+      case "Projects":
+        return releaseView.listReleaseProjects(releaseName);
+      case "Summary":
+        return releaseView.listReleaseSummary(releaseName);
+      default:
+        throw new IllegalArgumentException(format("Malformed path '%s'", path));
+      }
+    }
+
+    // /release_21/Projects/TST1-CA
+    if (pathParts.size() == 4) {
+      val project = pathParts.get(3);
+
+      return releaseView.listProject(releaseName, project);
+    }
+
+    throw new IllegalArgumentException(format("Malformed path '%s'", path));
   }
 
 }

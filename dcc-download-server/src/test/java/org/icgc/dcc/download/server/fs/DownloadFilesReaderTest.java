@@ -41,7 +41,7 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
   @Override
   public void setUp() {
     super.setUp();
-    downloadFilesReader = new DownloadFilesReader(workingDir.getAbsolutePath(), fileSystem);
+    downloadFilesReader = new DownloadFilesReader(new Path(workingDir.getAbsolutePath()), fileSystem);
   }
 
   @Test
@@ -65,7 +65,7 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
 
   @Test
   public void testGetReleaseTimes() throws Exception {
-    downloadFilesReader = new DownloadFilesReader(INPUT_TEST_FIXTURES_DIR, fileSystem);
+    downloadFilesReader = new DownloadFilesReader(new Path(INPUT_TEST_FIXTURES_DIR), fileSystem);
     val releaseTimes = downloadFilesReader.getReleaseTimes();
     assertThat(releaseTimes).hasSize(1);
     assertThat(releaseTimes.get("release_21")).isEqualTo(1464725664000L);

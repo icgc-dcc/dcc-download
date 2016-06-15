@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.endpoint;
 
 import static java.lang.String.format;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -25,6 +26,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import java.io.IOException;
 import java.util.Optional;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import lombok.NonNull;
@@ -32,10 +34,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
 import org.icgc.dcc.download.core.response.JobResponse;
+import org.icgc.dcc.download.server.io.ArchiveStreamer;
 import org.icgc.dcc.download.server.service.ArchiveDownloadService;
 import org.icgc.dcc.download.server.utils.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +47,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.HandlerMapping;
 
 import com.google.common.io.Files;
 import com.google.common.net.MediaType;
@@ -71,7 +76,46 @@ public class DownloadController {
   public void download(@PathVariable("jobId") String jobId, HttpServletResponse response) throws IOException {
     val output = response.getOutputStream();
     val streamerOpt = downloadService.getArchiveStreamer(jobId, output);
-    checkJobExistence(jobId, streamerOpt);
+    streamArchive(Optional.of(jobId), streamerOpt, response);
+  }
+
+  @RequestMapping(value = "/{jobId:.+}/{dataType}", method = GET)
+  public void downloadDataType(
+      @PathVariable("jobId") String jobId,
+      @PathVariable("dataType") String dataType,
+      HttpServletResponse response) throws IOException {
+    val downloadDataType = DownloadDataType.valueOf(dataType.toUpperCase());
+    val output = response.getOutputStream();
+    val streamerOpt = downloadService.getArchiveStreamer(jobId, output, downloadDataType);
+    streamArchive(Optional.of(jobId), streamerOpt, response);
+  }
+
+  @RequestMapping(value = "/static/**", method = GET)
+  public void staticDownload(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    val requestPath = (String) request.getAttribute(
+        HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+    val filePath = getFsPath(requestPath);
+
+    val output = response.getOutputStream();
+    val streamerOpt = downloadService.getStaticArchiveStreamer(filePath, output);
+    streamArchive(Optional.empty(), streamerOpt, response);
+  }
+
+  private static String getFsPath(String requestUrl) {
+    val fsPath = requestUrl
+        .replaceFirst("/downloads", EMPTY_STRING)
+        .replaceFirst("/static", EMPTY_STRING)
+        .replaceFirst("/$", EMPTY_STRING);
+
+    return fsPath.isEmpty() ? "/" : fsPath;
+  }
+
+  private static void streamArchive(Optional<String> jobId, Optional<ArchiveStreamer> streamerOpt,
+      HttpServletResponse response)
+      throws IOException {
+    if (jobId.isPresent()) {
+      checkJobExistence(jobId.get(), streamerOpt);
+    }
 
     val streamer = streamerOpt.get();
     val filename = streamer.getName();

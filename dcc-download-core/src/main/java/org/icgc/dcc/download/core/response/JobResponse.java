@@ -17,10 +17,13 @@
  */
 package org.icgc.dcc.download.core.response;
 
+import java.util.Set;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 
 @Data
@@ -28,7 +31,10 @@ import org.icgc.dcc.download.core.model.JobUiInfo;
 @AllArgsConstructor
 public class JobResponse {
 
+  private String id;
   private JobUiInfo jobInfo;
-  private Long fileSize;
+  private Set<DownloadDataType> dataType;
+  private long fileSize;
+  private long submissionTime;
 
 }

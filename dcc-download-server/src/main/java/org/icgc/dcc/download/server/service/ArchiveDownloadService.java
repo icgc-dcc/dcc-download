@@ -18,10 +18,13 @@
 package org.icgc.dcc.download.server.service;
 
 import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.immutableEntry;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.Separators.DASH;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
 import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
@@ -30,6 +33,7 @@ import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR
 
 import java.io.OutputStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,15 +56,15 @@ import org.icgc.dcc.download.server.io.TarStreamer;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.model.Job;
 import org.icgc.dcc.download.server.repository.JobRepository;
-import org.springframework.stereotype.Service;
+import org.icgc.dcc.download.server.utils.DfsPaths;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 @Slf4j
-@Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ArchiveDownloadService {
 
   @NonNull
@@ -108,7 +112,13 @@ public class ArchiveDownloadService {
       return Optional.empty();
     }
 
-    return Optional.of(new JobResponse(job.getJobInfo(), job.getFileSizeBytes()));
+    return Optional.of(new JobResponse(
+        jobId,
+        job.getJobInfo(),
+        job.getDataTypes(),
+        job.getFileSizeBytes(),
+        job.getSubmissionDate())
+        );
   }
 
   public Optional<ArchiveStreamer> getArchiveStreamer(@NonNull String jobId, @NonNull OutputStream output) {
@@ -124,7 +134,42 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
   }
 
-  public ArchiveStreamer getArchiveStreamer(
+  public Optional<ArchiveStreamer> getArchiveStreamer(
+      @NonNull String jobId,
+      @NonNull OutputStream output,
+      @NonNull DownloadDataType dataType) {
+    val job = jobRepository.findById(jobId);
+    if (job == null || job.getStatus() == EXPIRED) {
+      return Optional.empty();
+    }
+
+    val dataTypes = job.getDataTypes();
+    // TODO: check what is returned to the client
+    checkState(dataTypes.contains(dataType), "Download ID '%s' does not have data type '%s' for download.", jobId,
+        dataType);
+
+    val release = fileSystemService.getCurrentRelease();
+    val downloadFiles = filterDataFiles(job.getDataFiles(), dataType);
+
+    return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
+  }
+
+  public Optional<ArchiveStreamer> getStaticArchiveStreamer(@NonNull String path, @NonNull OutputStream output) {
+    DfsPaths.validatePath(path);
+    String release = DfsPaths.getRelease(path);
+    release = release.equals("current") ? fileSystemService.getCurrentRelease() : release;
+    val project = DfsPaths.getProject(path);
+    val downloadDataType = DfsPaths.getDownloadDataType(path);
+    val downloadFiles = fileSystemService.getDataTypeFiles(release, project, downloadDataType);
+
+    if (downloadFiles.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(getArchiveStreamer(release, downloadFiles, Collections.singleton(downloadDataType), output));
+  }
+
+  private ArchiveStreamer getArchiveStreamer(
       @NonNull String release,
       @NonNull List<DataTypeFile> downloadFiles,
       @NonNull Collection<DownloadDataType> dataTypes,
@@ -140,10 +185,23 @@ public class ArchiveDownloadService {
 
     // Convert OutputStream to InputStream http://blog.ostermiller.org/convert-java-outputstream-inputstream
     if (headers.size() == 1) {
+      log.info("Creating gzip streamer for data types {}", dataTypes);
       return getGzipStreamer(downloadFiles, fileSizes, headers, output);
     } else {
+      log.info("Creating tar streamer for data types {}", dataTypes);
       return getTarStreamer(downloadFiles, fileSizes, headers, output);
     }
+  }
+
+  private static List<DataTypeFile> filterDataFiles(List<DataTypeFile> dataFiles, DownloadDataType dataType) {
+    return dataFiles.stream()
+        .filter(dataFile -> {
+          DownloadDataType downloadDataType = getDownloadDataType(dataFile);
+
+          return (dataType == DONOR && downloadDataType.isClinicalSubtype()) || downloadDataType == dataType;
+        })
+        .collect(toImmutableList());
+
   }
 
   private ArchiveStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
@@ -165,7 +223,7 @@ public class ArchiveDownloadService {
   }
 
   private String getHeaderPath(String release, DownloadDataType dataType) {
-    val headerPath = PATH.join(rootPath, release, HEADERS_DIR, dataType.getId() + ".tsv");
+    val headerPath = PATH.join(rootPath, release, HEADERS_DIR, dataType.getId() + ".tsv.gz");
 
     return headerPath;
   }

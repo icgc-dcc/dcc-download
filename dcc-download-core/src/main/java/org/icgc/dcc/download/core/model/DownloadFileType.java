@@ -15,23 +15,14 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.fs;
+package org.icgc.dcc.download.core.model;
 
-import java.util.Collection;
+public enum DownloadFileType {
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+  FILE, DIRECTORY;
 
-import org.icgc.dcc.download.server.model.DownloadFile;
-
-@RequiredArgsConstructor
-public class ViewController {
-
-  private final RootView rootView;
-  private final ReleaseView releaseView;
-
-  public Collection<DownloadFile> listFiles(@NonNull String path) {
-    return null;
+  public String getSymbol() {
+    return this.name().substring(0, 1).toLowerCase();
   }
 
 }

@@ -18,11 +18,12 @@
 package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.regex.Pattern.compile;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.Splitters.PATH;
-import static org.icgc.dcc.download.server.fs.AbstractDownloadFileSystem.RELEASE_DIR_PREFIX;
+import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadFileSystems.isReleaseDir;
 import static org.icgc.dcc.download.server.utils.DownloadFileSystems.toDfsPath;
@@ -46,6 +47,7 @@ import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.utils.DownloadFileSystems;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -59,7 +61,7 @@ import com.google.common.collect.Table;
 public class DownloadFilesReader {
 
   @NonNull
-  private final String rootDir;
+  private final Path rootDir;
   @NonNull
   private final FileSystem fileSystem;
 
@@ -80,7 +82,7 @@ public class DownloadFilesReader {
 
   public Map<String, Long> getReleaseTimes() {
     val releaseTimes = ImmutableMap.<String, Long> builder();
-    val releaseDirs = HadoopUtils.lsDir(fileSystem, new Path(rootDir), compile(".*" + RELEASE_DIR_PREFIX + ".*"));
+    val releaseDirs = HadoopUtils.lsDir(fileSystem, rootDir, compile(".*" + RELEASE_DIR_PREFIX + ".*"));
     log.debug("Resolving creation time for release dirs: {}", releaseDirs);
     for (val releaseDir : releaseDirs) {
       val status = getFileStatus(fileSystem, releaseDir);
@@ -109,18 +111,25 @@ public class DownloadFilesReader {
     checkState(isReleaseDir(releaseDirs), "'%s' is not the release dir.");
     val allFiles = HadoopUtils.lsRecursive(fileSystem, new Path(releasePath, DATA_DIR));
     for (val file : allFiles) {
-      addFile(fileSystem, releaseTable, file);
+      if (!file.contains("_SUCCESS")) {
+        addFile(fileSystem, releaseTable, file);
+      }
     }
 
     return releaseTable;
   }
 
   private Map<String, Table<String, DownloadDataType, DataTypeFile>> createReleaseFileTypes() {
+    log.info("Creating donor - download data type - data type file tables...");
     val releaseFileTypes = ImmutableMap.<String, Table<String, DownloadDataType, DataTypeFile>> builder();
-    val releases = HadoopUtils.lsDir(fileSystem, new Path(rootDir));
+    val releases = HadoopUtils.lsDir(fileSystem, rootDir);
     for (val release : releases) {
+      val timer = Stopwatch.createStarted();
+      checkState(release.getName().matches("release_\\d+"));
       val releaseName = toDfsPath(release).replace("/", EMPTY_STRING);
+      log.info("Creating donor - download data type - data type file table for release '{}'", releaseName);
       releaseFileTypes.put(releaseName, createReleaseCache(release));
+      log.info("Created data type files cache for release '{}' in {}", releaseName, timer.elapsed(SECONDS));
     }
 
     return releaseFileTypes.build();
@@ -155,9 +164,9 @@ public class DownloadFilesReader {
     log.debug("DFS path: '{}'", dfsPath);
 
     val pathParts = PATH.splitToList(dfsPath);
-    checkState(pathParts.size() == 5, "Failed to resolve project from path: '%s'", dfsPath);
+    checkState(pathParts.size() == 6, "Failed to resolve project from path '%s'. Parts: '%s'", dfsPath, pathParts);
 
-    val projectId = pathParts.get(2);
+    val projectId = pathParts.get(3);
     log.debug("Resolved project '{}' from path '{}'", projectId, dfsPath);
 
     return projectId;

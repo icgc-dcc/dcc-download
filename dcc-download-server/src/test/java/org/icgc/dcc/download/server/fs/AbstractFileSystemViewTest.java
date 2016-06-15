@@ -34,16 +34,16 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.common.test.file.FileTests;
-import org.icgc.dcc.download.server.model.DownloadFile;
-import org.icgc.dcc.download.server.model.DownloadFileType;
+import org.icgc.dcc.download.core.model.DownloadFile;
+import org.icgc.dcc.download.core.model.DownloadFileType;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Test;
 
 @Slf4j
-public class AbstractDownloadFileSystemTest extends AbstractTest {
+public class AbstractFileSystemViewTest extends AbstractTest {
 
-  AbstractDownloadFileSystem dfs;
+  AbstractFileSystemView dfs;
   FileSystem fileSystem;
 
   @Override
@@ -56,7 +56,7 @@ public class AbstractDownloadFileSystemTest extends AbstractTest {
 
   @Test
   public void testResolveCurrentRelease() throws Exception {
-    val currentRelease = AbstractDownloadFileSystem.resolveCurrentRelease(workingDir.getAbsolutePath(), fileSystem);
+    val currentRelease = AbstractFileSystemView.resolveCurrentRelease(workingDir.getAbsolutePath(), fileSystem);
     assertThat(currentRelease).isEqualTo("release_21");
   }
 
@@ -127,7 +127,7 @@ public class AbstractDownloadFileSystemTest extends AbstractTest {
     new File(workingDir, "release_20").mkdir();
   }
 
-  private static class TestDownloadFileSystem extends AbstractDownloadFileSystem {
+  private static class TestDownloadFileSystem extends AbstractFileSystemView {
 
     public TestDownloadFileSystem(String rootDir, FileSystem fileSystem) {
       super(rootDir, fileSystem, mock(FileSystemService.class));

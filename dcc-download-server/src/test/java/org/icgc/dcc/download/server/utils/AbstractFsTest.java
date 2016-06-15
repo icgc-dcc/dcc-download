@@ -24,8 +24,8 @@ import java.util.Collection;
 import lombok.NonNull;
 import lombok.val;
 
-import org.icgc.dcc.download.server.model.DownloadFile;
-import org.icgc.dcc.download.server.model.DownloadFileType;
+import org.icgc.dcc.download.core.model.DownloadFile;
+import org.icgc.dcc.download.core.model.DownloadFileType;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
 

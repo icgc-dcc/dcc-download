@@ -24,8 +24,8 @@ import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.checkExistence;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
-import static org.icgc.dcc.download.server.model.DownloadFileType.DIRECTORY;
-import static org.icgc.dcc.download.server.model.DownloadFileType.FILE;
+import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
+import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
 import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -34,19 +34,19 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Separators;
-import org.icgc.dcc.download.server.model.DownloadFile;
-import org.icgc.dcc.download.server.model.DownloadFileType;
+import org.icgc.dcc.download.core.model.DownloadFile;
+import org.icgc.dcc.download.core.model.DownloadFileType;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.collect.Ordering;
 
 @Slf4j
-public abstract class AbstractDownloadFileSystem {
+public abstract class AbstractFileSystemView {
 
   public static final String RELEASE_DIR_PREFIX = "release_";
+  public static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + "\\d+";
 
-  protected static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + "\\d+";
   protected static final String CURRENT_RELEASE_NAME = "current";
   protected static final String CURRENT_PATH = "/" + CURRENT_RELEASE_NAME;
 
@@ -56,12 +56,12 @@ public abstract class AbstractDownloadFileSystem {
   protected final Path rootPath;
   protected final FileSystemService fsService;
 
-  public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull FileSystem fileSystem,
+  public AbstractFileSystemView(@NonNull String rootDir, @NonNull FileSystem fileSystem,
       @NonNull FileSystemService fsService) {
     this(rootDir, resolveCurrentRelease(rootDir, fileSystem), fileSystem, fsService);
   }
 
-  public AbstractDownloadFileSystem(@NonNull String rootDir, @NonNull String currentRelease,
+  public AbstractFileSystemView(@NonNull String rootDir, @NonNull String currentRelease,
       @NonNull FileSystem fileSystem, @NonNull FileSystemService fsService) {
     verifyRootPath(rootDir, fileSystem);
     verifyCurrentRelease(currentRelease);
