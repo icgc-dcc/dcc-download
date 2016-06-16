@@ -26,6 +26,7 @@ import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 import static org.icgc.dcc.download.server.utils.Releases.getActualReleaseName;
+import static org.icgc.dcc.download.server.utils.Responses.throwPathNotFoundException;
 
 import java.util.List;
 import java.util.Map.Entry;
@@ -73,7 +74,7 @@ public class ReleaseView extends AbstractFileSystemView {
 
     val projects = fsService.getReleaseProjects(actualReleaseName);
     if (!projects.isPresent()) {
-      throwNotFoundException(format("Release '%s' doesn't exist.", actualReleaseName));
+      throwPathNotFoundException(format("Release '%s' doesn't exist.", actualReleaseName));
     }
     val releaseDate = getReleaseDate(actualReleaseName);
 
@@ -173,7 +174,7 @@ public class ReleaseView extends AbstractFileSystemView {
 
   private void ensurePathExistence(Path hdfsPath) {
     if (!HadoopUtils.exists(fileSystem, hdfsPath)) {
-      throwNotFoundException(format("File not exists: '%s'", hdfsPath));
+      throwPathNotFoundException(format("File not exists: '%s'", hdfsPath));
     }
   }
 

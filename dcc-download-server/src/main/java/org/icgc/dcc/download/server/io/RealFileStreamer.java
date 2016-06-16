@@ -15,45 +15,48 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.fs;
+package org.icgc.dcc.download.server.io;
 
-import static com.google.common.collect.ImmutableList.of;
-import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import java.io.IOException;
+import java.io.OutputStream;
 
-import java.io.File;
-
+import lombok.Cleanup;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.val;
 
-import org.icgc.dcc.download.server.service.FileSystemService;
-import org.icgc.dcc.download.server.utils.AbstractFsTest;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
-@RunWith(MockitoJUnitRunner.class)
-public class RootViewTest extends AbstractFsTest {
+import com.google.common.io.ByteStreams;
 
-  @Mock
-  FileSystemService fsService;
-  RootView rootView;
+@RequiredArgsConstructor
+public class RealFileStreamer implements FileStreamer {
 
-  @Before
+  @NonNull
+  private final Path file;
+  @NonNull
+  private final FileSystem fileSystem;
+  @NonNull
+  private final OutputStream output;
+
   @Override
-  public void setUp() {
-    super.setUp();
-    val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
-    this.rootView = new RootView(rootDir, getDefaultLocalFileSystem(), fsService);
+  public void close() throws IOException {
+    output.close();
   }
 
-  @Test
-  public void testListReleases() throws Exception {
-    val releases = rootView.listReleases();
-    verifyDownloadFiles(releases, of(
-        newFile("/README.txt", 18L, 1466021158000L),
-        newDir("/current", 1464896955000L),
-        newDir("/release_21", 1464896955000L)));
+  @Override
+  @SneakyThrows
+  public void stream() {
+    @Cleanup
+    val input = fileSystem.open(file);
+    ByteStreams.copy(input, output);
+  }
+
+  @Override
+  public String getName() {
+    return file.getName();
   }
 
 }

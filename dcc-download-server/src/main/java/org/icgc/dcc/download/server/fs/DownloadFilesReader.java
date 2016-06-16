@@ -164,6 +164,7 @@ public class DownloadFilesReader {
     log.debug("DFS path: '{}'", dfsPath);
 
     val pathParts = PATH.splitToList(dfsPath);
+    // Path should look like /release_21/data/TST1-CA/DO1/donor
     checkState(pathParts.size() == 6, "Failed to resolve project from path '%s'. Parts: '%s'", dfsPath, pathParts);
 
     val projectId = pathParts.get(3);

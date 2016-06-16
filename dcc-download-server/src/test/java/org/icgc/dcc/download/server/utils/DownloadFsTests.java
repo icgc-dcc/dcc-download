@@ -38,13 +38,13 @@ public final class DownloadFsTests {
   public static Table<String, DownloadDataType, DataTypeFile> createDonorFileTypesTable() {
     val releaseTable = HashBasedTable.<String, DownloadDataType, DataTypeFile> create();
     releaseTable.put("DO001", SAMPLE,
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
+        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
     releaseTable.put("DO001", DONOR,
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
+        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
     releaseTable.put("DO002", DONOR,
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
+        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
     releaseTable.put("DO003", DONOR,
-        new DataTypeFile("/somepath/release_21/TST2-CA/DO003/donor", of("part-00000.gz"), 4));
+        new DataTypeFile("/somepath/release_21/data/TST2-CA/DO003/donor", of("part-00000.gz"), 4));
 
     return releaseTable;
   }

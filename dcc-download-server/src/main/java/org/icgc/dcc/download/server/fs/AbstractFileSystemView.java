@@ -27,6 +27,7 @@ import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
 import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
 import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
+import static org.icgc.dcc.download.server.utils.Responses.throwPathNotFoundException;
 import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,6 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.util.Separators;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.DownloadFileType;
-import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.DfsPaths;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
@@ -151,7 +151,7 @@ public abstract class AbstractFileSystemView {
   protected Long getReleaseDate(String release) {
     val releaseDateOpt = fsService.getReleaseDate(release);
     if (!releaseDateOpt.isPresent()) {
-      throwNotFoundException(format("Release '%s' doesn't exist.", release));
+      throwPathNotFoundException(format("Release '%s' doesn't exist.", release));
     }
     return releaseDateOpt.get();
   }
@@ -186,11 +186,6 @@ public abstract class AbstractFileSystemView {
   private static void verifyCurrentRelease(String currentLink) {
     checkArgument(currentLink.matches(RELEASE_DIR_REGEX), "Current release link('%s') is invalid.",
         currentLink);
-  }
-
-  protected static void throwNotFoundException(String warnMessage) {
-    log.warn(warnMessage);
-    throw new NotFoundException("Malformed path");
   }
 
 }

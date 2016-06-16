@@ -80,7 +80,7 @@ public class GzipStreamerTest extends AbstractTest {
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
-      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("donor.gz");
+      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("donor.tsv.gz");
       assertThat(gzipStreamer.getNextEntryLength()).isEqualTo(706L);
 
       gzipStreamer.streamEntry();
@@ -101,13 +101,13 @@ public class GzipStreamerTest extends AbstractTest {
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
-      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("donor.gz");
+      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("donor.tsv.gz");
       assertThat(gzipStreamer.getNextEntryLength()).isEqualTo(706L);
 
       gzipStreamer.streamEntry();
 
       assertThat(gzipStreamer.hasNext()).isTrue();
-      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("sample.gz");
+      assertThat(gzipStreamer.getNextEntryName()).isEqualTo("sample.tsv.gz");
       assertThat(gzipStreamer.getNextEntryLength()).isEqualTo(314L);
 
       gzipStreamer.streamEntry();

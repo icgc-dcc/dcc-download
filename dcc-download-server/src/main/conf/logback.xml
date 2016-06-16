@@ -33,8 +33,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <File>${log.dir}/${log.name}.log</File>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <FileNamePattern>${log.name}.%d{yyyy-MM-dd}.%d{HHmmss,aux}.log</FileNamePattern>
-      <timeBasedFileNamingAndTriggeringPolicy class="org.icgc.dcc.release.client.util.CustomStartupTriggeringPolicy"></timeBasedFileNamingAndTriggeringPolicy>
+      <FileNamePattern>${log.dir}/${log.name}.%d{yyyy-MM-dd}.%d{HHmmss,aux}.log</FileNamePattern>
+      <maxHistory>30</maxHistory>
     </rollingPolicy>
     <encoder>
       <pattern>${pattern}</pattern>
@@ -44,8 +44,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
   <appender name="DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <File>${log.dir}/${log.debug.name}.log</File>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <FileNamePattern>${log.debug.name}.%d{yyyy-MM-dd}.%d{HHmmss,aux}.log</FileNamePattern>
-      <timeBasedFileNamingAndTriggeringPolicy class="org.icgc.dcc.release.client.util.CustomStartupTriggeringPolicy"></timeBasedFileNamingAndTriggeringPolicy>
+      <FileNamePattern>${log.dir}/${log.debug.name}.%d{yyyy-MM-dd}.%d{HHmmss,aux}.log</FileNamePattern>
+      <maxHistory>30</maxHistory>
     </rollingPolicy>
     <encoder>
       <pattern>${pattern}</pattern>

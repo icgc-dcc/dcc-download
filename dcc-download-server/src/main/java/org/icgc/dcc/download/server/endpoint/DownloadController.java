@@ -40,7 +40,7 @@ import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
 import org.icgc.dcc.download.core.response.JobResponse;
-import org.icgc.dcc.download.server.io.ArchiveStreamer;
+import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.service.ArchiveDownloadService;
 import org.icgc.dcc.download.server.utils.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,6 +94,7 @@ public class DownloadController {
   public void staticDownload(HttpServletRequest request, HttpServletResponse response) throws IOException {
     val requestPath = getRequestPath(request);
     val filePath = getFsPath(requestPath);
+    log.info("Getting download archive for path '{}'", filePath);
 
     val output = response.getOutputStream();
     val streamerOpt = downloadService.getStaticArchiveStreamer(filePath, output);
@@ -140,6 +141,9 @@ public class DownloadController {
       return MediaType.GZIP.toString();
     case "tar":
       return MediaType.TAR.toString();
+    case "txt":
+      MediaType.PLAIN_TEXT_UTF_8.toString();
+      return null;
     default:
       log.error("Failed to resolve Mime-Type from file name '{}'", filename);
       throw new BadRequestException("Invalid request");
@@ -161,11 +165,15 @@ public class DownloadController {
     return fsPath.isEmpty() ? "/" : fsPath;
   }
 
-  private static void streamArchive(Optional<String> jobId, Optional<ArchiveStreamer> streamerOpt,
+  private static void streamArchive(Optional<String> jobId, Optional<FileStreamer> streamerOpt,
       HttpServletResponse response)
       throws IOException {
     if (jobId.isPresent()) {
       checkJobExistence(jobId.get(), streamerOpt);
+    }
+
+    if (!streamerOpt.isPresent()) {
+      throw new NotFoundException("The file not found");
     }
 
     val streamer = streamerOpt.get();

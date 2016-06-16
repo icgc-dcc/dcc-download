@@ -41,19 +41,19 @@ public abstract class AbstractFsTest extends AbstractTest {
     this.rootDir = workingDir.getAbsolutePath();
   }
 
-  protected static DownloadFile newDir(String name) {
+  public static DownloadFile newDir(String name) {
     return new DownloadFile(name, DownloadFileType.DIRECTORY, 0, 0);
   }
 
-  protected static DownloadFile newDir(String name, long creationDate) {
+  public static DownloadFile newDir(String name, long creationDate) {
     return newDir(name, 0, creationDate);
   }
 
-  protected static DownloadFile newDir(String name, long size, long creationDate) {
+  public static DownloadFile newDir(String name, long size, long creationDate) {
     return new DownloadFile(name, DownloadFileType.DIRECTORY, size, creationDate);
   }
 
-  protected static DownloadFile newFile(String name, long size, long creationDate) {
+  public static DownloadFile newFile(String name, long size, long creationDate) {
     return new DownloadFile(name, DownloadFileType.FILE, size, creationDate);
   }
 

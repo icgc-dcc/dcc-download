@@ -20,6 +20,7 @@ package org.icgc.dcc.download.server.service;
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.immutableEntry;
+import static java.lang.String.format;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.Separators.DASH;
@@ -30,6 +31,7 @@ import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
 import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
 import static org.icgc.dcc.download.server.utils.DataTypeFiles.getDownloadDataType;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 
 import java.io.OutputStream;
 import java.util.Collection;
@@ -37,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import lombok.NonNull;
@@ -48,15 +51,18 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.JobResponse;
-import org.icgc.dcc.download.server.io.ArchiveStreamer;
+import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.io.GzipStreamer;
+import org.icgc.dcc.download.server.io.RealFileStreamer;
 import org.icgc.dcc.download.server.io.TarStreamer;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.model.Job;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.icgc.dcc.download.server.utils.DfsPaths;
+import org.icgc.dcc.download.server.utils.Responses;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.ImmutableMap;
@@ -121,7 +127,7 @@ public class ArchiveDownloadService {
         );
   }
 
-  public Optional<ArchiveStreamer> getArchiveStreamer(@NonNull String jobId, @NonNull OutputStream output) {
+  public Optional<FileStreamer> getArchiveStreamer(@NonNull String jobId, @NonNull OutputStream output) {
     val job = jobRepository.findById(jobId);
     if (job == null || job.getStatus() == EXPIRED) {
       return Optional.empty();
@@ -134,7 +140,7 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
   }
 
-  public Optional<ArchiveStreamer> getArchiveStreamer(
+  public Optional<FileStreamer> getArchiveStreamer(
       @NonNull String jobId,
       @NonNull OutputStream output,
       @NonNull DownloadDataType dataType) {
@@ -154,13 +160,20 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
   }
 
-  public Optional<ArchiveStreamer> getStaticArchiveStreamer(@NonNull String path, @NonNull OutputStream output) {
+  public Optional<FileStreamer> getStaticArchiveStreamer(@NonNull String path, @NonNull OutputStream output) {
     DfsPaths.validatePath(path);
+    if (DfsPaths.isRealEntity(path)) {
+      log.info("'{}' represents a real file...", path);
+      return gerRealFileStreamer(path, output);
+    }
+
+    log.info("'{}' is a synthetic file", path);
     String release = DfsPaths.getRelease(path);
     release = release.equals("current") ? fileSystemService.getCurrentRelease() : release;
-    val project = DfsPaths.getProject(path);
+    val projects = getProject(DfsPaths.getProject(path), release);
+    log.info("Getting data files for projects: {}", projects);
     val downloadDataType = DfsPaths.getDownloadDataType(path);
-    val downloadFiles = fileSystemService.getDataTypeFiles(release, project, downloadDataType);
+    val downloadFiles = fileSystemService.getDataTypeFiles(release, projects, downloadDataType);
 
     if (downloadFiles.isEmpty()) {
       return Optional.empty();
@@ -169,7 +182,39 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, Collections.singleton(downloadDataType), output));
   }
 
-  private ArchiveStreamer getArchiveStreamer(
+  private Set<String> getProject(Optional<String> project, String release) {
+    if (project.isPresent()) {
+      Collections.singleton(project.get());
+    }
+
+    Optional<List<String>> projectsOpt = fileSystemService.getReleaseProjects(release);
+    if (!projectsOpt.isPresent()) {
+      Responses.throwPathNotFoundException(format("Failed to resolve projects for release '%s'", release));
+    }
+
+    return ImmutableSet.copyOf(projectsOpt.get());
+  }
+
+  private Optional<FileStreamer> gerRealFileStreamer(String path, OutputStream output) {
+    val filePath = new Path(rootPath, path
+        // TODO: do this properly
+        .replaceFirst("current", fileSystemService.getCurrentRelease())
+        // TODO: do this properly
+        .replaceFirst("Summary", SUMMARY_FILES)
+        .replaceFirst("^/", EMPTY_STRING));
+    log.info("Resolved download path '{}' to actual path '{}'", path, filePath);
+    if (!HadoopUtils.exists(fileSystem, filePath)) {
+      log.warn("Download path '{}' doesn't exist", filePath);
+
+      return Optional.empty();
+    }
+
+    log.info("Creating file streamer for '{}'", filePath);
+
+    return Optional.of(new RealFileStreamer(filePath, fileSystem, output));
+  }
+
+  private FileStreamer getArchiveStreamer(
       @NonNull String release,
       @NonNull List<DataTypeFile> downloadFiles,
       @NonNull Collection<DownloadDataType> dataTypes,
@@ -204,7 +249,7 @@ public class ArchiveDownloadService {
 
   }
 
-  private ArchiveStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
+  private FileStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
       Map<DownloadDataType, String> headers, OutputStream output) {
     val tarOut = createTarOutputStream(output);
     val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut);

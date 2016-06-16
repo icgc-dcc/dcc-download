@@ -44,7 +44,7 @@ import org.icgc.dcc.download.server.utils.HadoopUtils2;
 import com.google.common.io.ByteStreams;
 
 @Slf4j
-public class GzipStreamer implements ArchiveStreamer {
+public class GzipStreamer implements FileStreamer {
 
   /**
    * Dependencies.

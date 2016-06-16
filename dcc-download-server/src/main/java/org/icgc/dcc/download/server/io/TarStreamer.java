@@ -33,7 +33,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 
 @Slf4j
 @RequiredArgsConstructor
-public class TarStreamer implements ArchiveStreamer {
+public class TarStreamer implements FileStreamer {
 
   /**
    * Dependencies.

@@ -19,7 +19,7 @@ package org.icgc.dcc.download.server.io;
 
 import java.io.Closeable;
 
-public interface ArchiveStreamer extends Closeable {
+public interface FileStreamer extends Closeable {
 
   void stream();
 

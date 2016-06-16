@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import lombok.Getter;
 import lombok.NonNull;
@@ -117,16 +118,15 @@ public class FileSystemService {
         .flatMap(dataType -> donorFileTypes.column(dataType).entrySet().stream())
         .filter(donorFileTypeEntry -> donors.contains(donorFileTypeEntry.getKey()))
         .map(donorFileTypeEntry -> donorFileTypeEntry.getValue())
-        .sorted()
         .collect(toImmutableList());
   }
 
   public List<DataTypeFile> getDataTypeFiles(
       @NonNull String release,
-      @NonNull String project,
+      @NonNull Set<String> project,
       @NonNull DownloadDataType dataType) {
     val projectDonors = releaseProjectDonors.get(release);
-    val donors = projectDonors.get(project);
+    val donors = resolveDonors(projectDonors, project);
 
     return getDataTypeFiles(release, donors, Collections.singleton(dataType));
   }
@@ -151,6 +151,17 @@ public class FileSystemService {
     return donorFileTypes.values().stream()
         .mapToLong(file -> file.getTotalSize())
         .sum();
+  }
+
+  private static Collection<String> resolveDonors(Multimap<String, String> projectDonors, Set<String> projects) {
+    if (projectDonors.size() == projects.size()) {
+      return projectDonors.values();
+    }
+
+    return projectDonors.asMap().entrySet().stream()
+        .filter(entry -> projects.contains(entry.getKey()))
+        .flatMap(entry -> entry.getValue().stream())
+        .collect(toImmutableList());
   }
 
 }

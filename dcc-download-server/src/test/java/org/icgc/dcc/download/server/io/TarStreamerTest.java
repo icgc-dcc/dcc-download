@@ -81,11 +81,11 @@ public class TarStreamerTest extends AbstractTest {
     @Cleanup
     val tarIn = new TarArchiveInputStream(new FileInputStream(testFile));
     val donorEntry = tarIn.getNextTarEntry();
-    assertThat(donorEntry.getName()).isEqualTo("donor.gz");
+    assertThat(donorEntry.getName()).isEqualTo("donor.tsv.gz");
     assertThat(donorEntry.getSize()).isEqualTo(364);
 
     val sampleEntry = tarIn.getNextTarEntry();
-    assertThat(sampleEntry.getName()).isEqualTo("sample.gz");
+    assertThat(sampleEntry.getName()).isEqualTo("sample.tsv.gz");
     assertThat(sampleEntry.getSize()).isEqualTo(185);
   }
 

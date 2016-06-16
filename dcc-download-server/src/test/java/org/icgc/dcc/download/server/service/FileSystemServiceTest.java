@@ -61,7 +61,7 @@ public class FileSystemServiceTest {
 
   @Test
   public void testGetReleaseDate() throws Exception {
-    assertThat(service.getReleaseDate("release_21")).isEqualTo(123);
+    assertThat(service.getReleaseDate("release_21").get()).isEqualTo(123);
   }
 
   @Test
@@ -80,13 +80,14 @@ public class FileSystemServiceTest {
   public void testGetDataTypeFiles() throws Exception {
     val files = service.getDataTypeFiles("release_21", ImmutableList.of("DO002", "DO001"),
         ImmutableList.of(SAMPLE, DONOR));
+
     assertThat(files).hasSize(3);
     assertThat(files.get(0)).isEqualTo(
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
+        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
     assertThat(files.get(1)).isEqualTo(
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
+        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
     assertThat(files.get(2)).isEqualTo(
-        new DataTypeFile("/somepath/release_21/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
+        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
 
   }
 }

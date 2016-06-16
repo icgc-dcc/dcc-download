@@ -45,11 +45,13 @@ import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_REGEX;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.util.Splitters;
@@ -58,13 +60,15 @@ import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
+@Slf4j
 @NoArgsConstructor(access = PRIVATE)
 public final class DfsPaths {
 
-  private static final Pattern RELEASE_PATTERN = Pattern.compile(RELEASE_DIR_REGEX + "|current");
+  private static final Pattern RELEASE_PATTERN = Pattern.compile(RELEASE_DIR_REGEX + "|current|README.txt");
   private static final Pattern RELEASE_DIR_PATTERN = Pattern.compile("Projects|Summary|README.txt");
   private static final Pattern PROJECT_NAME_PATTERN = Pattern.compile("\\w{2,4}-\\w{2}");
-  private static final Pattern FILE_NAME_PATTERN = Pattern.compile(".*\\.(vcf|tsv)\\.gz$");
+  private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.(vcf|tsv)\\.gz)$");
+  private static final Pattern REAL_FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.vcf\\.gz)$");
 
   private static final BiMap<DownloadDataType, String> FILE_NAMES = defineFileNames();
 
@@ -76,30 +80,57 @@ public final class DfsPaths {
   }
 
   public static String getRelease(String path) {
+    log.debug("Resolving release from path '{}'", path);
     val pathParts = Splitters.PATH.splitToList(path);
+    val release = pathParts.get(1);
+    verifyPathPart(RELEASE_PATTERN, release);
 
-    return pathParts.get(1);
+    return release;
 
   }
 
-  public static String getProject(String path) {
+  public static Optional<String> getProject(String path) {
     val pathParts = Splitters.PATH.splitToList(path);
+    if (pathParts.size() == 4) {
+      log.info("'{}' is a summary file. It has no project.", path);
+      return Optional.empty();
+    }
 
-    return pathParts.get(3);
+    return Optional.of(pathParts.get(3));
   }
 
-  public static DownloadDataType getDownloadDataType(String path) {
+  public static DownloadDataType getDownloadDataType(@NonNull String path) {
+    log.debug("Resolving download data type from path '{}'", path);
     val pathParts = Splitters.PATH.splitToList(path);
-    val fileName = pathParts.get(4);
+
+    String fileName = null;
+    if (pathParts.size() == 4) {
+      fileName = pathParts.get(3);
+    } else if (pathParts.size() == 5) {
+      fileName = pathParts.get(4);
+    } else {
+      throw new IllegalArgumentException(format("Failed to resolve download data type form path '%s'. Parts: %s", path,
+          pathParts));
+    }
 
     return resolveDownloadDataType(fileName);
   }
 
+  public static boolean isRealEntity(@NonNull String path) {
+    val pathParts = Splitters.PATH.splitToList(path);
+    val fileName = pathParts.get(pathParts.size() - 1);
+
+    return REAL_FILE_NAME_PATTERN.matcher(fileName).matches();
+  }
+
   private static DownloadDataType resolveDownloadDataType(String fileName) {
+    log.debug("Resolving download data type from file name '{}'", fileName);
     val archiveName = fileName
-        .replaceFirst(".tsv.gz", EMPTY_STRING)
+        .replaceFirst("\\.tsv\\.gz", EMPTY_STRING)
         .replaceFirst(PROJECT_NAME_PATTERN.pattern(), EMPTY_STRING)
-        .replaceFirst(".$", EMPTY_STRING);
+        .replaceFirst("all_projects", EMPTY_STRING)
+        .replaceFirst("\\.$", EMPTY_STRING);
+    log.debug("archiveName: '{}'", archiveName);
 
     val downloadDataTypes = FILE_NAMES.entrySet().stream()
         .filter(entry -> entry.getValue().equals(archiveName))
@@ -157,7 +188,9 @@ public final class DfsPaths {
 
   private static void verifyPathPart(Pattern pattern, String part) {
     if (!pattern.matcher(part).matches()) {
-      throw new NotFoundException(format("'%s' doesn't match release pattern %s", part, pattern));
+      val message = format("'%s' doesn't match release pattern %s", part, pattern);
+      log.warn(message);
+      throw new NotFoundException(message);
     }
   }
 

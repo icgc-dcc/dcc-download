@@ -19,10 +19,12 @@ package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
 
+@Slf4j
 @NoArgsConstructor(access = PRIVATE)
 public final class Responses {
 
@@ -32,6 +34,11 @@ public final class Responses {
 
   public static void throwBadRequestException(String message) {
     throw new BadRequestException(message);
+  }
+
+  public static void throwPathNotFoundException(String warnMessage) {
+    log.warn(warnMessage);
+    throw new NotFoundException("Malformed path");
   }
 
 }

@@ -15,45 +15,51 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.fs;
+package org.icgc.dcc.download.server.endpoint;
 
-import static com.google.common.collect.ImmutableList.of;
-import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
-import java.io.File;
-
-import lombok.val;
-
-import org.icgc.dcc.download.server.service.FileSystemService;
-import org.icgc.dcc.download.server.utils.AbstractFsTest;
+import org.icgc.dcc.download.server.fs.DownloadFileSystem;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RootViewTest extends AbstractFsTest {
+public class StaticFilesControllerTest {
+
+  private static final String ENDPOINT_PATH = "/list";
 
   @Mock
-  FileSystemService fsService;
-  RootView rootView;
+  DownloadFileSystem dfs;
+
+  @InjectMocks
+  StaticFilesController controller;
+
+  MockMvc mockMvc;
 
   @Before
-  @Override
   public void setUp() {
-    super.setUp();
-    val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
-    this.rootView = new RootView(rootDir, getDefaultLocalFileSystem(), fsService);
+    mockMvc = standaloneSetup(controller).build();
   }
 
   @Test
-  public void testListReleases() throws Exception {
-    val releases = rootView.listReleases();
-    verifyDownloadFiles(releases, of(
-        newFile("/README.txt", 18L, 1466021158000L),
-        newDir("/current", 1464896955000L),
-        newDir("/release_21", 1464896955000L)));
+  public void testList() throws Exception {
+    mockMvc
+        .perform(get(ENDPOINT_PATH + "/release_21/Projects"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  public void testList_current() throws Exception {
+    mockMvc
+        .perform(get(ENDPOINT_PATH + "/current"))
+        .andExpect(status().isOk());
   }
 
 }
