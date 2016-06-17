@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.regex.Pattern.compile;
-import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.checkExistence;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
@@ -53,37 +52,28 @@ public abstract class AbstractFileSystemView {
   protected static final String CURRENT_RELEASE_NAME = "current";
   protected static final String CURRENT_PATH = "/" + CURRENT_RELEASE_NAME;
 
-  protected final String rootDir;
   protected final String currentRelease;
   protected final FileSystem fileSystem;
-  protected final Path rootPath;
   protected final FileSystemService fsService;
+  protected final PathResolver pathResolver;
 
-  public AbstractFileSystemView(@NonNull String rootDir, @NonNull FileSystem fileSystem,
-      @NonNull FileSystemService fsService) {
-    this(rootDir, resolveCurrentRelease(rootDir, fileSystem), fileSystem, fsService);
+  public AbstractFileSystemView(
+      @NonNull FileSystem fileSystem,
+      @NonNull FileSystemService fsService,
+      PathResolver pathResolver) {
+    this(resolveCurrentRelease(pathResolver.getRootPath(), fileSystem), fileSystem, fsService, pathResolver);
   }
 
-  public AbstractFileSystemView(@NonNull String rootDir, @NonNull String currentRelease,
-      @NonNull FileSystem fileSystem, @NonNull FileSystemService fsService) {
-    verifyRootPath(rootDir, fileSystem);
+  public AbstractFileSystemView(@NonNull String currentRelease,
+      @NonNull FileSystem fileSystem, @NonNull FileSystemService fsService, @NonNull PathResolver pathResolver) {
+    verifyRootPath(pathResolver.getRootPath(), fileSystem);
     verifyCurrentRelease(currentRelease);
-    val rootPath = new Path(rootDir);
+    log.info("Configuration: Current release - '{}'.", currentRelease);
 
-    checkArgument(rootPath.isAbsolute(), "The rootDir is not the absolute path: '%s'", rootDir);
-    log.info("Configuration: Root - '{}'; Current release - '{}'.", rootDir, currentRelease);
-
-    this.rootDir = rootDir;
     this.currentRelease = currentRelease;
     this.fileSystem = fileSystem;
-    this.rootPath = rootPath;
     this.fsService = fsService;
-  }
-
-  protected Path toHdfsPath(@NonNull String dfsPath) {
-    val childPath = dfsPath.startsWith("/") ? dfsPath.replaceFirst("/", EMPTY_STRING) : dfsPath;
-
-    return new Path(rootPath, childPath);
+    this.pathResolver = pathResolver;
   }
 
   protected DownloadFile convert2DownloadFile(Path file, boolean current) {
@@ -103,7 +93,7 @@ public abstract class AbstractFileSystemView {
     val uri = file.toUri();
     log.debug("File as URI: '{}'", uri);
     val filePath = uri.getPath();
-    val fileName = filePath.replace(rootDir, Separators.EMPTY_STRING);
+    val fileName = filePath.replace(pathResolver.getRootDir(), Separators.EMPTY_STRING);
     log.debug("File name: {}", fileName);
     checkState(fileName.startsWith("/"), "File name is not an absolute path: '%s'", fileName);
 
@@ -172,14 +162,14 @@ public abstract class AbstractFileSystemView {
     return status.getLen();
   }
 
-  static String resolveCurrentRelease(String rootPath, FileSystem fileSystem) {
-    val dirs = lsDir(fileSystem, new Path(rootPath), compile(RELEASE_DIR_REGEX));
+  static String resolveCurrentRelease(Path rootPath, FileSystem fileSystem) {
+    val dirs = lsDir(fileSystem, rootPath, compile(RELEASE_DIR_REGEX));
     val latestRelease = Ordering.natural().max(dirs);
 
     return latestRelease.getName();
   }
 
-  private static void verifyRootPath(String rootPath, FileSystem fileSystem) {
+  private static void verifyRootPath(Path rootPath, FileSystem fileSystem) {
     checkArgument(checkExistence(fileSystem, rootPath), "Path '%s' doesn't exist.", rootPath);
   }
 

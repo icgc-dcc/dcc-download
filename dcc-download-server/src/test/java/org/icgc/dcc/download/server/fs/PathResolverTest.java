@@ -15,47 +15,55 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.fs;
 
-import static com.google.common.collect.ImmutableList.of;
-import static lombok.AccessLevel.PRIVATE;
-import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
-import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
-import lombok.NoArgsConstructor;
+import static org.assertj.core.api.Assertions.assertThat;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.model.DataTypeFile;
+import org.junit.Before;
+import org.junit.Test;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Table;
+import com.google.common.collect.ImmutableList;
 
-@NoArgsConstructor(access = PRIVATE)
-public final class DownloadFsTests {
+@Slf4j
+public class PathResolverTest {
 
-  public static Table<String, DownloadDataType, DataTypeFile> createDonorFileTypesTable() {
-    val releaseTable = HashBasedTable.<String, DownloadDataType, DataTypeFile> create();
-    releaseTable.put("DO001", SAMPLE,
-        new DataTypeFile("TST1-CA/DO001/sample", of((short) 0), 2));
-    releaseTable.put("DO001", DONOR,
-        new DataTypeFile("TST1-CA/DO001/donor", of((short) 0), 1));
-    releaseTable.put("DO002", DONOR,
-        new DataTypeFile("TST1-CA/DO002/donor", of((short) 0, (short) 1), 3));
-    releaseTable.put("DO003", DONOR,
-        new DataTypeFile("TST2-CA/DO003/donor", of((short) 0), 4));
+  PathResolver pathResolver;
 
-    return releaseTable;
+  @Before
+  public void setUp() {
+    val properties = new Properties.JobProperties();
+    properties.setInputDir("/tmp");
+    pathResolver = new PathResolver(properties);
   }
 
-  public static Multimap<String, String> createProjectDonors() {
-    val projectDonors = ArrayListMultimap.<String, String> create();
-    projectDonors.put("TST1-CA", "DO001");
-    projectDonors.put("TST1-CA", "DO002");
-    projectDonors.put("TST2-CA", "DO003");
+  @Test
+  public void testGetPartFilePaths() throws Exception {
+    val dataFile = new DataTypeFile("TST1-CA/DO002/donor", ImmutableList.of((short) 0, (short) 123), 123L);
+    val paths = pathResolver.getPartFilePaths("release_21", dataFile);
+    log.info("Paths: {}", paths);
+    assertThat(paths).hasSize(2);
+    assertThat(paths.get(0)).isEqualTo("/tmp/release_21/data/TST1-CA/DO002/donor/part-00000.gz");
+    assertThat(paths.get(1)).isEqualTo("/tmp/release_21/data/TST1-CA/DO002/donor/part-00123.gz");
+  }
 
-    return projectDonors;
+  @Test
+  public void testToHdfsPath() throws Exception {
+    assertThat(pathResolver.toHdfsPath("/release_21").toString()).isEqualTo("/tmp/release_21");
+  }
+
+  @Test
+  public void testGetDataFilePath() throws Exception {
+    assertThat(pathResolver.getDataFilePath("file:///tmp/release_21/data/TST1-CA/DO002/donor/part-00123.gz"))
+        .isEqualTo("TST1-CA/DO002/donor");
+  }
+
+  @Test
+  public void testGetPartFileIndex() throws Exception {
+    assertThat(pathResolver.getPartFileIndex("part-00123.gz")).isEqualTo((short) 123);
   }
 
 }

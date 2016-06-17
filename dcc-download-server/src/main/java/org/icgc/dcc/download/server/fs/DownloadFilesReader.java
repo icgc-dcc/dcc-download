@@ -23,10 +23,10 @@ import static java.util.regex.Pattern.compile;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.Splitters.PATH;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
+import static org.icgc.dcc.download.server.utils.DfsPaths.toDfsPath;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
-import static org.icgc.dcc.download.server.utils.DownloadFileSystems.isReleaseDir;
-import static org.icgc.dcc.download.server.utils.DownloadFileSystems.toDfsPath;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 
 import java.util.Collections;
@@ -45,7 +45,7 @@ import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.server.model.DataTypeFile;
-import org.icgc.dcc.download.server.utils.DownloadFileSystems;
+import org.icgc.dcc.download.server.utils.DfsPaths;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ArrayListMultimap;
@@ -61,9 +61,9 @@ import com.google.common.collect.Table;
 public class DownloadFilesReader {
 
   @NonNull
-  private final Path rootDir;
-  @NonNull
   private final FileSystem fileSystem;
+  @NonNull
+  private final PathResolver pathResolver;
 
   @Getter(lazy = true)
   private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes =
@@ -82,7 +82,7 @@ public class DownloadFilesReader {
 
   public Map<String, Long> getReleaseTimes() {
     val releaseTimes = ImmutableMap.<String, Long> builder();
-    val releaseDirs = HadoopUtils.lsDir(fileSystem, rootDir, compile(".*" + RELEASE_DIR_PREFIX + ".*"));
+    val releaseDirs = lsDir(fileSystem, pathResolver.getRootPath(), compile(".*" + RELEASE_DIR_PREFIX + ".*"));
     log.debug("Resolving creation time for release dirs: {}", releaseDirs);
     for (val releaseDir : releaseDirs) {
       val status = getFileStatus(fileSystem, releaseDir);
@@ -108,7 +108,7 @@ public class DownloadFilesReader {
     log.debug("Creating cache table for '{}'", releasePath);
     val releaseTable = HashBasedTable.<String, DownloadDataType, DataTypeFile> create();
     val releaseDirs = HadoopUtils.lsDir(fileSystem, releasePath);
-    checkState(isReleaseDir(releaseDirs), "'%s' is not the release dir.");
+    checkState(DfsPaths.isReleaseDir(releaseDirs), "'%s' is not the release dir.");
     val allFiles = HadoopUtils.lsRecursive(fileSystem, new Path(releasePath, DATA_DIR));
     for (val file : allFiles) {
       if (!file.contains("_SUCCESS")) {
@@ -122,7 +122,7 @@ public class DownloadFilesReader {
   private Map<String, Table<String, DownloadDataType, DataTypeFile>> createReleaseFileTypes() {
     log.info("Creating donor - download data type - data type file tables...");
     val releaseFileTypes = ImmutableMap.<String, Table<String, DownloadDataType, DataTypeFile>> builder();
-    val releases = HadoopUtils.lsDir(fileSystem, rootDir);
+    val releases = lsDir(fileSystem, pathResolver.getRootPath());
     for (val release : releases) {
       val timer = Stopwatch.createStarted();
       checkState(release.getName().matches("release_\\d+"));
@@ -135,13 +135,13 @@ public class DownloadFilesReader {
     return releaseFileTypes.build();
   }
 
-  private static void addFile(
+  private void addFile(
       FileSystem fileSystem,
       HashBasedTable<String, DownloadDataType, DataTypeFile> releaseTable,
       String file) {
 
     log.debug("Processing file '{}'", file);
-    val dfsPath = DownloadFileSystems.toDfsPath(file);
+    val dfsPath = toDfsPath(file);
     log.debug("DFS path: {}", dfsPath);
 
     val fileParts = getFileParts(dfsPath);
@@ -160,20 +160,17 @@ public class DownloadFilesReader {
     val path = dataTypeFile.getPath();
     log.debug("Resolving project from path: '{}'", path);
 
-    val dfsPath = toDfsPath(path);
-    log.debug("DFS path: '{}'", dfsPath);
+    val pathParts = PATH.splitToList(path);
+    // Path should look like TST1-CA/DO1/donor
+    checkState(pathParts.size() == 3, "Failed to resolve project from path '%s'. Parts: '%s'", path, pathParts);
 
-    val pathParts = PATH.splitToList(dfsPath);
-    // Path should look like /release_21/data/TST1-CA/DO1/donor
-    checkState(pathParts.size() == 6, "Failed to resolve project from path '%s'. Parts: '%s'", dfsPath, pathParts);
-
-    val projectId = pathParts.get(3);
-    log.debug("Resolved project '{}' from path '{}'", projectId, dfsPath);
+    val projectId = pathParts.get(0);
+    log.debug("Resolved project '{}' from path '{}'", projectId, path);
 
     return projectId;
   }
 
-  private static DataTypeFile updateDataTypeFile(FileSystem fileSystem, DataTypeFile dataTypeFile, String file,
+  private DataTypeFile updateDataTypeFile(FileSystem fileSystem, DataTypeFile dataTypeFile, String file,
       String partFile) {
     val fileSize = getFileSize(fileSystem, file);
     if (dataTypeFile == null) {
@@ -183,21 +180,20 @@ public class DownloadFilesReader {
     return updateDataTypeFile(dataTypeFile, partFile, fileSize);
   }
 
-  private static DataTypeFile updateDataTypeFile(DataTypeFile dataTypeFile, String partFile, long fileSize) {
+  private DataTypeFile updateDataTypeFile(DataTypeFile dataTypeFile, String partFile, long fileSize) {
     val path = dataTypeFile.getPath();
-    val partFiles = Sets.newTreeSet(dataTypeFile.getPartFiles());
-    partFiles.add(partFile);
+    val partFiles = Sets.newTreeSet(dataTypeFile.getPartFileIndices());
+    partFiles.add(pathResolver.getPartFileIndex(partFile));
     val totalSize = dataTypeFile.getTotalSize() + fileSize;
 
     return new DataTypeFile(path, ImmutableList.copyOf(partFiles), totalSize);
   }
 
-  private static DataTypeFile createDataTypeFile(String file, String partFile, long fileSize) {
-    return new DataTypeFile(getCommonPath(file), Collections.singletonList(partFile), fileSize);
-  }
-
-  private static String getCommonPath(String file) {
-    return file.replaceFirst("/part-\\d{5}.gz", EMPTY_STRING);
+  private DataTypeFile createDataTypeFile(String file, String partFile, long fileSize) {
+    return new DataTypeFile(
+        pathResolver.getDataFilePath(file),
+        Collections.singletonList(pathResolver.getPartFileIndex(partFile)),
+        fileSize);
   }
 
   private static long getFileSize(FileSystem fileSystem, String file) {

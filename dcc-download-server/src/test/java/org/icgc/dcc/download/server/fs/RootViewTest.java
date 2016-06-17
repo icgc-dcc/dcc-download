@@ -24,6 +24,7 @@ import java.io.File;
 
 import lombok.val;
 
+import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.AbstractFsTest;
 import org.junit.Before;
@@ -44,7 +45,10 @@ public class RootViewTest extends AbstractFsTest {
   public void setUp() {
     super.setUp();
     val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
-    this.rootView = new RootView(rootDir, getDefaultLocalFileSystem(), fsService);
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(rootDir);
+    val pathResolver = new PathResolver(properties);
+    this.rootView = new RootView(getDefaultLocalFileSystem(), fsService, pathResolver);
   }
 
   @Test

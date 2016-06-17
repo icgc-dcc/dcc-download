@@ -52,6 +52,12 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     </encoder>
   </appender>
 
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${pattern}</pattern>
+    </encoder>
+  </appender>
+
   <logger name="akka" level="info" additivity="false">
     <appender-ref ref="DEBUG" />
   </logger>
@@ -70,12 +76,11 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
   <logger name="org.apache.hadoop.util.NativeCodeLoader" level="info" additivity="false">
     <appender-ref ref="DEBUG" />
   </logger>
-  <logger name="dcc.org.icgc" level="debug" additivity="false">
-    <appender-ref ref="FILE" />
+  <logger name="org.icgc.dcc" level="debug" additivity="false">
+    <appender-ref ref="STDOUT" />
   </logger>
-
+  
   <root level="info">
-    <appender-ref ref="DEBUG" />
-    <appender-ref ref="FILE" />
+    <appender-ref ref="STDOUT" />
   </root>
 </configuration>

@@ -19,8 +19,6 @@ package org.icgc.dcc.download.server.io;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.icgc.dcc.common.core.util.Joiners.PATH;
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 
 import java.io.IOException;
@@ -37,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.utils.DataTypeFiles;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
@@ -54,6 +53,8 @@ public class GzipStreamer implements FileStreamer {
   private final Map<DownloadDataType, Long> fileSizes;
   private final Map<DownloadDataType, String> headers;
   private final OutputStream output;
+  private final PathResolver pathResolver;
+  private final String release;
 
   /**
    * State.
@@ -65,12 +66,16 @@ public class GzipStreamer implements FileStreamer {
       @NonNull List<DataTypeFile> downloadFiles,
       @NonNull Map<DownloadDataType, Long> fileSizes,
       @NonNull Map<DownloadDataType, String> headers,
-      @NonNull OutputStream output) {
+      @NonNull OutputStream output,
+      @NonNull PathResolver pathResolver,
+      @NonNull String release) {
     this.fileSystem = fileSystem;
     this.downloadFiles = downloadFiles;
     this.fileSizes = fileSizes;
     this.headers = headers;
     this.output = output;
+    this.pathResolver = pathResolver;
+    this.release = release;
     checkArguments();
   }
 
@@ -143,12 +148,8 @@ public class GzipStreamer implements FileStreamer {
 
   private List<String> getPartFiles() {
     val dataFile = getCurrentDataFile();
-    val dataFilePath = dataFile.getPath();
 
-    return dataFile.getPartFiles().stream()
-        .map(partFile -> PATH.join(dataFilePath, partFile))
-        .collect(toImmutableList());
-
+    return pathResolver.getPartFilePaths(release, dataFile);
   }
 
   private void streamHeader() throws IOException {
@@ -169,7 +170,7 @@ public class GzipStreamer implements FileStreamer {
 
   private void checkArguments() {
     checkArgument(!downloadFiles.isEmpty());
-    checkArgument(!downloadFiles.get(0).getPartFiles().isEmpty());
+    checkArgument(!downloadFiles.get(0).getPartFileIndices().isEmpty());
     checkArgument(!headers.isEmpty());
   }
 

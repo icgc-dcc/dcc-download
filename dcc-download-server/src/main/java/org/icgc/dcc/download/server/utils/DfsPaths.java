@@ -42,7 +42,10 @@ import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_OPEN;
 import static org.icgc.dcc.common.core.model.DownloadDataType.STSM;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_REGEX;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +56,7 @@ import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
@@ -123,6 +127,34 @@ public final class DfsPaths {
     return REAL_FILE_NAME_PATTERN.matcher(fileName).matches();
   }
 
+  public static boolean isReleaseDir(@NonNull List<Path> files) {
+    boolean hasHeaders = false;
+    boolean hasData = false;
+
+    for (val file : files) {
+      val name = file.getName();
+      if (HEADERS_DIR.equals(name)) {
+        hasHeaders = true;
+      } else if (DATA_DIR.equals(name)) {
+        hasData = true;
+      }
+    }
+
+    return hasHeaders && hasData;
+  }
+
+  public static void validatePath(String path) {
+    if ("/".equals(path)) {
+      return;
+    }
+
+    val pathParts = Splitters.PATH.splitToList(path);
+    checkArgument(pathParts.size() < 6, "Invalid path '%s'", path);
+    for (int i = 0; i < pathParts.size(); i++) {
+      verifyPathPart(i, pathParts);
+    }
+  }
+
   private static DownloadDataType resolveDownloadDataType(String fileName) {
     log.debug("Resolving download data type from file name '{}'", fileName);
     val archiveName = fileName
@@ -139,18 +171,6 @@ public final class DfsPaths {
     checkState(downloadDataTypes.size() == 1, "Failed to resolve DownloadDataType form file name '%s'", fileName);
 
     return downloadDataTypes.get(0);
-  }
-
-  public static void validatePath(String path) {
-    if ("/".equals(path)) {
-      return;
-    }
-
-    val pathParts = Splitters.PATH.splitToList(path);
-    checkArgument(pathParts.size() < 6, "Invalid path '%s'", path);
-    for (int i = 0; i < pathParts.size(); i++) {
-      verifyPathPart(i, pathParts);
-    }
   }
 
   private static void verifyPathPart(int i, List<String> parts) {
@@ -218,6 +238,18 @@ public final class DfsPaths {
     checkState(fileNames.size() == DownloadDataType.values().length);
 
     return fileNames;
+  }
+
+  public static String toDfsPath(@NonNull Path fsPath) {
+    return toDfsPath(fsPath.toString());
+  }
+
+  public static String toDfsPath(@NonNull String fsPath) {
+    val start = fsPath.indexOf(RELEASE_DIR_PREFIX);
+    checkState(start > 0);
+
+    // Include '/'
+    return fsPath.substring(start - 1);
   }
 
 }

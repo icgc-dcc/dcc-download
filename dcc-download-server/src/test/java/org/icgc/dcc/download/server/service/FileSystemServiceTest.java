@@ -83,11 +83,11 @@ public class FileSystemServiceTest {
 
     assertThat(files).hasSize(3);
     assertThat(files.get(0)).isEqualTo(
-        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO001/sample", of("part-00000.gz"), 2));
+        new DataTypeFile("TST1-CA/DO001/sample", of((short) 0), 2));
     assertThat(files.get(1)).isEqualTo(
-        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 1));
+        new DataTypeFile("TST1-CA/DO001/donor", of((short) 0), 1));
     assertThat(files.get(2)).isEqualTo(
-        new DataTypeFile("/somepath/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz", "part-00001.gz"), 3));
+        new DataTypeFile("TST1-CA/DO002/donor", of((short) 0, (short) 1), 3));
 
   }
 }

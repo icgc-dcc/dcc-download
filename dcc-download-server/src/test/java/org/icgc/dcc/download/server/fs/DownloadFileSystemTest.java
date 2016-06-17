@@ -30,6 +30,7 @@ import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.DownloadFileType;
+import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
@@ -53,8 +54,13 @@ public class DownloadFileSystemTest extends AbstractTest {
     prepareInput();
     val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
     FileSystem fs = getDefaultLocalFileSystem();
-    val rootView = new RootView(rootDir, fs, fsService);
-    val releaseView = new ReleaseView(rootDir, fs, fsService);
+
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(rootDir);
+    val pathResolver = new PathResolver(properties);
+
+    val rootView = new RootView(fs, fsService, pathResolver);
+    val releaseView = new ReleaseView(fs, fsService, pathResolver);
     this.dfs = new DownloadFileSystem(rootView, releaseView);
   }
 

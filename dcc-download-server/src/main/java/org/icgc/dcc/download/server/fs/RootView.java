@@ -34,15 +34,16 @@ import com.google.common.collect.Lists;
 
 public class RootView extends AbstractFileSystemView {
 
-  public RootView(@NonNull String rootDir, @NonNull FileSystem fileSystem, @NonNull FileSystemService fsService) {
-    super(rootDir, fileSystem, fsService);
+  public RootView(@NonNull FileSystem fileSystem, @NonNull FileSystemService fsService,
+      @NonNull PathResolver pathResolver) {
+    super(fileSystem, fsService, pathResolver);
   }
 
   /**
    * Lists releases in the root directory.
    */
   public List<DownloadFile> listReleases() {
-    val allFiles = HadoopUtils.lsAll(fileSystem, rootPath);
+    val allFiles = HadoopUtils.lsAll(fileSystem, pathResolver.getRootPath());
     val dfsFiles = Lists.<DownloadFile> newArrayList();
     for (val file : allFiles) {
       val rootFile = convert2DownloadFile(file, false);

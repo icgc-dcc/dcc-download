@@ -20,6 +20,7 @@ package org.icgc.dcc.download.server.fs;
 import static java.nio.file.Paths.get;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.resolveCurrentRelease;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
@@ -36,6 +37,7 @@ import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.common.test.file.FileTests;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.DownloadFileType;
+import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Test;
@@ -51,12 +53,15 @@ public class AbstractFileSystemViewTest extends AbstractTest {
     super.setUp();
     prepareFiles();
     this.fileSystem = getDefaultLocalFileSystem();
-    this.dfs = new TestDownloadFileSystem(workingDir.getAbsolutePath(), fileSystem);
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(workingDir.getAbsolutePath());
+    val pathResolver = new PathResolver(properties);
+    this.dfs = new TestDownloadFileSystem(fileSystem, pathResolver);
   }
 
   @Test
   public void testResolveCurrentRelease() throws Exception {
-    val currentRelease = AbstractFileSystemView.resolveCurrentRelease(workingDir.getAbsolutePath(), fileSystem);
+    val currentRelease = resolveCurrentRelease(new Path(workingDir.getAbsolutePath()), fileSystem);
     assertThat(currentRelease).isEqualTo("release_21");
   }
 
@@ -129,8 +134,8 @@ public class AbstractFileSystemViewTest extends AbstractTest {
 
   private static class TestDownloadFileSystem extends AbstractFileSystemView {
 
-    public TestDownloadFileSystem(String rootDir, FileSystem fileSystem) {
-      super(rootDir, fileSystem, mock(FileSystemService.class));
+    public TestDownloadFileSystem(FileSystem fileSystem, PathResolver pathResolver) {
+      super(fileSystem, mock(FileSystemService.class), pathResolver);
     }
 
   }

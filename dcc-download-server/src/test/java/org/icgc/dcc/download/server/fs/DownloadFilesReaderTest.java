@@ -28,6 +28,7 @@ import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.utils.AbstractFsTest;
 import org.icgc.dcc.download.server.utils.DownloadFsTests;
@@ -37,21 +38,25 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
 
   FileSystem fileSystem = getDefaultLocalFileSystem();
   DownloadFilesReader downloadFilesReader;
+  PathResolver pathResolver;
 
   @Override
   public void setUp() {
     super.setUp();
-    downloadFilesReader = new DownloadFilesReader(new Path(workingDir.getAbsolutePath()), fileSystem);
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(workingDir.getAbsolutePath());
+    pathResolver = new PathResolver(properties);
+    downloadFilesReader = new DownloadFilesReader(fileSystem, pathResolver);
   }
 
   @Test
   public void testCreateReleaseCache() throws Exception {
     val releaseTable = downloadFilesReader.createReleaseCache(getReleasePath());
     assertThat(releaseTable.size()).isNotZero();
-    assertDonor(releaseTable.row("DO001"), "part-00000.gz", 8);
-    assertDonor(releaseTable.row("DO002"), "part-00000.gz", 8);
-    assertDonor(releaseTable.row("DO003"), "part-00001.gz", 6);
-    assertDonor(releaseTable.row("DO004"), "part-00001.gz", 6);
+    assertDonor(releaseTable.row("DO001"), (short) 0, 8);
+    assertDonor(releaseTable.row("DO002"), (short) 0, 8);
+    assertDonor(releaseTable.row("DO003"), (short) 1, 6);
+    assertDonor(releaseTable.row("DO004"), (short) 1, 6);
   }
 
   @Test
@@ -65,7 +70,10 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
 
   @Test
   public void testGetReleaseTimes() throws Exception {
-    downloadFilesReader = new DownloadFilesReader(new Path(INPUT_TEST_FIXTURES_DIR), fileSystem);
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath());
+    pathResolver = new PathResolver(properties);
+    downloadFilesReader = new DownloadFilesReader(fileSystem, pathResolver);
     val releaseTimes = downloadFilesReader.getReleaseTimes();
     assertThat(releaseTimes).hasSize(1);
     assertThat(releaseTimes.get("release_21")).isEqualTo(1464896955000L);
@@ -77,13 +85,23 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
     return new Path(releaseDir);
   }
 
-  private void assertDonor(Map<DownloadDataType, DataTypeFile> row, String expectedPartFile, int expectedDataTypes) {
+  private void assertDonor(Map<DownloadDataType, DataTypeFile> row, Short expectedPartFile, int expectedDataTypes) {
     assertThat(row).hasSize(expectedDataTypes);
     for (val dataTypeFile : row.values()) {
-      val partFiles = dataTypeFile.getPartFiles();
+      val partFiles = dataTypeFile.getPartFileIndices();
       assertThat(partFiles).hasSize(1);
       assertThat(partFiles.get(0)).isEqualTo(expectedPartFile);
     }
+  }
+
+  @Test
+  public void testGetReleaseProjectDonors() throws Exception {
+    val releaseProjects = downloadFilesReader.getReleaseProjectDonors();
+    assertThat(releaseProjects.size()).isEqualTo(1);
+    val projectDonors = releaseProjects.get("release_21");
+    assertThat(projectDonors.size()).isEqualTo(4);
+    assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
+    assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003", "DO004");
   }
 
 }

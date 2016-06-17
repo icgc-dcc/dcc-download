@@ -48,6 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.util.Splitters;
+import org.icgc.dcc.download.server.config.Properties;
+import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
@@ -62,6 +64,7 @@ public class GzipStreamerTest extends AbstractTest {
   String rootDir;
   GzipStreamer gzipStreamer;
   File testFile;
+  PathResolver pathResolver;
 
   @Before
   @Override
@@ -69,6 +72,10 @@ public class GzipStreamerTest extends AbstractTest {
   public void setUp() {
     this.rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
     testFile = File.createTempFile("gzip", "test", workingDir);
+
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(rootDir);
+    pathResolver = new PathResolver(properties);
   }
 
   @Test
@@ -76,7 +83,8 @@ public class GzipStreamerTest extends AbstractTest {
     val output = new BufferedOutputStream(new FileOutputStream(testFile));
 
     gzipStreamer =
-        new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output);
+        new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output,
+            pathResolver, "release_21");
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
@@ -97,7 +105,7 @@ public class GzipStreamerTest extends AbstractTest {
     val output = new BufferedOutputStream(new FileOutputStream(testFile));
 
     gzipStreamer = new GzipStreamer(getDefaultLocalFileSystem(), getMultipleDownloadFiles(),
-        getMultipleDownloadSizes(), getMultipleHeaders(), output);
+        getMultipleDownloadSizes(), getMultipleHeaders(), output, pathResolver, "release_21");
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
@@ -124,10 +132,12 @@ public class GzipStreamerTest extends AbstractTest {
   public void testGetNextEntryName() throws Exception {
     gzipStreamer = new GzipStreamer(
         mock(FileSystem.class),
-        singletonList(new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/ssm_open", of("part-00000.gz"), 1)),
+        singletonList(new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/ssm_open", of((short) 0), 1)),
         emptyMap(),
         getHeaders(),
-        mock(OutputStream.class));
+        mock(OutputStream.class),
+        pathResolver,
+        "release_21");
     assertThat(gzipStreamer.getName()).isEqualTo("simple_somatic_mutation.open.tsv.gz");
   }
 
@@ -222,20 +232,20 @@ public class GzipStreamerTest extends AbstractTest {
 
   private List<DataTypeFile> getDownloadFiles() {
     return of(
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 130),
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz"), 111),
-        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO003/donor", of("part-00001.gz"), 119),
-        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO004/donor", of("part-00001.gz"), 112));
+        new DataTypeFile("TST1-CA/DO001/donor", of((short) 0), 130),
+        new DataTypeFile("TST1-CA/DO002/donor", of((short) 0), 111),
+        new DataTypeFile("TST2-CA/DO003/donor", of((short) 1), 119),
+        new DataTypeFile("TST2-CA/DO004/donor", of((short) 1), 112));
   }
 
   private List<DataTypeFile> getMultipleDownloadFiles() {
     return of(
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 130),
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/donor", of("part-00000.gz"), 111),
-        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO003/donor", of("part-00001.gz"), 119),
-        new DataTypeFile(rootDir + "/release_21/data/TST2-CA/DO004/donor", of("part-00001.gz"), 112),
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/sample", of("part-00000.gz"), 97),
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/sample", of("part-00000.gz"), 97));
+        new DataTypeFile("TST1-CA/DO001/donor", of((short) 0), 130),
+        new DataTypeFile("TST1-CA/DO002/donor", of((short) 0), 111),
+        new DataTypeFile("TST2-CA/DO003/donor", of((short) 1), 119),
+        new DataTypeFile("TST2-CA/DO004/donor", of((short) 1), 112),
+        new DataTypeFile("TST1-CA/DO001/sample", of((short) 0), 97),
+        new DataTypeFile("TST1-CA/DO002/sample", of((short) 0), 97));
   }
 
 }

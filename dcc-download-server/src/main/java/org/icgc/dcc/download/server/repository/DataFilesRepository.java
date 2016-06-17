@@ -15,51 +15,13 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.repository;
 
-import static com.google.common.base.Preconditions.checkState;
-import static lombok.AccessLevel.PRIVATE;
-import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
-import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
-import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
+import org.icgc.dcc.download.server.model.DataFiles;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
-import java.util.List;
+public interface DataFilesRepository extends MongoRepository<DataFiles, String> {
 
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.val;
-
-import org.apache.hadoop.fs.Path;
-
-@NoArgsConstructor(access = PRIVATE)
-public final class DownloadFileSystems {
-
-  public static boolean isReleaseDir(List<Path> files) {
-    boolean hasHeaders = false;
-    boolean hasData = false;
-
-    for (val file : files) {
-      val name = file.getName();
-      if (HEADERS_DIR.equals(name)) {
-        hasHeaders = true;
-      } else if (DATA_DIR.equals(name)) {
-        hasData = true;
-      }
-    }
-
-    return hasHeaders && hasData;
-  }
-
-  public static String toDfsPath(@NonNull Path fsPath) {
-    return toDfsPath(fsPath.toString());
-  }
-
-  public static String toDfsPath(@NonNull String fsPath) {
-    val start = fsPath.indexOf(RELEASE_DIR_PREFIX);
-    checkState(start > 0);
-
-    // Include '/'
-    return fsPath.substring(start - 1);
-  }
+  DataFiles findById(String id);
 
 }

@@ -30,6 +30,7 @@ import java.util.Optional;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.AbstractFsTest;
@@ -56,7 +57,12 @@ public class ReleaseViewTest extends AbstractFsTest {
   public void setUp() {
     super.setUp();
     val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
-    this.releaseView = new ReleaseView(rootDir, getDefaultLocalFileSystem(), fsService);
+
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(rootDir);
+    val pathResolver = new PathResolver(properties);
+
+    this.releaseView = new ReleaseView(getDefaultLocalFileSystem(), fsService, pathResolver);
 
     when(fsService.getReleaseDate("release_21")).thenReturn(Optional.of(321L));
     when(fsService.getReleaseDate("current")).thenReturn(Optional.of(321L));

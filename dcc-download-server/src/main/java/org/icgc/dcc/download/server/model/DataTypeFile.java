@@ -25,7 +25,7 @@ import lombok.Value;
 public class DataTypeFile implements Comparable<DataTypeFile> {
 
   String path;
-  List<String> partFiles;
+  List<Short> partFileIndices;
   long totalSize;
 
   @Override

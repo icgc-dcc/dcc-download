@@ -42,6 +42,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.server.config.Properties;
+import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
@@ -56,6 +58,7 @@ public class TarStreamerTest extends AbstractTest {
   String rootDir;
   TarStreamer tarStreamer;
   File testFile;
+  PathResolver pathResolver;
 
   @Before
   @Override
@@ -63,6 +66,10 @@ public class TarStreamerTest extends AbstractTest {
   public void setUp() {
     this.rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
     testFile = File.createTempFile("gzip", "test", workingDir);
+
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(rootDir);
+    pathResolver = new PathResolver(properties);
   }
 
   @Test
@@ -90,7 +97,8 @@ public class TarStreamerTest extends AbstractTest {
   }
 
   private GzipStreamer createGzipStreamer(OutputStream output) {
-    return new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output);
+    return new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output,
+        pathResolver, "release_21");
   }
 
   @SneakyThrows
@@ -107,8 +115,8 @@ public class TarStreamerTest extends AbstractTest {
 
   private List<DataTypeFile> getDownloadFiles() {
     return of(
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/donor", of("part-00000.gz"), 130),
-        new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO002/sample", of("part-00000.gz"), 65));
+        new DataTypeFile("TST1-CA/DO001/donor", of((short) 0), 130),
+        new DataTypeFile("TST1-CA/DO002/sample", of((short) 0), 65));
   }
 
   private static Map<DownloadDataType, Long> getDownloadSizes() {

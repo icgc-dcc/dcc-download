@@ -17,7 +17,6 @@
  */
 package org.icgc.dcc.download.server.model;
 
-import java.util.List;
 import java.util.Set;
 
 import lombok.Builder;
@@ -44,7 +43,5 @@ public class Job {
   private JobUiInfo jobInfo;
 
   private Long fileSizeBytes;
-
-  List<DataTypeFile> dataFiles;
 
 }

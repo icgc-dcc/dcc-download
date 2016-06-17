@@ -17,8 +17,6 @@
  */
 package org.icgc.dcc.download.server.config;
 
-import java.io.File;
-
 import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -26,8 +24,10 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.icgc.dcc.download.server.fs.DownloadFileSystem;
 import org.icgc.dcc.download.server.fs.DownloadFilesReader;
+import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.fs.ReleaseView;
 import org.icgc.dcc.download.server.fs.RootView;
+import org.icgc.dcc.download.server.repository.DataFilesRepository;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.icgc.dcc.download.server.service.ArchiveDownloadService;
 import org.icgc.dcc.download.server.service.FileSystemService;
@@ -41,20 +41,28 @@ public class ServiceConfig {
   @Autowired
   private JobProperties jobProperties;
   @Autowired
-  private JobRepository jobRepository;
-  @Autowired
   private FileSystem fileSystem;
+  @Autowired
+  private PathResolver pathResolver;
 
   @Bean
-  public ArchiveDownloadService archiveDownloadService(FileSystemService fileSystemService) {
-    return new ArchiveDownloadService(getRootPath(), fileSystemService, fileSystem, jobRepository);
+  public ArchiveDownloadService archiveDownloadService(
+      FileSystemService fileSystemService,
+      JobRepository jobRepository,
+      DataFilesRepository dataFilesRepository) {
+    return new ArchiveDownloadService(
+        getRootPath(),
+        fileSystemService,
+        fileSystem,
+        jobRepository,
+        dataFilesRepository,
+        pathResolver);
   }
 
   @Bean
   public DownloadFileSystem downloadFileSystem(FileSystemService fileSystemService) {
-    val rootDir = getRootDir(jobProperties.getInputDir());
-    val rootView = new RootView(rootDir, fileSystem, fileSystemService);
-    val releaseView = new ReleaseView(rootDir, fileSystem, fileSystemService);
+    val rootView = new RootView(fileSystem, fileSystemService, pathResolver);
+    val releaseView = new ReleaseView(fileSystem, fileSystemService, pathResolver);
 
     return new DownloadFileSystem(rootView, releaseView);
   }
@@ -65,15 +73,11 @@ public class ServiceConfig {
   }
 
   private DownloadFilesReader downloadFilesReader() {
-    return new DownloadFilesReader(getRootPath(), fileSystem);
+    return new DownloadFilesReader(fileSystem, pathResolver);
   }
 
   private Path getRootPath() {
     return new Path(jobProperties.getInputDir());
-  }
-
-  private static String getRootDir(String inputDir) {
-    return inputDir.startsWith("/") ? inputDir : new File(inputDir).getAbsolutePath();
   }
 
 }

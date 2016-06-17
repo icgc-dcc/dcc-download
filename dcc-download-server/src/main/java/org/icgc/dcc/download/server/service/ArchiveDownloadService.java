@@ -54,12 +54,15 @@ import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.JobResponse;
+import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.io.GzipStreamer;
 import org.icgc.dcc.download.server.io.RealFileStreamer;
 import org.icgc.dcc.download.server.io.TarStreamer;
+import org.icgc.dcc.download.server.model.DataFiles;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.model.Job;
+import org.icgc.dcc.download.server.repository.DataFilesRepository;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.icgc.dcc.download.server.utils.DfsPaths;
 import org.icgc.dcc.download.server.utils.Responses;
@@ -81,6 +84,10 @@ public class ArchiveDownloadService {
   private final FileSystem fileSystem;
   @NonNull
   private final JobRepository jobRepository;
+  @NonNull
+  private final DataFilesRepository dataFilesRepository;
+  @NonNull
+  private final PathResolver pathResolver;
 
   public String submitDownloadRequest(SubmitJobRequest request) {
     val downloadFiles = getDataTypeFiles(request);
@@ -89,13 +96,14 @@ public class ArchiveDownloadService {
         .fileSizeBytes(resolveFileSize(downloadFiles))
         .donorIds(request.getDonorIds())
         .dataTypes(request.getDataTypes())
-        .dataFiles(downloadFiles)
         .id(jobId)
         .jobInfo(request.getJobInfo())
         .status(SUCCEEDED)
         .submissionDate(request.getSubmissionTime())
         .build();
+
     jobRepository.save(job);
+    dataFilesRepository.save(new DataFiles(jobId, fileSystemService.getCurrentRelease(), downloadFiles));
 
     return jobId;
   }
@@ -134,7 +142,7 @@ public class ArchiveDownloadService {
     }
 
     val release = fileSystemService.getCurrentRelease();
-    val downloadFiles = job.getDataFiles();
+    val downloadFiles = dataFilesRepository.findById(jobId).getDataFiles();
     val dataTypes = job.getDataTypes();
 
     return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
@@ -155,7 +163,7 @@ public class ArchiveDownloadService {
         dataType);
 
     val release = fileSystemService.getCurrentRelease();
-    val downloadFiles = filterDataFiles(job.getDataFiles(), dataType);
+    val downloadFiles = filterDataFiles(dataFilesRepository.findById(jobId).getDataFiles(), dataType);
 
     return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
   }
@@ -231,10 +239,10 @@ public class ArchiveDownloadService {
     // Convert OutputStream to InputStream http://blog.ostermiller.org/convert-java-outputstream-inputstream
     if (headers.size() == 1) {
       log.info("Creating gzip streamer for data types {}", dataTypes);
-      return getGzipStreamer(downloadFiles, fileSizes, headers, output);
+      return getGzipStreamer(downloadFiles, fileSizes, headers, output, release);
     } else {
       log.info("Creating tar streamer for data types {}", dataTypes);
-      return getTarStreamer(downloadFiles, fileSizes, headers, output);
+      return getTarStreamer(downloadFiles, fileSizes, headers, output, release);
     }
   }
 
@@ -250,15 +258,15 @@ public class ArchiveDownloadService {
   }
 
   private FileStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
-      Map<DownloadDataType, String> headers, OutputStream output) {
+      Map<DownloadDataType, String> headers, OutputStream output, String release) {
     val tarOut = createTarOutputStream(output);
-    val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut);
+    val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut, release);
     return new TarStreamer(tarOut, gzipStreamer);
   }
 
   private GzipStreamer getGzipStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
-      Map<DownloadDataType, String> headers, OutputStream output) {
-    return new GzipStreamer(fileSystem, downloadFiles, fileSizes, headers, output);
+      Map<DownloadDataType, String> headers, OutputStream output, String release) {
+    return new GzipStreamer(fileSystem, downloadFiles, fileSizes, headers, output, pathResolver, release);
   }
 
   private Map<DownloadDataType, String> resolveHeaders(String release, Collection<DownloadDataType> dataTypes) {

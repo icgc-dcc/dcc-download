@@ -59,7 +59,6 @@ public class Properties {
   public static class JobProperties {
 
     private String inputDir;
-    private String outputDir;
 
   }
 

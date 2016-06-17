@@ -45,14 +45,15 @@ import org.icgc.dcc.download.server.service.FileSystemService;
 @Slf4j
 public class ReleaseView extends AbstractFileSystemView {
 
-  public ReleaseView(String rootDir, FileSystem fileSystem, @NonNull FileSystemService fsService) {
-    super(rootDir, fileSystem, fsService);
+  public ReleaseView(FileSystem fileSystem, @NonNull FileSystemService fsService,
+      @NonNull PathResolver pathResolver) {
+    super(fileSystem, fsService, pathResolver);
   }
 
   public List<DownloadFile> listRelease(@NonNull String releaseName) {
     val current = "current".equals(releaseName);
     val actualReleaseName = current ? currentRelease : releaseName;
-    val hdfsPath = toHdfsPath(actualReleaseName);
+    val hdfsPath = pathResolver.toHdfsPath("/" + actualReleaseName);
     ensurePathExistence(hdfsPath);
 
     val releaseFiles = HadoopUtils.lsAll(fileSystem, hdfsPath);
@@ -149,7 +150,7 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   private Path getSummaryFilesPath(String releaseName) {
-    val summaryPath = new Path(PATH.join(rootDir, releaseName, SUMMARY_FILES));
+    val summaryPath = new Path(PATH.join(pathResolver.getRootDir(), releaseName, SUMMARY_FILES));
     log.debug("'{}' summary path: {}", releaseName, summaryPath);
 
     return summaryPath;
