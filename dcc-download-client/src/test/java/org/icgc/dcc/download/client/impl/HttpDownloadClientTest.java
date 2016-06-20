@@ -91,7 +91,7 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   }
 
   private static void stubSubmitJobRequest() {
-    stubFor(post(urlEqualTo("/jobs"))
+    stubFor(post(urlEqualTo("/downloads"))
         // Stubbing of body fails because of the submissionTime
 
         // .withRequestBody(equalToJson("{\"dataTypes\":[\"DONOR\",\"SSM_CONTROLLED\",\"SPECIMEN\"],"
@@ -104,7 +104,7 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   }
 
   private static void stubGetSizesRequest() {
-    stubFor(post(urlEqualTo("/stats")).withRequestBody(equalToJson("{\"donorIds\":[\"DO1\"]}"))
+    stubFor(post(urlEqualTo("/downloads/size")).withRequestBody(equalToJson("{\"donorIds\":[\"DO1\"]}"))
         .willReturn(aResponse()
             .withBody("{\"sizes\":{\"DONOR\":1,\"SSM_CONTROLLED\":2,\"SAMPLE\":0,\"SPECIMEN\":1}}")
             .withHeader(CONTENT_TYPE, JSON_UTF_8.toString())
