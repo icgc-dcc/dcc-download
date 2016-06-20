@@ -15,35 +15,17 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.endpoint;
 
-import static lombok.AccessLevel.PRIVATE;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 
-import org.icgc.dcc.download.server.endpoint.BadRequestException;
-import org.icgc.dcc.download.server.endpoint.ForbiddenException;
-import org.icgc.dcc.download.server.endpoint.NotFoundException;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class Responses {
+@ResponseStatus(FORBIDDEN)
+public class ForbiddenException extends RuntimeException {
 
-  public static void throwForbiddenException() {
-    throw new ForbiddenException("Invalid token. Access denied.");
-  }
-
-  public static void throwJobNotFoundException(String jobId) {
-    throw new NotFoundException("Failed to find job with ID " + jobId);
-  }
-
-  public static void throwBadRequestException(String message) {
-    throw new BadRequestException(message);
-  }
-
-  public static void throwPathNotFoundException(String warnMessage) {
-    log.warn(warnMessage);
-    throw new NotFoundException("Malformed path");
+  public ForbiddenException(String message) {
+    super(message);
   }
 
 }

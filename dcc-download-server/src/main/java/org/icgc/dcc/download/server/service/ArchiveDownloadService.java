@@ -190,6 +190,17 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, Collections.singleton(downloadDataType), output));
   }
 
+  public boolean isUserDownload(@NonNull String id, @NonNull String user) {
+    val job = jobRepository.findById(id);
+    if (job == null) {
+      return false;
+    }
+
+    val allowedUser = job.getJobInfo().getUser();
+
+    return allowedUser.equals(user);
+  }
+
   private Set<String> getProject(Optional<String> project, String release) {
     if (project.isPresent()) {
       Collections.singleton(project.get());

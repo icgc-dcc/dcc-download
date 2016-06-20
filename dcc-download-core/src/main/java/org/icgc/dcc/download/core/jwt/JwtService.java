@@ -57,7 +57,7 @@ import com.nimbusds.jwt.SignedJWT;
  * http://connect2id.com/products/nimbus-jose-jwt/examples/signed-and-encrypted-jwt
  */
 @Slf4j
-public final class JwtService {
+public class JwtService {
 
   /**
    * Constants.

@@ -17,9 +17,13 @@
  */
 package org.icgc.dcc.download.core.jwt;
 
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Value
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class JwtConfig {
 
   String sharedSecret;

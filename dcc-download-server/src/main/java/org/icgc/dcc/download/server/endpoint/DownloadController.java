@@ -17,9 +17,12 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.download.server.utils.Requests.getRequestPath;
+import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
+import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -36,6 +39,8 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.jwt.JwtService;
+import org.icgc.dcc.download.core.model.TokenPayload;
 import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.DataTypeSizesResponse;
@@ -47,6 +52,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.common.io.Files;
@@ -60,6 +66,8 @@ public class DownloadController {
 
   @NonNull
   private final ArchiveDownloadService downloadService;
+  @NonNull
+  private final JwtService tokenService;
 
   @RequestMapping(method = POST)
   public String submitJob(@RequestBody SubmitJobRequest request) {
@@ -72,21 +80,27 @@ public class DownloadController {
     return downloadService.submitDownloadRequest(request);
   }
 
-  @RequestMapping(value = "/{jobId:.+}", method = GET)
-  public void download(@PathVariable("jobId") String jobId, HttpServletResponse response) throws IOException {
-    val output = response.getOutputStream();
-    val streamerOpt = downloadService.getArchiveStreamer(jobId, output);
-    streamArchive(Optional.of(jobId), streamerOpt, response);
-  }
+  @RequestMapping(method = GET)
+  public void downloadArchive(
+      @RequestParam("token") String token,
+      @RequestParam(value = "type", required = false) String dataType,
+      @NonNull HttpServletResponse response) throws IOException {
+    log.debug("Received download request. Token: '{}'. Type: '{}'", token, dataType);
+    val tokenPayload = getTokenPayload(token);
 
-  @RequestMapping(value = "/{jobId:.+}/{dataType}", method = GET)
-  public void downloadDataType(
-      @PathVariable("jobId") String jobId,
-      @PathVariable("dataType") String dataType,
-      HttpServletResponse response) throws IOException {
-    val downloadDataType = DownloadDataType.valueOf(dataType.toUpperCase());
+    val jobId = tokenPayload.getId();
+    val user = tokenPayload.getUser();
+    if (!downloadService.isUserDownload(jobId, user)) {
+      log.warn("Access forbidden. User: '{}'. Download ID: '{}'", user, jobId);
+      throwForbiddenException();
+    }
+
     val output = response.getOutputStream();
-    val streamerOpt = downloadService.getArchiveStreamer(jobId, output, downloadDataType);
+    val downloadDataType = getDownloadDataType(dataType);
+    val streamerOpt = downloadDataType.isPresent() ?
+        downloadService.getArchiveStreamer(jobId, output, downloadDataType.get()) :
+        downloadService.getArchiveStreamer(jobId, output);
+
     streamArchive(Optional.of(jobId), streamerOpt, response);
   }
 
@@ -116,6 +130,18 @@ public class DownloadController {
     return new DataTypeSizesResponse(filesSize);
   }
 
+  private TokenPayload getTokenPayload(@NonNull String token) {
+    TokenPayload payload = null;
+    try {
+      payload = tokenService.parseToken(token);
+    } catch (Exception e) {
+      log.warn("Failed to parse token '{}'", token);
+      throwBadRequestException("Invalid download token.");
+    }
+
+    return payload;
+  }
+
   private static boolean isValid(SubmitJobRequest request) {
     boolean valid = true;
     val donorIds = request.getDonorIds();
@@ -127,11 +153,19 @@ public class DownloadController {
     }
 
     val jobInfo = request.getJobInfo();
-    if (jobInfo == null) {
+    if (jobInfo == null || isNullOrEmpty(jobInfo.getUser())) {
       valid = false;
     }
 
     return valid;
+  }
+
+  private static Optional<DownloadDataType> getDownloadDataType(String dataType) {
+    if (isNullOrEmpty(dataType)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(DownloadDataType.valueOf(dataType.toUpperCase()));
   }
 
   private static String getFileMimeType(String filename) {

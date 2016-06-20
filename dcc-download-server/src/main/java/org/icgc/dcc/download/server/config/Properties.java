@@ -23,6 +23,7 @@ import java.util.Map;
 
 import lombok.Data;
 
+import org.icgc.dcc.download.core.jwt.JwtConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +54,12 @@ public class Properties {
   @ConfigurationProperties(prefix = "mail")
   public MailProperties mailProperties() {
     return new MailProperties();
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "jwt")
+  public JwtConfig jwtConfig() {
+    return new JwtConfig();
   }
 
   @Data
