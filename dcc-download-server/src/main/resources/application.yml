@@ -53,10 +53,6 @@ download.server:
 # Spring
 spring:
   profiles: development
-
-# Spark  
-spark:
-  master: "local"
   
 # Hadoop
 hadoop:
@@ -71,20 +67,13 @@ spring.data.mongodb:
 job:
   # The inputDir is configured to be used in Eclipse
   inputDir: ../dcc-download-job/src/test/resources/fixtures/input
-  outputDir: /tmp/dcc-download
 
-download.server:
-  recordWeightsFile: src/main/resources/record-weights.txt
 
 ---
 
 # Spring
 spring:
   profiles: remote
-
-# Spark  
-spark:
-  master: "local"
 
 # Hadoop
 hadoop:
@@ -99,11 +88,9 @@ spring.data.mongodb:
 job:
   # The inputDir is configured to be used in Eclipse
   inputDir: /tmp/export-test
-  outputDir: /tmp/export-out-test
 
 download.server:
   hdfsUri: "hdfs://hnn1-dcc.res.oicr.on.ca"
-  recordWeightsFile: src/main/resources/record-weights.txt
   user: user
   password: pass
   

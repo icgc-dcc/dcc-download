@@ -36,13 +36,11 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.client.DownloadClientConfig;
-import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
 import org.icgc.dcc.download.client.util.AbstractHttpTest;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
@@ -53,9 +51,6 @@ import com.google.common.collect.ImmutableSet;
 public class HttpDownloadClientTest extends AbstractHttpTest {
 
   private static final String JOB_ID = "job123";
-
-  @Mock
-  ArchiveOutputStream outputStream;
 
   HttpDownloadClient downloadClient;
 

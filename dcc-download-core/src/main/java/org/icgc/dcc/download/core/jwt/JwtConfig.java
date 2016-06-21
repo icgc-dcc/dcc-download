@@ -28,6 +28,6 @@ public class JwtConfig {
 
   String sharedSecret;
   String aesKey;
-  int ttlHours;
+  int ttlHours = 1;
 
 }
