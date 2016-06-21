@@ -149,7 +149,7 @@ public class DownloadControllerTest {
 
   @Test
   public void testDownloadArchive() throws Exception {
-    when(tokenService.parseToken("zzz123")).thenReturn(new TokenPayload("id1", "user1"));
+    when(tokenService.parseToken("zzz123")).thenReturn(new TokenPayload("id1", "user1", null));
     when(downloadService.isUserDownload("id1", "user1")).thenReturn(true);
     when(downloadService.getArchiveStreamer(eq("id1"), any(OutputStream.class))).thenReturn(Optional.of(streamer));
     when(streamer.getName()).thenReturn("1.tar");
@@ -170,7 +170,7 @@ public class DownloadControllerTest {
 
   @Test
   public void testDownloadArchive_permissionDenied() throws Exception {
-    when(tokenService.parseToken("zzz123")).thenReturn(new TokenPayload("id1", "user1"));
+    when(tokenService.parseToken("zzz123")).thenReturn(new TokenPayload("id1", "user1", null));
     when(downloadService.isUserDownload("id1", "user1")).thenReturn(false);
 
     mockMvc

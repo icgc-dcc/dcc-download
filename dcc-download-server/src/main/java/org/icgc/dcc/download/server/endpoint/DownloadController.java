@@ -20,7 +20,6 @@ package org.icgc.dcc.download.server.endpoint;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
-import static org.icgc.dcc.download.server.utils.Requests.getRequestPath;
 import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
@@ -30,7 +29,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import java.io.IOException;
 import java.util.Optional;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import lombok.NonNull;
@@ -104,9 +102,12 @@ public class DownloadController {
     streamArchive(Optional.of(jobId), streamerOpt, response);
   }
 
-  @RequestMapping(value = "/static/**", method = GET)
-  public void staticDownload(HttpServletRequest request, HttpServletResponse response) throws IOException {
-    val requestPath = getRequestPath(request);
+  @RequestMapping(value = "/static", method = GET)
+  public void staticDownload(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
+    log.debug("Received download request. Token: '{}'", token);
+    val tokenPayload = getTokenPayload(token);
+    val requestPath = tokenPayload.getPath();
+    log.debug("Static path: '{}'", requestPath);
     val filePath = getFsPath(requestPath);
     log.info("Getting download archive for path '{}'", filePath);
 

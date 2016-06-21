@@ -28,5 +28,6 @@ public class TokenPayload {
 
   String id;
   String user;
+  String path;
 
 }

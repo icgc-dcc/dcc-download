@@ -19,7 +19,6 @@ package org.icgc.dcc.download.core.jwt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 
 import java.time.Duration;
@@ -64,6 +63,7 @@ public class JwtService {
    */
   private static final String DOWNLOAD_USER_NAME = "user";
   private static final String DOWNLOAD_ID_NAME = "id";
+  private static final String DOWNLOAD_PATH_NAME = "path";
 
   /**
    * Configuration.
@@ -105,7 +105,15 @@ public class JwtService {
 
   @SneakyThrows
   public String createToken(@NonNull String downloadId, @NonNull String user) {
-    val signedJwt = createSignedJwt(new TokenPayload(downloadId, user));
+    val signedJwt = createSignedJwt(new TokenPayload(downloadId, user, null));
+    val encryptedJwt = encryptJwt(signedJwt);
+
+    return encryptedJwt.serialize();
+  }
+
+  @SneakyThrows
+  public String createToken(@NonNull String path) {
+    val signedJwt = createSignedJwt(new TokenPayload(null, null, path));
     val encryptedJwt = encryptJwt(signedJwt);
 
     return encryptedJwt.serialize();
@@ -138,6 +146,7 @@ public class JwtService {
         .expirationTime(getExpirationTime())
         .claim(DOWNLOAD_ID_NAME, tokenPayload.getId())
         .claim(DOWNLOAD_USER_NAME, tokenPayload.getUser())
+        .claim(DOWNLOAD_PATH_NAME, tokenPayload.getPath())
         .build();
 
     val signedJWT = new SignedJWT(JWS_HEADER, claimsSet);
@@ -204,8 +213,9 @@ public class JwtService {
   private static TokenPayload convert(ObjectNode json) {
     val id = getTokenValue(json, DOWNLOAD_ID_NAME);
     val user = getTokenValue(json, DOWNLOAD_USER_NAME);
+    val path = getTokenValue(json, DOWNLOAD_PATH_NAME);
 
-    return new TokenPayload(id, user);
+    return new TokenPayload(id, user, path);
   }
 
   private static void checkArguments(String secret, String aesKey) {
@@ -230,12 +240,11 @@ public class JwtService {
   }
 
   private static String getTokenValue(ObjectNode json, String key) {
-    val value = json.get(key).asText();
-    if (isNullOrEmpty(value)) {
-      throw new InvalidJwtTokenException(format("Failed to get '%s' from '%s'.", key, json));
+    if (json.has(key)) {
+      return json.get(key).asText();
     }
 
-    return value;
+    return null;
   }
 
 }

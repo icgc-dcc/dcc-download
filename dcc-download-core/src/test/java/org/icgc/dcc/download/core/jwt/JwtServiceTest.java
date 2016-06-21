@@ -54,6 +54,20 @@ public class JwtServiceTest {
 
     assertThat(tokenPayload.getId()).isEqualTo("zzz123");
     assertThat(tokenPayload.getUser()).isEqualTo("ollie.operator");
+    assertThat(tokenPayload.getPath()).isNull();
+  }
+
+  @Test
+  public void integrationTest_path() {
+    val token = service.createToken("/some/download/path");
+    log.info("Token: {}", token);
+    val tokenPayload = service.parseToken(token);
+
+    log.info("Payload: {}", tokenPayload);
+
+    assertThat(tokenPayload.getId()).isNull();
+    assertThat(tokenPayload.getUser()).isNull();
+    assertThat(tokenPayload.getPath()).isEqualTo("/some/download/path");
   }
 
   @Test(expected = InvalidJwtTokenException.class)
