@@ -70,13 +70,9 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
 
   @Test
   public void testGetReleaseTimes() throws Exception {
-    val properties = new Properties.JobProperties();
-    properties.setInputDir(new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath());
-    pathResolver = new PathResolver(properties);
-    downloadFilesReader = new DownloadFilesReader(fileSystem, pathResolver);
     val releaseTimes = downloadFilesReader.getReleaseTimes();
     assertThat(releaseTimes).hasSize(1);
-    assertThat(releaseTimes.get("release_21")).isEqualTo(1464896955000L);
+    assertThat(releaseTimes.get("release_21")).isEqualTo(getModificationTime("release_21"));
   }
 
   private Path getReleasePath() {

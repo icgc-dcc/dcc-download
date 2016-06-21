@@ -17,11 +17,16 @@
  */
 package org.icgc.dcc.download.server.utils;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.val;
 
 import org.icgc.dcc.download.core.model.DownloadFile;
@@ -39,6 +44,10 @@ public abstract class AbstractFsTest extends AbstractTest {
     super.setUp();
     prepareInput();
     this.rootDir = workingDir.getAbsolutePath();
+  }
+
+  protected long getModificationTime(@NonNull String path) {
+    return getModificationTime(new File(workingDir, path));
   }
 
   public static DownloadFile newDir(String name) {
@@ -72,6 +81,14 @@ public abstract class AbstractFsTest extends AbstractTest {
     assertThat(actualFile.getType()).isEqualTo(expectedFile.getType());
     assertThat(actualFile.getDate()).isEqualTo(expectedFile.getDate());
     assertThat(actualFile.getSize()).isEqualTo(expectedFile.getSize());
+  }
+
+  @SneakyThrows
+  public static long getModificationTime(@NonNull File file) {
+    checkState(file.exists(), "File doesn't exist: %s", file.getAbsolutePath());
+    val fileTime = Files.getLastModifiedTime(Paths.get(file.toURI()));
+
+    return fileTime.toMillis();
   }
 
 }

@@ -24,7 +24,6 @@ import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_OPEN;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.util.Optional;
 
 import lombok.val;
@@ -56,10 +55,8 @@ public class ReleaseViewTest extends AbstractFsTest {
   @Override
   public void setUp() {
     super.setUp();
-    val rootDir = new File(INPUT_TEST_FIXTURES_DIR).getAbsolutePath();
-
     val properties = new Properties.JobProperties();
-    properties.setInputDir(rootDir);
+    properties.setInputDir(workingDir.getAbsolutePath());
     val pathResolver = new PathResolver(properties);
 
     this.releaseView = new ReleaseView(getDefaultLocalFileSystem(), fsService, pathResolver);
@@ -73,7 +70,7 @@ public class ReleaseViewTest extends AbstractFsTest {
     val files = releaseView.listRelease("release_21");
     log.info("Files: {}", files);
     verifyDownloadFiles(files, of(
-        newFile("/release_21/README.txt", 13L, 1464725716000L),
+        newFile("/release_21/README.txt", 13L, getModificationTime("release_21/README.txt")),
         newDir("/release_21/Projects", 321L),
         newDir("/release_21/Summary", 321L)));
   }
@@ -83,7 +80,7 @@ public class ReleaseViewTest extends AbstractFsTest {
     val files = releaseView.listRelease("current");
     log.info("{}", files);
     verifyDownloadFiles(files, of(
-        newFile("/current/README.txt", 13L, 1464725716000L),
+        newFile("/current/README.txt", 13L, getModificationTime("release_21/README.txt")),
         newDir("/current/Projects", 321L),
         newDir("/current/Summary", 321L)));
   }
@@ -124,10 +121,11 @@ public class ReleaseViewTest extends AbstractFsTest {
     val files = releaseView.listReleaseSummary("release_21");
     verifyDownloadFiles(files,
         of(
-            newFile("/release_21/Summary/README.txt", 22, 1464800156000L),
+            newFile("/release_21/Summary/README.txt", 22, getModificationTime("release_21/summary_files/README.txt")),
             newFile("/release_21/Summary/donor.all_projects.tsv.gz", 8, 321),
             newFile("/release_21/Summary/sample.all_projects.tsv.gz", 2, 321),
-            newFile("/release_21/Summary/simple_somatic_mutation.aggregated.vcf.gz", 8, 1464800207000L)
+            newFile("/release_21/Summary/simple_somatic_mutation.aggregated.vcf.gz", 8,
+                getModificationTime("release_21/summary_files/simple_somatic_mutation.aggregated.vcf.gz"))
         ));
   }
 
@@ -139,10 +137,11 @@ public class ReleaseViewTest extends AbstractFsTest {
     log.info("Files: {}", files);
     verifyDownloadFiles(files,
         of(
-            newFile("/current/Summary/README.txt", 22, 1464800156000L),
+            newFile("/current/Summary/README.txt", 22, getModificationTime("release_21/summary_files/README.txt")),
             newFile("/current/Summary/donor.all_projects.tsv.gz", 8, 321),
             newFile("/current/Summary/sample.all_projects.tsv.gz", 2, 321),
-            newFile("/current/Summary/simple_somatic_mutation.aggregated.vcf.gz", 8, 1464800207000L)
+            newFile("/current/Summary/simple_somatic_mutation.aggregated.vcf.gz", 8,
+                getModificationTime("release_21/summary_files/simple_somatic_mutation.aggregated.vcf.gz"))
         ));
   }
 
