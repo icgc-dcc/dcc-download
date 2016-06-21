@@ -19,18 +19,17 @@ package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
-import org.icgc.dcc.common.core.util.Splitters;
+import org.springframework.web.servlet.HandlerMapping;
 
 @NoArgsConstructor(access = PRIVATE)
 public final class Requests {
 
-  public static List<String> splitValues(@NonNull String values) {
-    return Splitters.COMMA.splitToList(values);
+  public static String getRequestPath(HttpServletRequest request) {
+    return (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
   }
 
 }

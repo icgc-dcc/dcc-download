@@ -24,7 +24,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import org.icgc.dcc.download.core.model.DownloadDataType;
+import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;

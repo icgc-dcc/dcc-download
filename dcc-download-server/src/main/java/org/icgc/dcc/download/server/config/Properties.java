@@ -23,6 +23,7 @@ import java.util.Map;
 
 import lombok.Data;
 
+import org.icgc.dcc.download.core.jwt.JwtConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,12 +36,6 @@ public class Properties {
   @ConfigurationProperties(prefix = "job")
   public JobProperties jobProperties() {
     return new JobProperties();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "spark")
-  public SparkProperties sparkProperties() {
-    return new SparkProperties();
   }
 
   @Bean
@@ -61,26 +56,21 @@ public class Properties {
     return new MailProperties();
   }
 
+  @Bean
+  @ConfigurationProperties(prefix = "jwt")
+  public JwtConfig jwtConfig() {
+    return new JwtConfig();
+  }
+
   @Data
   public static class JobProperties {
 
     private String inputDir;
-    private String outputDir;
-
-  }
-
-  @Data
-  public static class SparkProperties {
-
-    private String master;
-    private Map<String, String> properties = newLinkedHashMap();
 
   }
 
   @Data
   public static class DownloadServerProperties {
-
-    private String recordWeightsFile;
 
   }
 

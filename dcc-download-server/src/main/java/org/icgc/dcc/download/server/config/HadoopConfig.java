@@ -27,10 +27,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.download.server.config.Properties.HadoopProperties;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.context.annotation.Primary;
 
 /**
  * Hadoop configuration.
@@ -44,22 +42,15 @@ public class HadoopConfig {
   /**
    * Dependencies.
    */
-  @Value("#{sparkContext.hadoopConfiguration()}")
-  Configuration conf;
   @Autowired
   HadoopProperties hadoop;
 
   @Bean
-  @Primary
-  public Configuration hadoopConf() {
-    setAll(conf, hadoop.getProperties());
-
-    return conf;
-  }
-
-  @Bean
   public FileSystem fileSystem() throws IOException {
-    return FileSystem.get(hadoopConf());
+    val hadoopConfig = new Configuration();
+    setAll(hadoopConfig, hadoop.getProperties());
+
+    return FileSystem.get(hadoopConfig);
   }
 
   public static void setAll(@NonNull Configuration conf, @NonNull Map<String, String> properties) {

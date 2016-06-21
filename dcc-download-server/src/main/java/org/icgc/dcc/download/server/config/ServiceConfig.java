@@ -17,56 +17,74 @@
  */
 package org.icgc.dcc.download.server.config;
 
-import java.util.Map;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-import lombok.NonNull;
 import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.icgc.dcc.download.job.core.DefaultDownloadJob;
-import org.icgc.dcc.download.server.component.RecordStatsReader;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.core.jwt.JwtConfig;
+import org.icgc.dcc.download.core.jwt.JwtService;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
+import org.icgc.dcc.download.server.fs.DownloadFileSystem;
+import org.icgc.dcc.download.server.fs.DownloadFilesReader;
+import org.icgc.dcc.download.server.fs.PathResolver;
+import org.icgc.dcc.download.server.fs.ReleaseView;
+import org.icgc.dcc.download.server.fs.RootView;
+import org.icgc.dcc.download.server.repository.DataFilesRepository;
 import org.icgc.dcc.download.server.repository.JobRepository;
-import org.icgc.dcc.download.server.service.DownloadService;
-import org.icgc.dcc.download.server.service.RecordStatsService;
+import org.icgc.dcc.download.server.service.ArchiveDownloadService;
+import org.icgc.dcc.download.server.service.FileSystemService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.google.common.collect.Maps;
 
 @Configuration
 public class ServiceConfig {
 
-  // TODO: Externalize
-  private static final int THREADS_NUM = 2;
+  @Autowired
+  private JobProperties jobProperties;
+  @Autowired
+  private FileSystem fileSystem;
+  @Autowired
+  private PathResolver pathResolver;
 
   @Bean
-  public RecordStatsService recordStatsService(@NonNull RecordStatsReader statsReader) {
-    return new RecordStatsService(statsReader.readStatsTable(), statsReader.resolveRecordWeights());
+  public ArchiveDownloadService archiveDownloadService(
+      FileSystemService fileSystemService,
+      JobRepository jobRepository,
+      DataFilesRepository dataFilesRepository) {
+    return new ArchiveDownloadService(
+        getRootPath(),
+        fileSystemService,
+        fileSystem,
+        jobRepository,
+        dataFilesRepository,
+        pathResolver);
   }
 
   @Bean
-  public CompletionService<String> completionService() {
-    val executor = Executors.newFixedThreadPool(THREADS_NUM);
+  public DownloadFileSystem downloadFileSystem(FileSystemService fileSystemService) {
+    val rootView = new RootView(fileSystem, fileSystemService, pathResolver);
+    val releaseView = new ReleaseView(fileSystem, fileSystemService, pathResolver);
 
-    return new ExecutorCompletionService<String>(executor);
+    return new DownloadFileSystem(rootView, releaseView);
   }
 
   @Bean
-  public Map<String, Future<String>> submittedJobs() {
-    return Maps.newConcurrentMap();
+  public FileSystemService fileSystemService() {
+    return new FileSystemService(downloadFilesReader());
   }
 
   @Bean
-  public DownloadService downloadService(@NonNull JavaSparkContext sparkContext, @NonNull FileSystem fileSystem,
-      @NonNull JobProperties jobProperties, @NonNull JobRepository repository) {
-    return new DownloadService(sparkContext, fileSystem, jobProperties, completionService(), repository,
-        submittedJobs(), new DefaultDownloadJob());
+  public JwtService tokenService(JwtConfig config) {
+    return new JwtService(config);
+  }
+
+  private DownloadFilesReader downloadFilesReader() {
+    return new DownloadFilesReader(fileSystem, pathResolver);
+  }
+
+  private Path getRootPath() {
+    return new Path(jobProperties.getInputDir());
   }
 
 }

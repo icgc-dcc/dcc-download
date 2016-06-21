@@ -25,10 +25,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.JSON_UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.core.model.DownloadDataType.DONOR;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SAMPLE;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SPECIMEN;
-import static org.icgc.dcc.download.core.model.DownloadDataType.SSM_CONTROLLED;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SPECIMEN;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_CONTROLLED;
 
 import java.util.Collections;
 
@@ -36,13 +36,11 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.client.DownloadClientConfig;
-import org.icgc.dcc.download.client.fs.ArchiveOutputStream;
 import org.icgc.dcc.download.client.util.AbstractHttpTest;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
@@ -54,15 +52,12 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
 
   private static final String JOB_ID = "job123";
 
-  @Mock
-  ArchiveOutputStream outputStream;
-
   HttpDownloadClient downloadClient;
 
   @Before
   public void setUp() {
     val config = new DownloadClientConfig().baseUrl(getServerUrl()).requestLoggingEnabled(true);
-    downloadClient = new HttpDownloadClient(outputStream, config);
+    downloadClient = new HttpDownloadClient(config);
   }
 
   @Test
@@ -91,7 +86,7 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   }
 
   private static void stubSubmitJobRequest() {
-    stubFor(post(urlEqualTo("/jobs"))
+    stubFor(post(urlEqualTo("/downloads"))
         // Stubbing of body fails because of the submissionTime
 
         // .withRequestBody(equalToJson("{\"dataTypes\":[\"DONOR\",\"SSM_CONTROLLED\",\"SPECIMEN\"],"
@@ -104,7 +99,7 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   }
 
   private static void stubGetSizesRequest() {
-    stubFor(post(urlEqualTo("/stats")).withRequestBody(equalToJson("{\"donorIds\":[\"DO1\"]}"))
+    stubFor(post(urlEqualTo("/downloads/size")).withRequestBody(equalToJson("{\"donorIds\":[\"DO1\"]}"))
         .willReturn(aResponse()
             .withBody("{\"sizes\":{\"DONOR\":1,\"SSM_CONTROLLED\":2,\"SAMPLE\":0,\"SPECIMEN\":1}}")
             .withHeader(CONTENT_TYPE, JSON_UTF_8.toString())
