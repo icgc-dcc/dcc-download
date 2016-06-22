@@ -15,33 +15,34 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.core.request;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import static java.lang.String.format;
+import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.download.core.util.Endpoints.DOWNLOADS_PATH;
+import static org.icgc.dcc.download.core.util.Endpoints.STATIC_DOWNLOADS_PATH;
+
+import java.net.URI;
+
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.DownloadFile;
-import org.icgc.dcc.download.core.model.JobUiInfo;
-import org.icgc.dcc.download.core.response.JobResponse;
 
-public interface DownloadClient {
+@NoArgsConstructor(access = PRIVATE)
+public final class Redirects {
 
-  JobResponse getJob(String jobId);
+  public static URI getStaticFileRedirect(@NonNull String serverUrl, @NonNull String token) {
+    return URI.create(serverUrl + STATIC_DOWNLOADS_PATH + "?token=" + token);
+  }
 
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
+  public static URI getDynamicFileRedirect(@NonNull String serverUrl, @NonNull String token) {
+    return URI.create(serverUrl + DOWNLOADS_PATH + "?token=" + token);
+  }
 
-  boolean isServiceAvailable();
-
-  void setActiveDownload(String jobId);
-
-  void unsetActiveDownload(String jobId);
-
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo);
-
-  Collection<DownloadFile> listFiles(String path);
-
-  String getReadme(String token);
+  public static URI getDynamicFileRedirect(@NonNull String serverUrl, @NonNull String token,
+      @NonNull DownloadDataType type) {
+    return URI.create(format("%s%s?token=%s&type=%s", serverUrl, DOWNLOADS_PATH, token, type.getId()));
+  }
 
 }
