@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.io;
 
 import static com.google.common.collect.ImmutableList.of;
+import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
@@ -98,7 +99,7 @@ public class TarStreamerTest extends AbstractTest {
 
   private GzipStreamer createGzipStreamer(OutputStream output) {
     return new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output,
-        pathResolver, "release_21");
+        pathResolver, "release_21", emptyMap());
   }
 
   @SneakyThrows

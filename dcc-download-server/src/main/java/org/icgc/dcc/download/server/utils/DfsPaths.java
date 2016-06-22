@@ -76,11 +76,11 @@ public final class DfsPaths {
 
   private static final BiMap<DownloadDataType, String> FILE_NAMES = defineFileNames();
 
-  public static String getFileName(@NonNull DownloadDataType dataType) {
+  public static String getFileName(@NonNull DownloadDataType dataType, @NonNull Optional<String> suffix) {
     val fileName = FILE_NAMES.get(dataType);
     checkNotNull(fileName, "Failed to resolve file name from download data type %s", dataType);
 
-    return fileName;
+    return suffix.isPresent() ? fileName + suffix.get() : fileName;
   }
 
   public static String getRelease(String path) {
@@ -100,7 +100,10 @@ public final class DfsPaths {
       return Optional.empty();
     }
 
-    return Optional.of(pathParts.get(3));
+    val project = pathParts.get(3);
+    log.debug("Resolved project '{}' from path '{}'", project, path);
+
+    return Optional.of(project);
   }
 
   public static DownloadDataType getDownloadDataType(@NonNull String path) {

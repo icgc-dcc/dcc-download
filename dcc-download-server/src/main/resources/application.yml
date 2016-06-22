@@ -96,6 +96,11 @@ download.server:
   
 mail:
   enabled: false
+  
+jwt:
+  sharedSecret: "secret678901234567890123456789012"
+  aesKey: "0123456789012345"
+  ttlHours: 1
 ---
 
 # Spring

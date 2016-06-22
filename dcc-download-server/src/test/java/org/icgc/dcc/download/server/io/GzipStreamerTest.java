@@ -20,9 +20,11 @@ package org.icgc.dcc.download.server.io;
 import static com.google.common.collect.ImmutableList.of;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
+import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_OPEN;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 import static org.mockito.Mockito.mock;
 
@@ -84,7 +86,7 @@ public class GzipStreamerTest extends AbstractTest {
 
     gzipStreamer =
         new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output,
-            pathResolver, "release_21");
+            pathResolver, "release_21", emptyMap());
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
@@ -105,7 +107,7 @@ public class GzipStreamerTest extends AbstractTest {
     val output = new BufferedOutputStream(new FileOutputStream(testFile));
 
     gzipStreamer = new GzipStreamer(getDefaultLocalFileSystem(), getMultipleDownloadFiles(),
-        getMultipleDownloadSizes(), getMultipleHeaders(), output, pathResolver, "release_21");
+        getMultipleDownloadSizes(), getMultipleHeaders(), output, pathResolver, "release_21", emptyMap());
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
@@ -137,8 +139,23 @@ public class GzipStreamerTest extends AbstractTest {
         getHeaders(),
         mock(OutputStream.class),
         pathResolver,
-        "release_21");
+        "release_21",
+        emptyMap());
     assertThat(gzipStreamer.getName()).isEqualTo("simple_somatic_mutation.open.tsv.gz");
+  }
+
+  @Test
+  public void testGetNextEntryName_withName() throws Exception {
+    gzipStreamer = new GzipStreamer(
+        mock(FileSystem.class),
+        singletonList(new DataTypeFile(rootDir + "/release_21/data/TST1-CA/DO001/ssm_open", of((short) 0), 1)),
+        emptyMap(),
+        getHeaders(),
+        mock(OutputStream.class),
+        pathResolver,
+        "release_21",
+        singletonMap(SSM_OPEN, "custom_name"));
+    assertThat(gzipStreamer.getName()).isEqualTo("custom_name");
   }
 
   private void assertDonorTestFile() throws Exception {

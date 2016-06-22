@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.fs;
 
 import static java.lang.String.format;
+import static java.util.Optional.empty;
 import static java.util.stream.Collectors.toList;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
@@ -122,7 +123,7 @@ public class ReleaseView extends AbstractFileSystemView {
   private DownloadFile createProjectFile(Entry<DownloadDataType, Long> entry, String releaseName, String project,
       long releaseDate) {
     val type = entry.getKey();
-    val name = format("%s.%s.tsv.gz", getFileName(type), project);
+    val name = format("%s.%s.tsv.gz", getFileName(type, empty()), project);
     val path = format("/%s/Projects/%s/%s", releaseName, project, name);
     val size = entry.getValue();
 

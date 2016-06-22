@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.io;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Optional.empty;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 
 import java.io.IOException;
@@ -28,13 +29,13 @@ import java.util.Map;
 
 import lombok.Cleanup;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
+import org.icgc.dcc.download.core.DownloadException;
 import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.utils.DataTypeFiles;
@@ -55,6 +56,7 @@ public class GzipStreamer implements FileStreamer {
   private final OutputStream output;
   private final PathResolver pathResolver;
   private final String release;
+  private final Map<DownloadDataType, String> fileNames;
 
   /**
    * State.
@@ -68,7 +70,8 @@ public class GzipStreamer implements FileStreamer {
       @NonNull Map<DownloadDataType, String> headers,
       @NonNull OutputStream output,
       @NonNull PathResolver pathResolver,
-      @NonNull String release) {
+      @NonNull String release,
+      @NonNull Map<DownloadDataType, String> fileNames) {
     this.fileSystem = fileSystem;
     this.downloadFiles = downloadFiles;
     this.fileSizes = fileSizes;
@@ -76,6 +79,7 @@ public class GzipStreamer implements FileStreamer {
     this.output = output;
     this.pathResolver = pathResolver;
     this.release = release;
+    this.fileNames = fileNames;
     checkArguments();
   }
 
@@ -99,7 +103,11 @@ public class GzipStreamer implements FileStreamer {
   }
 
   public String getNextEntryName() {
-    val nextEntryName = getFileName(getCurrentDownloadDataType()) + ".tsv.gz";
+    val downloadDataType = getCurrentDownloadDataType();
+    val nextEntryName = fileNames.containsKey(downloadDataType) ?
+        fileNames.get(downloadDataType) :
+        getFileName(downloadDataType, empty()) + ".tsv.gz";
+
     log.debug("Next entry name: {}", nextEntryName);
 
     return nextEntryName;
@@ -117,17 +125,21 @@ public class GzipStreamer implements FileStreamer {
     return nextEntryLength;
   }
 
-  @SneakyThrows
   public void streamEntry() {
-    val currentDownloadDataType = getCurrentDownloadDataType();
-    log.debug("Streaming '{}' entry...", currentDownloadDataType.getCanonicalName());
-    streamHeader();
+    try {
+      val currentDownloadDataType = getCurrentDownloadDataType();
+      log.debug("Streaming '{}' entry...", currentDownloadDataType.getCanonicalName());
+      streamHeader();
 
-    while (hasNext() && isSameDownloadDataType(currentDownloadDataType)) {
-      streamCurrentDataType();
-      currentDataFileIndex++;
+      while (hasNext() && isSameDownloadDataType(currentDownloadDataType)) {
+        streamCurrentDataType();
+        currentDataFileIndex++;
+      }
+      log.debug("Finished Streaming '{}' entry.", currentDownloadDataType.getCanonicalName());
+    } catch (Exception e) {
+      log.error("Got exception while streaming entry: ", e);
+      throw new DownloadException("An error occurred while streaming. Please contact the support.");
     }
-    log.debug("Finished Streaming '{}' entry.", currentDownloadDataType.getCanonicalName());
   }
 
   private boolean isSameDownloadDataType(DownloadDataType currentDownloadDataType) {

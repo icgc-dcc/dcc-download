@@ -21,6 +21,9 @@ import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.immutableEntry;
 import static java.lang.String.format;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonMap;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.Separators.DASH;
@@ -30,6 +33,7 @@ import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
 import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
 import static org.icgc.dcc.download.server.utils.DataTypeFiles.getDownloadDataType;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 
@@ -145,7 +149,7 @@ public class ArchiveDownloadService {
     val downloadFiles = dataFilesRepository.findById(jobId).getDataFiles();
     val dataTypes = job.getDataTypes();
 
-    return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
+    return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output, emptyMap()));
   }
 
   public Optional<FileStreamer> getArchiveStreamer(
@@ -165,7 +169,7 @@ public class ArchiveDownloadService {
     val release = fileSystemService.getCurrentRelease();
     val downloadFiles = filterDataFiles(dataFilesRepository.findById(jobId).getDataFiles(), dataType);
 
-    return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output));
+    return Optional.of(getArchiveStreamer(release, downloadFiles, dataTypes, output, emptyMap()));
   }
 
   public Optional<FileStreamer> getStaticArchiveStreamer(@NonNull String path, @NonNull OutputStream output) {
@@ -182,12 +186,13 @@ public class ArchiveDownloadService {
     log.info("Getting data files for projects: {}", projects);
     val downloadDataType = DfsPaths.getDownloadDataType(path);
     val downloadFiles = fileSystemService.getDataTypeFiles(release, projects, downloadDataType);
+    val fileNames = resolveFileNames(downloadDataType, projects);
 
     if (downloadFiles.isEmpty()) {
       return Optional.empty();
     }
 
-    return Optional.of(getArchiveStreamer(release, downloadFiles, Collections.singleton(downloadDataType), output));
+    return Optional.of(getArchiveStreamer(release, downloadFiles, singleton(downloadDataType), output, fileNames));
   }
 
   public boolean isUserDownload(@NonNull String id, @NonNull String user) {
@@ -203,7 +208,7 @@ public class ArchiveDownloadService {
 
   private Set<String> getProject(Optional<String> project, String release) {
     if (project.isPresent()) {
-      Collections.singleton(project.get());
+      return Collections.singleton(project.get());
     }
 
     Optional<List<String>> projectsOpt = fileSystemService.getReleaseProjects(release);
@@ -237,7 +242,8 @@ public class ArchiveDownloadService {
       @NonNull String release,
       @NonNull List<DataTypeFile> downloadFiles,
       @NonNull Collection<DownloadDataType> dataTypes,
-      @NonNull OutputStream output) {
+      @NonNull OutputStream output,
+      @NonNull Map<DownloadDataType, String> fileNames) {
     // Resolve size for each dataType
     val fileSizes = resolveFileSizes(downloadFiles);
 
@@ -250,34 +256,28 @@ public class ArchiveDownloadService {
     // Convert OutputStream to InputStream http://blog.ostermiller.org/convert-java-outputstream-inputstream
     if (headers.size() == 1) {
       log.info("Creating gzip streamer for data types {}", dataTypes);
-      return getGzipStreamer(downloadFiles, fileSizes, headers, output, release);
+      return getGzipStreamer(downloadFiles, fileSizes, headers, output, release, fileNames);
     } else {
       log.info("Creating tar streamer for data types {}", dataTypes);
       return getTarStreamer(downloadFiles, fileSizes, headers, output, release);
     }
   }
 
-  private static List<DataTypeFile> filterDataFiles(List<DataTypeFile> dataFiles, DownloadDataType dataType) {
-    return dataFiles.stream()
-        .filter(dataFile -> {
-          DownloadDataType downloadDataType = getDownloadDataType(dataFile);
-
-          return (dataType == DONOR && downloadDataType.isClinicalSubtype()) || downloadDataType == dataType;
-        })
-        .collect(toImmutableList());
-
-  }
-
   private FileStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
       Map<DownloadDataType, String> headers, OutputStream output, String release) {
     val tarOut = createTarOutputStream(output);
-    val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut, release);
+    val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut, release, emptyMap());
     return new TarStreamer(tarOut, gzipStreamer);
   }
 
-  private GzipStreamer getGzipStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
-      Map<DownloadDataType, String> headers, OutputStream output, String release) {
-    return new GzipStreamer(fileSystem, downloadFiles, fileSizes, headers, output, pathResolver, release);
+  private GzipStreamer getGzipStreamer(
+      List<DataTypeFile> downloadFiles,
+      Map<DownloadDataType, Long> fileSizes,
+      Map<DownloadDataType, String> headers,
+      OutputStream output,
+      String release,
+      Map<DownloadDataType, String> fileNames) {
+    return new GzipStreamer(fileSystem, downloadFiles, fileSizes, headers, output, pathResolver, release, fileNames);
   }
 
   private Map<DownloadDataType, String> resolveHeaders(String release, Collection<DownloadDataType> dataTypes) {
@@ -303,6 +303,17 @@ public class ArchiveDownloadService {
     val release = fileSystemService.getCurrentRelease();
 
     return fileSystemService.getDataTypeFiles(release, donors, dataTypes);
+  }
+
+  private static List<DataTypeFile> filterDataFiles(List<DataTypeFile> dataFiles, DownloadDataType dataType) {
+    return dataFiles.stream()
+        .filter(dataFile -> {
+          DownloadDataType downloadDataType = getDownloadDataType(dataFile);
+
+          return (dataType == DONOR && downloadDataType.isClinicalSubtype()) || downloadDataType == dataType;
+        })
+        .collect(toImmutableList());
+
   }
 
   private static Map<DownloadDataType, Long> resolveFileSizes(List<DataTypeFile> downloadFiles) {
@@ -359,6 +370,13 @@ public class ArchiveDownloadService {
 
   private static Long add(Long currentValue, Long value) {
     return currentValue == null ? value : currentValue + value;
+  }
+
+  private static Map<DownloadDataType, String> resolveFileNames(DownloadDataType downloadDataType, Set<String> projects) {
+    val fileSuffix = projects.size() == 1 ? format(".%s", projects.iterator().next()) : ".all_projects";
+    val fileName = getFileName(downloadDataType, Optional.of(fileSuffix)) + ".tsv.gz";
+
+    return singletonMap(downloadDataType, fileName);
   }
 
 }
