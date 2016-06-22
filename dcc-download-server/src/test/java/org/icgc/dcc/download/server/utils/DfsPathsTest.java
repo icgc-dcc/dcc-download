@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getDownloadDataType;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getProject;
 import static org.icgc.dcc.download.server.utils.DfsPaths.isRealEntity;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
@@ -58,6 +59,12 @@ public class DfsPathsTest {
   public void testGetDownloadDataType() throws Exception {
     assertThat(getDownloadDataType("/current/Summary/donor.all_projects.tsv.gz")).isEqualTo(DownloadDataType.DONOR);
 
+  }
+
+  @Test
+  public void testGetProject() throws Exception {
+    assertThat(getProject("/release_21/Projects/AML-US/donor.AML-US.tsv.gz").get()).isEqualTo("AML-US");
+    assertThat(getProject("/current/Summary/sample.all_projects.tsv.gz").isPresent()).isFalse();
   }
 
 }
