@@ -64,4 +64,9 @@ public class NoOpDownloadClient implements DownloadClient {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public String getReadme(String token) {
+    throw new UnsupportedOperationException();
+  }
+
 }

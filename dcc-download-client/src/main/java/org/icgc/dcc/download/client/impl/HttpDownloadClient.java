@@ -24,6 +24,10 @@ import static java.lang.System.currentTimeMillis;
 import static org.icgc.dcc.common.core.model.DownloadDataType.CLINICAL;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
+import static org.icgc.dcc.download.core.util.Endpoints.DOWNLOADS_PATH;
+import static org.icgc.dcc.download.core.util.Endpoints.HEALTH_PATH;
+import static org.icgc.dcc.download.core.util.Endpoints.LIST_FILES_PATH;
+import static org.icgc.dcc.download.core.util.Endpoints.STATIC_DOWNLOADS_PATH;
 
 import java.util.Collection;
 import java.util.Map;
@@ -65,13 +69,6 @@ import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
 @Slf4j
 public class HttpDownloadClient implements DownloadClient {
-
-  /**
-   * Constants.
-   */
-  public static final String DOWNLOADS_PATH = "/downloads";
-  public static final String LIST_FILES_PATH = "/list";
-  public static final String HEALTH_PATH = "/health";
 
   /**
    * Dependencies.
@@ -150,6 +147,15 @@ public class HttpDownloadClient implements DownloadClient {
   public Collection<DownloadFile> listFiles(String path) {
     return resource.path(LIST_FILES_PATH).path(path)
         .get(new GenericType<Collection<DownloadFile>>() {});
+  }
+
+  @Override
+  public String getReadme(@NonNull String token) {
+    val response = resource.path(STATIC_DOWNLOADS_PATH)
+        .queryParam("token", token)
+        .get(String.class);
+
+    return response;
   }
 
   private Set<DownloadDataType> resolveDataTypes(Set<String> donorIds, Set<DownloadDataType> dataTypes) {

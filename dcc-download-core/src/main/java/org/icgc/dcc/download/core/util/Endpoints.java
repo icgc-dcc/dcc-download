@@ -15,33 +15,13 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.client;
+package org.icgc.dcc.download.core.util;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+public class Endpoints {
 
-import org.icgc.dcc.common.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.DownloadFile;
-import org.icgc.dcc.download.core.model.JobUiInfo;
-import org.icgc.dcc.download.core.response.JobResponse;
-
-public interface DownloadClient {
-
-  JobResponse getJob(String jobId);
-
-  Map<DownloadDataType, Long> getSizes(Set<String> donorIds);
-
-  boolean isServiceAvailable();
-
-  void setActiveDownload(String jobId);
-
-  void unsetActiveDownload(String jobId);
-
-  String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo);
-
-  Collection<DownloadFile> listFiles(String path);
-
-  String getReadme(String token);
+  public static final String DOWNLOADS_PATH = "/downloads";
+  public static final String STATIC_DOWNLOADS_PATH = DOWNLOADS_PATH + "/static";
+  public static final String HEALTH_PATH = "/health";
+  public static final String LIST_FILES_PATH = "/list";
 
 }
