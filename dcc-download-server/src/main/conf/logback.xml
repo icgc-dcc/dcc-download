@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
 Copyright (c) 2016 The Ontario Institute for Cancer Research. All rights reserved.
  
@@ -17,13 +16,12 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISI
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-<!--                                           -->
-<!-- DCC Download - Logging configuration -->
-<!--                                           -->
+<!--                                             -->
+<!-- DCC Download Server - Logging configuration       -->
+<!--                                             -->
 <configuration debug="false">
-  <property name="log.dir" value="/tmp" />
+  <property name="log.dir" value="${LOG_PATH:-/tmp}"/>
   <property name="log.name" value="dcc-download" />
-  <property name="log.debug.name" value="dcc-download.debug" />
   <property name="pattern" value="%date{ISO8601} [%thread] %-5level %logger{20} - %msg%n" />
 
   <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
@@ -33,54 +31,14 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <File>${log.dir}/${log.name}.log</File>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <FileNamePattern>${log.dir}/${log.name}.%d{yyyy-MM-dd}.%d{HHmmss,aux}.log</FileNamePattern>
-      <maxHistory>30</maxHistory>
+      <FileNamePattern>${log.dir}/${log.name}.%d{yyyy-MM-dd}.log</FileNamePattern>
     </rollingPolicy>
     <encoder>
       <pattern>${pattern}</pattern>
     </encoder>
   </appender>
 
-  <appender name="DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <File>${log.dir}/${log.debug.name}.log</File>
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <FileNamePattern>${log.dir}/${log.debug.name}.%d{yyyy-MM-dd}.%d{HHmmss,aux}.log</FileNamePattern>
-      <maxHistory>30</maxHistory>
-    </rollingPolicy>
-    <encoder>
-      <pattern>${pattern}</pattern>
-    </encoder>
-  </appender>
-
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-      <pattern>${pattern}</pattern>
-    </encoder>
-  </appender>
-
-  <logger name="akka" level="info" additivity="false">
-    <appender-ref ref="DEBUG" />
-  </logger>
-  <logger name="org.eclipse.jetty" level="info" additivity="false">
-    <appender-ref ref="DEBUG" />
-  </logger>
-  <logger name="org.apache" level="info" additivity="false">
-    <appender-ref ref="DEBUG" />
-  </logger>
-  <logger name="org.apache.hadoop.mapred.FileInputFormat" level="info" additivity="false">
-    <appender-ref ref="DEBUG" />
-  </logger>
-  <logger name="org.apache.hadoop.net.NetworkTopology" level="info" additivity="false">
-    <appender-ref ref="DEBUG" />
-  </logger>
-  <logger name="org.apache.hadoop.util.NativeCodeLoader" level="info" additivity="false">
-    <appender-ref ref="DEBUG" />
-  </logger>
-  <logger name="org.icgc.dcc" level="debug" additivity="false">
-    <appender-ref ref="STDOUT" />
-  </logger>
-  
-  <root level="info">
-    <appender-ref ref="STDOUT" />
+  <root level="INFO">
+    <appender-ref ref="FILE" />
   </root>
 </configuration>
