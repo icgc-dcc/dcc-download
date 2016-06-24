@@ -174,7 +174,7 @@ public class ArchiveDownloadService {
 
   public Optional<FileStreamer> getStaticArchiveStreamer(@NonNull String path, @NonNull OutputStream output) {
     DfsPaths.validatePath(path);
-    if (DfsPaths.isRealEntity(path)) {
+    if (isLegacyFile(path) || DfsPaths.isRealEntity(path)) {
       log.info("'{}' represents a real file...", path);
       return gerRealFileStreamer(path, output);
     }
@@ -193,6 +193,12 @@ public class ArchiveDownloadService {
     }
 
     return Optional.of(getArchiveStreamer(release, downloadFiles, singleton(downloadDataType), output, fileNames));
+  }
+
+  private boolean isLegacyFile(String path) {
+    val release = DfsPaths.getRelease(path);
+
+    return fileSystemService.isLegacyRelease(release);
   }
 
   public boolean isUserDownload(@NonNull String id, @NonNull String user) {
@@ -220,12 +226,7 @@ public class ArchiveDownloadService {
   }
 
   private Optional<FileStreamer> gerRealFileStreamer(String path, OutputStream output) {
-    val filePath = new Path(rootPath, path
-        // TODO: do this properly
-        .replaceFirst("current", fileSystemService.getCurrentRelease())
-        // TODO: do this properly
-        .replaceFirst("Summary", SUMMARY_FILES)
-        .replaceFirst("^/", EMPTY_STRING));
+    val filePath = getRealFilePath(path, isLegacyFile(path));
     log.info("Resolved download path '{}' to actual path '{}'", path, filePath);
     if (!HadoopUtils.exists(fileSystem, filePath)) {
       log.warn("Download path '{}' doesn't exist", filePath);
@@ -236,6 +237,15 @@ public class ArchiveDownloadService {
     log.info("Creating file streamer for '{}'", filePath);
 
     return Optional.of(new RealFileStreamer(filePath, fileSystem, output));
+  }
+
+  private Path getRealFilePath(String path, boolean legacy) {
+    return legacy ?
+        new Path(rootPath, path.replaceFirst("^/", EMPTY_STRING)) :
+        new Path(rootPath, path
+            .replaceFirst("current", fileSystemService.getCurrentRelease())
+            .replaceFirst("Summary", SUMMARY_FILES)
+            .replaceFirst("^/", EMPTY_STRING));
   }
 
   private FileStreamer getArchiveStreamer(

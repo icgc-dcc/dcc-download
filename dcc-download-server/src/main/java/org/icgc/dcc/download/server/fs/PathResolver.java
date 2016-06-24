@@ -78,6 +78,10 @@ public class PathResolver {
     return new Path(rootPath, childPath);
   }
 
+  public String toDfsPath(@NonNull Path hdfsPath) {
+    return removeRootDirPrefix(hdfsPath.toString());
+  }
+
   public String getDataFilePath(@NonNull String file) {
     val dfsPath = removeRootDirPrefix(file);
     log.debug("'{}' without prefix: '{}'", file, dfsPath);

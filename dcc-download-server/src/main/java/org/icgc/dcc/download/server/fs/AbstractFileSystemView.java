@@ -125,9 +125,13 @@ public abstract class AbstractFileSystemView {
   }
 
   protected DownloadFile createDownloadFile(String path, long size, long releaseDate) {
+    return createDownloadFile(path, FILE, size, releaseDate);
+  }
+
+  protected DownloadFile createDownloadFile(String path, DownloadFileType type, long size, long releaseDate) {
     val file = new DownloadFile();
     file.setName(path);
-    file.setType(FILE);
+    file.setType(type);
     file.setDate(releaseDate);
     file.setSize(size);
 

@@ -75,6 +75,23 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
     assertThat(releaseTimes.get("release_21")).isEqualTo(getModificationTime("release_21"));
   }
 
+  @Test
+  public void testGetReleaseProjectDonors() throws Exception {
+    val releaseProjects = downloadFilesReader.getReleaseProjectDonors();
+    assertThat(releaseProjects.size()).isEqualTo(1);
+    val projectDonors = releaseProjects.get("release_21");
+    assertThat(projectDonors.size()).isEqualTo(4);
+    assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
+    assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003", "DO004");
+  }
+
+  @Test
+  public void testGetLegacyReleases() throws Exception {
+    val releases = downloadFilesReader.getLegacyReleases();
+    assertThat(releases).containsOnly("release_20");
+
+  }
+
   private Path getReleasePath() {
     val releaseDir = new File(workingDir, "release_21").getAbsolutePath();
 
@@ -88,16 +105,6 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
       assertThat(partFiles).hasSize(1);
       assertThat(partFiles.get(0)).isEqualTo(expectedPartFile);
     }
-  }
-
-  @Test
-  public void testGetReleaseProjectDonors() throws Exception {
-    val releaseProjects = downloadFilesReader.getReleaseProjectDonors();
-    assertThat(releaseProjects.size()).isEqualTo(1);
-    val projectDonors = releaseProjects.get("release_21");
-    assertThat(projectDonors.size()).isEqualTo(4);
-    assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
-    assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003", "DO004");
   }
 
 }
