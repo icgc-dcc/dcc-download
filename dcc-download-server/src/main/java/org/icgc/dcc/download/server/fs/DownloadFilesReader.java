@@ -23,15 +23,20 @@ import static java.util.regex.Pattern.compile;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.Splitters.PATH;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
 import static org.icgc.dcc.download.server.utils.DfsPaths.toDfsPath;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
+import static org.icgc.dcc.download.server.utils.Releases.isLegacyRelease;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 import lombok.Getter;
 import lombok.NonNull;
@@ -82,7 +87,7 @@ public class DownloadFilesReader {
 
   public Map<String, Long> getReleaseTimes() {
     val releaseTimes = ImmutableMap.<String, Long> builder();
-    val releaseDirs = lsDir(fileSystem, pathResolver.getRootPath(), compile(".*" + RELEASE_DIR_PREFIX + ".*"));
+    val releaseDirs = getReleasePaths(Optional.of(compile(".*" + RELEASE_DIR_PREFIX + ".*")));
     log.debug("Resolving creation time for release dirs: {}", releaseDirs);
     for (val releaseDir : releaseDirs) {
       val status = getFileStatus(fileSystem, releaseDir);
@@ -90,6 +95,15 @@ public class DownloadFilesReader {
     }
 
     return releaseTimes.build();
+  }
+
+  public Collection<String> getLegacyReleases() {
+    val allPaths = lsDir(fileSystem, pathResolver.getRootPath());
+
+    return allPaths.stream()
+        .filter(path -> isLegacyRelease(fileSystem, path))
+        .map(path -> path.getName())
+        .collect(toImmutableList());
   }
 
   Multimap<String, String> createProjectDonors(Table<String, DownloadDataType, DataTypeFile> donorFileTypes) {
@@ -122,7 +136,7 @@ public class DownloadFilesReader {
   private Map<String, Table<String, DownloadDataType, DataTypeFile>> createReleaseFileTypes() {
     log.info("Creating donor - download data type - data type file tables...");
     val releaseFileTypes = ImmutableMap.<String, Table<String, DownloadDataType, DataTypeFile>> builder();
-    val releases = lsDir(fileSystem, pathResolver.getRootPath());
+    val releases = getReleasePaths(Optional.empty());
     for (val release : releases) {
       val timer = Stopwatch.createStarted();
       checkState(release.getName().matches("release_\\d+"));
@@ -133,6 +147,16 @@ public class DownloadFilesReader {
     }
 
     return releaseFileTypes.build();
+  }
+
+  private List<Path> getReleasePaths(Optional<Pattern> pattern) {
+    val allPaths = pattern.isPresent() ?
+        lsDir(fileSystem, pathResolver.getRootPath(), pattern.get()) :
+        lsDir(fileSystem, pathResolver.getRootPath());
+
+    return allPaths.stream()
+        .filter(path -> !isLegacyRelease(fileSystem, path))
+        .collect(toImmutableList());
   }
 
   private void addFile(
@@ -154,20 +178,6 @@ public class DownloadFilesReader {
     val updatedDataTypeFile = updateDataTypeFile(fileSystem, dataTypeFile, file, partFile);
     log.debug("Adding {}", updatedDataTypeFile);
     releaseTable.put(donorId, dataType, updatedDataTypeFile);
-  }
-
-  private static String resolveProject(DataTypeFile dataTypeFile) {
-    val path = dataTypeFile.getPath();
-    log.debug("Resolving project from path: '{}'", path);
-
-    val pathParts = PATH.splitToList(path);
-    // Path should look like TST1-CA/DO1/donor
-    checkState(pathParts.size() == 3, "Failed to resolve project from path '%s'. Parts: '%s'", path, pathParts);
-
-    val projectId = pathParts.get(0);
-    log.debug("Resolved project '{}' from path '{}'", projectId, path);
-
-    return projectId;
   }
 
   private DataTypeFile updateDataTypeFile(FileSystem fileSystem, DataTypeFile dataTypeFile, String file,
@@ -202,6 +212,20 @@ public class DownloadFilesReader {
     val status = statusOpt.get();
 
     return status.getLen();
+  }
+
+  private static String resolveProject(DataTypeFile dataTypeFile) {
+    val path = dataTypeFile.getPath();
+    log.debug("Resolving project from path: '{}'", path);
+
+    val pathParts = PATH.splitToList(path);
+    // Path should look like TST1-CA/DO1/donor
+    checkState(pathParts.size() == 3, "Failed to resolve project from path '%s'. Parts: '%s'", path, pathParts);
+
+    val projectId = pathParts.get(0);
+    log.debug("Resolved project '{}' from path '{}'", projectId, path);
+
+    return projectId;
   }
 
   private static List<String> getFileParts(String dfsPath) {

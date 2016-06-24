@@ -18,10 +18,13 @@
 package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.collect.ImmutableList.of;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_OPEN;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
+import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -29,6 +32,7 @@ import java.util.Optional;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.service.FileSystemService;
@@ -85,6 +89,20 @@ public class ReleaseViewTest extends AbstractFsTest {
         newDir("/current/Summary", 321L)));
   }
 
+  @Test
+  public void testListRelease_legacy() throws Exception {
+    val release = "release_20";
+    when(fsService.isLegacyRelease(release)).thenReturn(true);
+    val files = releaseView.listRelease(release);
+
+    log.info("{}", files);
+    assertThat(files).containsOnly(
+        new DownloadFile("/release_20/Projects", DIRECTORY, 0, getModificationTime("release_20/Projects")),
+        new DownloadFile("/release_20/Summary", DIRECTORY, 0, getModificationTime("release_20/Summary")),
+        new DownloadFile("/release_20/README.txt", FILE, 9, getModificationTime("release_20/README.txt")));
+
+  }
+
   @Test(expected = NotFoundException.class)
   public void testListRelease_invalid() throws Exception {
     releaseView.listRelease("bogus");
@@ -106,6 +124,16 @@ public class ReleaseViewTest extends AbstractFsTest {
     val files = releaseView.listReleaseProjects("current");
     verifyDownloadFiles(files,
         of(newDir("/current/Projects/TST1-CA", 321L), newDir("/current/Projects/TST2-CA", 321L)));
+  }
+
+  @Test
+  public void testListReleaseProjects_legacy() throws Exception {
+    val release = "release_20";
+    when(fsService.isLegacyRelease(release)).thenReturn(true);
+
+    val files = releaseView.listReleaseProjects(release);
+    assertThat(files).containsOnly(new DownloadFile("/release_20/Projects/TST1-CA", DIRECTORY, 0,
+        getModificationTime("release_20/Projects/TST1-CA")));
   }
 
   @Test(expected = NotFoundException.class)
@@ -145,6 +173,17 @@ public class ReleaseViewTest extends AbstractFsTest {
         ));
   }
 
+  @Test
+  public void testListReleaseSummary_legacy() throws Exception {
+    val release = "release_20";
+    when(fsService.isLegacyRelease(release)).thenReturn(true);
+
+    val files = releaseView.listReleaseSummary(release);
+    log.info("Files: {}", files);
+    assertThat(files).containsOnly(new DownloadFile("/release_20/Summary/donor.all_projects.tsv.gz", FILE, 48,
+        getModificationTime("release_20/Summary/donor.all_projects.tsv.gz")));
+  }
+
   @Test(expected = NotFoundException.class)
   public void testListReleaseSummary_invalid() throws Exception {
     when(fsService.getReleaseDate("bogus")).thenReturn(Optional.empty());
@@ -178,6 +217,17 @@ public class ReleaseViewTest extends AbstractFsTest {
             newFile("/current/Projects/TST1-CA/sample.TST1-CA.tsv.gz", 2, 321),
             newFile("/current/Projects/TST1-CA/simple_somatic_mutation.open.TST1-CA.tsv.gz", 10, 321)
         ));
+  }
+
+  @Test
+  public void testListProject_legacy() throws Exception {
+    val release = "release_20";
+    when(fsService.isLegacyRelease(release)).thenReturn(true);
+
+    val tst1Files = releaseView.listProject(release, "TST1-CA");
+    log.info("{}", tst1Files);
+    assertThat(tst1Files).containsOnly(new DownloadFile("/release_20/Projects/TST1-CA/donor.TST1-CA.tsv.gz", FILE, 43,
+        getModificationTime("release_20/Projects/TST1-CA/donor.TST1-CA.tsv.gz")));
   }
 
   @Test(expected = NotFoundException.class)

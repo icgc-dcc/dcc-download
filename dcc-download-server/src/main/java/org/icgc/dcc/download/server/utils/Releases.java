@@ -18,9 +18,14 @@
 package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.val;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 
 @NoArgsConstructor(access = PRIVATE)
 public final class Releases {
@@ -29,6 +34,17 @@ public final class Releases {
     val current = "current".equals(releaseName);
     val actualReleaseName = current ? currentRelease : releaseName;
     return actualReleaseName;
+  }
+
+  /**
+   * Determines if the contents of the {@code path} is a legacy download release.
+   */
+  public static boolean isLegacyRelease(@NonNull FileSystem fileSystem, @NonNull Path path) {
+    val dirs = HadoopUtils.lsDir(fileSystem, path);
+
+    return dirs.stream()
+        .map(p -> p.getName())
+        .allMatch(dirName -> !dirName.equals(DATA_DIR));
   }
 
 }

@@ -22,6 +22,9 @@ import static java.util.Optional.empty;
 import static java.util.stream.Collectors.toList;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
+import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
+import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
@@ -52,6 +55,10 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listRelease(@NonNull String releaseName) {
+    if (fsService.isLegacyRelease(releaseName)) {
+      return listLegacy("/" + releaseName);
+    }
+
     val current = "current".equals(releaseName);
     val actualReleaseName = current ? currentRelease : releaseName;
     val hdfsPath = pathResolver.toHdfsPath("/" + actualReleaseName);
@@ -72,8 +79,13 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
-    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    if (fsService.isLegacyRelease(releaseName)) {
+      val path = "/" + PATH.join(releaseName, "Projects");
 
+      return listLegacy(path);
+    }
+
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val projects = fsService.getReleaseProjects(actualReleaseName);
     if (!projects.isPresent()) {
       throwPathNotFoundException(format("Release '%s' doesn't exist.", actualReleaseName));
@@ -88,8 +100,13 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
-    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    if (fsService.isLegacyRelease(releaseName)) {
+      val path = "/" + PATH.join(releaseName, "Summary");
 
+      return listLegacy(path);
+    }
+
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val releaseDate = getReleaseDate(actualReleaseName);
     val clinicalSizes = fsService.getClinicalSizes(actualReleaseName);
 
@@ -108,6 +125,12 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
+    if (fsService.isLegacyRelease(releaseName)) {
+      val path = "/" + PATH.join(releaseName, "Projects", project);
+
+      return listLegacy(path);
+    }
+
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val releaseDate = getReleaseDate(actualReleaseName);
     val projectSizes = fsService.getProjectSizes(actualReleaseName, project);
@@ -143,11 +166,17 @@ public class ReleaseView extends AbstractFileSystemView {
     log.debug("Creating summary file for '{}'", file);
     val fileName = file.getName();
     val path = format("/%s/Summary/%s", releaseName, fileName);
+
+    return createDownloadFile(file, path);
+  }
+
+  private DownloadFile createDownloadFile(Path file, String downloadFilePath) {
     val status = getFileStatus(file);
-    val size = status.getLen();
+    val type = isDirectory(fileSystem, file) ? DIRECTORY : FILE;
+    val size = type == FILE ? status.getLen() : 0L;
     val creationDate = status.getModificationTime();
 
-    return createDownloadFile(path, size, creationDate);
+    return createDownloadFile(downloadFilePath, type, size, creationDate);
   }
 
   private Path getSummaryFilesPath(String releaseName) {
@@ -178,6 +207,15 @@ public class ReleaseView extends AbstractFileSystemView {
     if (!HadoopUtils.exists(fileSystem, hdfsPath)) {
       throwPathNotFoundException(format("File not exists: '%s'", hdfsPath));
     }
+  }
+
+  private List<DownloadFile> listLegacy(String relativePath) {
+    val path = pathResolver.toHdfsPath(relativePath);
+    val allFiles = HadoopUtils.lsAll(fileSystem, path);
+
+    return allFiles.stream()
+        .map(file -> createDownloadFile(file, pathResolver.toDfsPath(file)))
+        .collect(toImmutableList());
   }
 
   private static boolean isDfsEntity(Path file) {

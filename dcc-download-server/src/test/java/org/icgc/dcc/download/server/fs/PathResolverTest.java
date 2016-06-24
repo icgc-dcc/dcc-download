@@ -18,9 +18,13 @@
 package org.icgc.dcc.download.server.fs;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.net.URI;
+
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.server.config.Properties;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.junit.Before;
@@ -64,6 +68,12 @@ public class PathResolverTest {
   @Test
   public void testGetPartFileIndex() throws Exception {
     assertThat(pathResolver.getPartFileIndex("part-00123.gz")).isEqualTo((short) 123);
+  }
+
+  @Test
+  public void testToDfsPath() throws Exception {
+    val path = new Path(URI.create("file:///tmp/release_20/Projects/TST1-CA/donor.TST1-CA.tsv.gz"));
+    assertThat(pathResolver.toDfsPath(path)).isEqualTo("/release_20/Projects/TST1-CA/donor.TST1-CA.tsv.gz");
   }
 
 }

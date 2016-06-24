@@ -52,6 +52,7 @@ public class FileSystemService {
   private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes;
   private final Map<String, Multimap<String, String>> releaseProjectDonors;
   private final Map<String, Long> releaseTimes;
+  private final Collection<String> legacyReleases;
   @Getter
   private final String currentRelease;
 
@@ -59,6 +60,7 @@ public class FileSystemService {
     this.releaseDonorFileTypes = reader.getReleaseDonorFileTypes();
     this.releaseProjectDonors = reader.getReleaseProjectDonors();
     this.releaseTimes = reader.getReleaseTimes();
+    this.legacyReleases = reader.getLegacyReleases();
     validateIntegrity();
 
     this.currentRelease = resolveCurrentRelease();
@@ -129,6 +131,10 @@ public class FileSystemService {
     val donors = resolveDonors(projectDonors, project);
 
     return getDataTypeFiles(release, donors, Collections.singleton(dataType));
+  }
+
+  public boolean isLegacyRelease(@NonNull String release) {
+    return legacyReleases.contains(release);
   }
 
   private void validateIntegrity() {

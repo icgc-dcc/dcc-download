@@ -50,6 +50,7 @@ public class FileSystemServiceTest {
     when(reader.getReleaseTimes()).thenReturn(ImmutableMap.of("release_21", 123L));
     when(reader.getReleaseProjectDonors()).thenReturn(ImmutableMap.of("release_21", createProjectDonors()));
     when(reader.getReleaseDonorFileTypes()).thenReturn(ImmutableMap.of("release_21", createDonorFileTypesTable()));
+    when(reader.getLegacyReleases()).thenReturn(ImmutableList.of("release_20"));
     service = new FileSystemService(reader);
   }
 
@@ -89,5 +90,11 @@ public class FileSystemServiceTest {
     assertThat(files.get(2)).isEqualTo(
         new DataTypeFile("TST1-CA/DO002/donor", of((short) 0, (short) 1), 3));
 
+  }
+
+  @Test
+  public void testIsLegacyRelease() throws Exception {
+    assertThat(service.isLegacyRelease("release_21")).isFalse();
+    assertThat(service.isLegacyRelease("release_20")).isTrue();
   }
 }
