@@ -20,12 +20,14 @@ package org.icgc.dcc.download.server.fs;
 import static java.nio.file.Paths.get;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.resolveCurrentRelease;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.regex.Pattern;
 
 import lombok.SneakyThrows;
 import lombok.val;
@@ -33,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.common.test.file.FileTests;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.DownloadFileType;
@@ -67,7 +68,8 @@ public class AbstractFileSystemViewTest extends AbstractTest {
 
   @Test
   public void testToResponseFileName() throws Exception {
-    val release20 = HadoopUtils.lsDir(fileSystem, new Path(workingDir.getAbsolutePath())).get(0);
+    val release20 = lsDir(fileSystem, new Path(workingDir.getAbsolutePath()), Pattern.compile(".*_20$")).get(0);
+    log.info("Release20: {}", release20);
     val responseFileName = dfs.toResponseFileName(release20, false);
     assertThat(responseFileName).isEqualTo("/release_20");
   }
