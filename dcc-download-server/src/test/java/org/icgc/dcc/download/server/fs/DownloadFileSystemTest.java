@@ -73,7 +73,9 @@ public class DownloadFileSystemTest extends AbstractTest {
   public void testListFiles_root() throws Exception {
     verifyDownloadFiles(dfs.listFiles("/"), of(
         newFile("README.txt"),
-        newDir("/current"), newDir("/release_21")));
+        newDir("/current"),
+        newDir("/release_20"),
+        newDir("/release_21")));
   }
 
   private static void verifyDownloadFiles(@NonNull Collection<DownloadFile> actual,
