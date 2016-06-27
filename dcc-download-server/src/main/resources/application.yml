@@ -23,14 +23,8 @@
 server:
   port: 9090
 
-mail:
-  serviceUrl: "<service-email>"
-  portalUrl: "http://localhost:8080/download/"
-  properties:
-    mail.smtp.host: smtp.res.oicr.on.ca
-    mail.smtp.from: no-reply@oicr.on.ca
-
 management.security.enabled: false
+management.context-path: /srv-info
 
 jwt:
   sharedSecret: "secret678901234567890123456789012"

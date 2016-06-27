@@ -21,7 +21,7 @@ public class Endpoints {
 
   public static final String DOWNLOADS_PATH = "/downloads";
   public static final String STATIC_DOWNLOADS_PATH = DOWNLOADS_PATH + "/static";
-  public static final String HEALTH_PATH = "/health";
+  public static final String HEALTH_PATH = "/srv-info/health";
   public static final String LIST_FILES_PATH = "/list";
 
 }

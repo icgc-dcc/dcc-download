@@ -17,6 +17,8 @@
  */
 package org.icgc.dcc.download.server.config;
 
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -45,13 +47,20 @@ public class SecurityConfig {
       http.requestMatchers()
 
           // Start security configuration for endpoints matching the patterns
-          .antMatchers("/downloads/**", "/list/**")
+          .antMatchers("/downloads/**", "/list/**", "/srv-info/**")
           .and()
 
           // Set access permissions for particular endpoints
           .authorizeRequests()
-          .antMatchers("/downloads/**").authenticated()
+          
+          // Allow static and dynamic download to everyone 
+          .antMatchers(GET, "/downloads/*").permitAll()
+          
+          // Require authentication for all the other endpoints
+          .antMatchers(GET, "/downloads/*/info").authenticated()
+          .antMatchers(POST,"/downloads/**").authenticated()
           .antMatchers("/list/**").authenticated()
+          .antMatchers("/srv-info/**").authenticated()
           .and()
 
           // Require the BASIC authentication for all auth requests
