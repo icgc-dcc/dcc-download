@@ -41,9 +41,11 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
@@ -119,16 +121,18 @@ public class DownloadFilesReader {
   }
 
   Table<String, DownloadDataType, DataTypeFile> createReleaseCache(Path releasePath) {
-    log.debug("Creating cache table for '{}'", releasePath);
-    val releaseTable = HashBasedTable.<String, DownloadDataType, DataTypeFile> create();
+    // Expected number of donors.
+    val releaseTable = HashBasedTable.<String, DownloadDataType, DataTypeFile> create(18000, 2);
+
     val releaseDirs = HadoopUtils.lsDir(fileSystem, releasePath);
     checkState(DfsPaths.isReleaseDir(releaseDirs), "'%s' is not the release dir.");
-    val allFiles = HadoopUtils.lsRecursive(fileSystem, new Path(releasePath, DATA_DIR));
-    for (val file : allFiles) {
-      if (!file.contains("_SUCCESS")) {
-        addFile(fileSystem, releaseTable, file);
-      }
-    }
+
+    val release = releasePath.getName();
+    log.info("Recursively reading files for release '{}'", release);
+    val watch = Stopwatch.createStarted();
+    val dataDirPath = new Path(releasePath, DATA_DIR);
+    processPath(fileSystem, releaseTable, dataDirPath);
+    log.info("Populated cache table for release '{}' in {} seconds.", release, watch.elapsed(SECONDS));
 
     return releaseTable;
   }
@@ -137,6 +141,8 @@ public class DownloadFilesReader {
     log.info("Creating donor - download data type - data type file tables...");
     val releaseFileTypes = ImmutableMap.<String, Table<String, DownloadDataType, DataTypeFile>> builder();
     val releases = getReleasePaths(Optional.empty());
+    log.info("Release paths to process: {}", releases);
+
     for (val release : releases) {
       val timer = Stopwatch.createStarted();
       checkState(release.getName().matches("release_\\d+"));
@@ -159,35 +165,52 @@ public class DownloadFilesReader {
         .collect(toImmutableList());
   }
 
+  @SneakyThrows
+  private void processPath(
+      FileSystem fileSystem,
+      HashBasedTable<String, DownloadDataType, DataTypeFile> releaseTable,
+      Path dirPath) {
+    for (val fileStatus : fileSystem.listStatus(dirPath)) {
+      if (fileStatus.isDirectory()) {
+        processPath(fileSystem, releaseTable, fileStatus.getPath());
+      } else {
+        addFile(fileSystem, releaseTable, fileStatus);
+      }
+    }
+  }
+
   private void addFile(
       FileSystem fileSystem,
       HashBasedTable<String, DownloadDataType, DataTypeFile> releaseTable,
-      String file) {
+      FileStatus fileStatus) {
+    // No need to convert to URI as the path schema is removed when the path is used.
+    val filePath = fileStatus.getPath();
+    if (filePath.getName().equals("_SUCCESS")) {
+      return;
+    }
 
-    log.debug("Processing file '{}'", file);
-    val dfsPath = toDfsPath(file);
+    log.debug("Processing file '{}'", filePath);
+    val dfsPath = toDfsPath(filePath);
     log.debug("DFS path: {}", dfsPath);
 
     val fileParts = getFileParts(dfsPath);
     val donorId = fileParts.get(0);
     val dataType = getDataType(fileParts.get(1));
-    val partFile = fileParts.get(2);
-    log.debug("Resolved:  donor - {}, data type - {}, part file - {}", donorId, dataType, partFile);
 
     val dataTypeFile = releaseTable.get(donorId, dataType);
-    val updatedDataTypeFile = updateDataTypeFile(fileSystem, dataTypeFile, file, partFile);
+    val updatedDataTypeFile = updateDataTypeFile(fileSystem, dataTypeFile, fileStatus);
     log.debug("Adding {}", updatedDataTypeFile);
     releaseTable.put(donorId, dataType, updatedDataTypeFile);
   }
 
-  private DataTypeFile updateDataTypeFile(FileSystem fileSystem, DataTypeFile dataTypeFile, String file,
-      String partFile) {
-    val fileSize = getFileSize(fileSystem, file);
+  private DataTypeFile updateDataTypeFile(FileSystem fileSystem, DataTypeFile dataTypeFile, FileStatus fileStatus) {
+    val fileSize = fileStatus.getLen();
+    val filePath = fileStatus.getPath();
     if (dataTypeFile == null) {
-      return createDataTypeFile(file, partFile, fileSize);
+      return createDataTypeFile(filePath, fileSize);
     }
 
-    return updateDataTypeFile(dataTypeFile, partFile, fileSize);
+    return updateDataTypeFile(dataTypeFile, filePath.getName(), fileSize);
   }
 
   private DataTypeFile updateDataTypeFile(DataTypeFile dataTypeFile, String partFile, long fileSize) {
@@ -199,19 +222,11 @@ public class DownloadFilesReader {
     return new DataTypeFile(path, ImmutableList.copyOf(partFiles), totalSize);
   }
 
-  private DataTypeFile createDataTypeFile(String file, String partFile, long fileSize) {
+  private DataTypeFile createDataTypeFile(Path file, long fileSize) {
     return new DataTypeFile(
-        pathResolver.getDataFilePath(file),
-        Collections.singletonList(pathResolver.getPartFileIndex(partFile)),
+        pathResolver.getDataFilePath(file.toString()),
+        Collections.singletonList(pathResolver.getPartFileIndex(file.getName())),
         fileSize);
-  }
-
-  private static long getFileSize(FileSystem fileSystem, String file) {
-    val statusOpt = HadoopUtils.getFileStatus(fileSystem, new Path(file));
-    checkState(statusOpt.isPresent(), "File doesn't exist. '%s'", file);
-    val status = statusOpt.get();
-
-    return status.getLen();
   }
 
   private static String resolveProject(DataTypeFile dataTypeFile) {

@@ -115,10 +115,14 @@ public class ArchiveDownloadService {
   public Map<DownloadDataType, Long> getFilesSize(@NonNull Collection<String> donorIds) {
     val downloadDataTypes = ImmutableSet.copyOf(DownloadDataType.values());
     val dataTypes = getDataTypeFiles(donorIds, downloadDataTypes);
+    log.debug("Resolving file sizes...");
 
     return dataTypes.stream()
         .map(dataType -> immutableEntry(getDownloadDataType(dataType), dataType.getTotalSize()))
-        .collect(() -> Maps.<DownloadDataType, Long> newHashMap(),
+        .collect(() -> {
+          log.debug("Started file sizes stream collection.");
+          return Maps.<DownloadDataType, Long> newHashMap();
+        },
             ArchiveDownloadService::accumulate,
             ArchiveDownloadService::combine);
 
