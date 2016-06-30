@@ -126,7 +126,9 @@ public class DownloadController {
 
   @RequestMapping(value = "/size", method = POST)
   public DataTypeSizesResponse getSizes(@RequestBody RecordsSizeRequest request) {
+    log.debug("Received get sizes request. Number of donors: {}", request.getDonorIds().size());
     val filesSize = downloadService.getFilesSize(request.getDonorIds());
+    log.debug("Resolved file sizes to: {}", filesSize);
 
     return new DataTypeSizesResponse(filesSize);
   }
