@@ -65,7 +65,7 @@ spring.data.mongodb:
 # Spark Job configuration
 job:
   # The inputDir is configured to be used in Eclipse
-  inputDir: ../dcc-download-job/src/test/resources/fixtures/input
+  inputDir: ../dcc-download-server/src/test/resources/fixtures/input
 
 
 ---

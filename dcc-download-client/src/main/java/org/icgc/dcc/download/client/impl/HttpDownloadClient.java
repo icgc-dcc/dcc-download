@@ -22,7 +22,6 @@ import static com.google.common.net.HttpHeaders.CONTENT_ENCODING;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.GZIP;
 import static com.google.common.net.MediaType.JSON_UTF_8;
-import static java.lang.System.currentTimeMillis;
 import static org.icgc.dcc.common.core.model.DownloadDataType.CLINICAL;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
@@ -31,6 +30,7 @@ import static org.icgc.dcc.download.core.util.Endpoints.HEALTH_PATH;
 import static org.icgc.dcc.download.core.util.Endpoints.LIST_FILES_PATH;
 import static org.icgc.dcc.download.core.util.Endpoints.STATIC_DOWNLOADS_PATH;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -110,7 +110,7 @@ public class HttpDownloadClient implements DownloadClient {
         .donorIds(donorIds)
         .dataTypes(submitDataTypes)
         .jobInfo(jobInfo)
-        .submissionTime(currentTimeMillis())
+        .submissionTime(Instant.now().getEpochSecond())
         .build();
 
     return resource.path(DOWNLOADS_PATH)
