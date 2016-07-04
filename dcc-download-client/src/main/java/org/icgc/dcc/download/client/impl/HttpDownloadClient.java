@@ -18,7 +18,9 @@
 package org.icgc.dcc.download.client.impl;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.net.HttpHeaders.CONTENT_ENCODING;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
+import static com.google.common.net.MediaType.GZIP;
 import static com.google.common.net.MediaType.JSON_UTF_8;
 import static java.lang.System.currentTimeMillis;
 import static org.icgc.dcc.common.core.model.DownloadDataType.CLINICAL;
@@ -62,8 +64,10 @@ import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.api.client.filter.LoggingFilter;
+import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
@@ -138,6 +142,7 @@ public class HttpDownloadClient implements DownloadClient {
     val body = new RecordsSizeRequest(donorIds);
     val response = resource.path(DOWNLOADS_PATH).path("size")
         .header(CONTENT_TYPE, JSON_UTF_8)
+        .header(CONTENT_ENCODING, GZIP)
         .post(DataTypeSizesResponse.class, body);
 
     return response.getSizes();
@@ -202,6 +207,8 @@ public class HttpDownloadClient implements DownloadClient {
     ClientConfig cc = new DefaultClientConfig();
     cc.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
     cc.getClasses().add(JacksonJsonProvider.class);
+    cc.getProperties()
+        .put(ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS, GZIPContentEncodingFilter.class.getName());
 
     return cc;
   }

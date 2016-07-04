@@ -89,12 +89,24 @@ public class FileSystemServiceTest {
         new DataTypeFile("TST1-CA/DO001/donor", of((short) 0), 1));
     assertThat(files.get(2)).isEqualTo(
         new DataTypeFile("TST1-CA/DO002/donor", of((short) 0, (short) 1), 3));
-
   }
 
   @Test
   public void testIsLegacyRelease() throws Exception {
     assertThat(service.isLegacyRelease("release_21")).isFalse();
     assertThat(service.isLegacyRelease("release_20")).isTrue();
+  }
+
+  @Test
+  public void testGetUnsortedDataTypeFiles() throws Exception {
+    val files = service.getDataTypeFiles("release_21", ImmutableList.of("DO002", "DO001"),
+        ImmutableList.of(SAMPLE, DONOR));
+
+    assertThat(files).containsExactly(
+        new DataTypeFile("TST1-CA/DO001/sample", of((short) 0), 2),
+        new DataTypeFile("TST1-CA/DO001/donor", of((short) 0), 1),
+        new DataTypeFile("TST1-CA/DO002/donor", of((short) 0, (short) 1), 3)
+        );
+
   }
 }

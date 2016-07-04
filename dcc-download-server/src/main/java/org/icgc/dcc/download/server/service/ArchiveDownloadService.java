@@ -114,7 +114,8 @@ public class ArchiveDownloadService {
 
   public Map<DownloadDataType, Long> getFilesSize(@NonNull Collection<String> donorIds) {
     val downloadDataTypes = ImmutableSet.copyOf(DownloadDataType.values());
-    val dataTypes = getDataTypeFiles(donorIds, downloadDataTypes);
+    log.debug("Resolving data files...");
+    val dataTypes = getUnsortedDataTypeFiles(donorIds, downloadDataTypes);
     log.debug("Resolving file sizes...");
 
     return dataTypes.stream()
@@ -317,6 +318,12 @@ public class ArchiveDownloadService {
     val release = fileSystemService.getCurrentRelease();
 
     return fileSystemService.getDataTypeFiles(release, donors, dataTypes);
+  }
+
+  private List<DataTypeFile> getUnsortedDataTypeFiles(Collection<String> donors, Collection<DownloadDataType> dataTypes) {
+    val release = fileSystemService.getCurrentRelease();
+
+    return fileSystemService.getUnsortedDataTypeFiles(release, donors, dataTypes);
   }
 
   private static List<DataTypeFile> filterDataFiles(List<DataTypeFile> dataFiles, DownloadDataType dataType) {
