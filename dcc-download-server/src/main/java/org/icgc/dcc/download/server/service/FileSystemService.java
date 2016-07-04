@@ -112,6 +112,43 @@ public class FileSystemService {
     return ImmutableMap.copyOf(projectSizes);
   }
 
+  /**
+   * Unlike {@link FileSystemService#getDataTypeFiles(String, Collection, Collection)} the returned files are not
+   * grouped. Thus, the method is used only to estimate download data type sizes.
+   */
+  public List<DataTypeFile> getUnsortedDataTypeFiles(@NonNull String release, @NonNull Collection<String> donors,
+      @NonNull Collection<DownloadDataType> dataTypes) {
+    val donorFileTypes = releaseDonorFileTypes.get(release);
+
+    val allDataTypes = dataTypes.size() == DownloadDataType.values().length;
+    val allDonors = donors.size() == donorFileTypes.rowKeySet().size();
+    val donorsStream = donorFileTypes.rowMap().entrySet().stream();
+
+    if (allDonors && allDataTypes) {
+      return donorsStream
+          .flatMap(entry -> entry.getValue().values().stream())
+          .collect(toImmutableList());
+    }
+
+    if (allDataTypes) {
+      return donorsStream
+          .filter(entry -> donors.contains(entry.getKey()))
+          .flatMap(entry -> entry.getValue().values().stream())
+          .collect(toImmutableList());
+    }
+
+    return donorsStream
+        .filter(entry -> donors.contains(entry.getKey()))
+        .flatMap(entry -> entry.getValue().entrySet().stream())
+        .filter(entry -> dataTypes.contains(entry.getKey()))
+        .map(entry -> entry.getValue())
+        .collect(toImmutableList());
+  }
+
+  /**
+   * Returns a {@code DataTypeFile} list where the data type files are grouped according to {@code DownloadDataType}.
+   * This makes them possible to be streamed to the client as a single data type archive.
+   */
   public List<DataTypeFile> getDataTypeFiles(@NonNull String release, @NonNull Collection<String> donors,
       @NonNull Collection<DownloadDataType> dataTypes) {
     val donorFileTypes = releaseDonorFileTypes.get(release);
