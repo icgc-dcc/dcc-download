@@ -116,17 +116,13 @@ public class ArchiveDownloadService {
     val downloadDataTypes = ImmutableSet.copyOf(DownloadDataType.values());
     log.debug("Resolving data files...");
     val dataTypes = getUnsortedDataTypeFiles(donorIds, downloadDataTypes);
-    log.debug("Resolving file sizes...");
+    log.debug("Resolved file sizes.");
 
     return dataTypes.stream()
         .map(dataType -> immutableEntry(getDownloadDataType(dataType), dataType.getTotalSize()))
-        .collect(() -> {
-          log.debug("Started file sizes stream collection.");
-          return Maps.<DownloadDataType, Long> newHashMap();
-        },
+        .collect(() -> Maps.<DownloadDataType, Long> newHashMap(),
             ArchiveDownloadService::accumulate,
             ArchiveDownloadService::combine);
-
   }
 
   public Optional<JobResponse> getArchiveInfo(@NonNull String jobId) {
