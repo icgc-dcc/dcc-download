@@ -30,8 +30,6 @@ import static org.icgc.dcc.common.core.util.Separators.DASH;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
-import static org.icgc.dcc.download.core.model.JobStatus.EXPIRED;
-import static org.icgc.dcc.download.core.model.JobStatus.SUCCEEDED;
 import static org.icgc.dcc.download.server.utils.DataTypeFiles.getDownloadDataType;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
@@ -102,7 +100,6 @@ public class ArchiveDownloadService {
         .dataTypes(request.getDataTypes())
         .id(jobId)
         .jobInfo(request.getJobInfo())
-        .status(SUCCEEDED)
         .submissionDate(request.getSubmissionTime())
         .build();
 
@@ -127,7 +124,7 @@ public class ArchiveDownloadService {
 
   public Optional<JobResponse> getArchiveInfo(@NonNull String jobId) {
     val job = jobRepository.findById(jobId);
-    if (job == null || job.getStatus() == EXPIRED) {
+    if (job == null) {
       return Optional.empty();
     }
 
@@ -142,7 +139,7 @@ public class ArchiveDownloadService {
 
   public Optional<FileStreamer> getArchiveStreamer(@NonNull String jobId, @NonNull OutputStream output) {
     val job = jobRepository.findById(jobId);
-    if (job == null || job.getStatus() == EXPIRED) {
+    if (job == null) {
       return Optional.empty();
     }
 
@@ -158,7 +155,7 @@ public class ArchiveDownloadService {
       @NonNull OutputStream output,
       @NonNull DownloadDataType dataType) {
     val job = jobRepository.findById(jobId);
-    if (job == null || job.getStatus() == EXPIRED) {
+    if (job == null) {
       return Optional.empty();
     }
 

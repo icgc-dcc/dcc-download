@@ -23,7 +23,6 @@ import lombok.Builder;
 import lombok.Data;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
-import org.icgc.dcc.download.core.model.JobStatus;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -37,7 +36,6 @@ public class Job {
   private String id;
   private Set<String> donorIds;
   private Set<DownloadDataType> dataTypes;
-  private JobStatus status;
   private Long submissionDate;
 
   private JobUiInfo jobInfo;
