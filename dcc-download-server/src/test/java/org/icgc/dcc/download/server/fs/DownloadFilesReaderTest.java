@@ -85,13 +85,6 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
     assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003", "DO004");
   }
 
-  @Test
-  public void testGetLegacyReleases() throws Exception {
-    val releases = downloadFilesReader.getLegacyReleases();
-    assertThat(releases).containsOnly("release_20");
-
-  }
-
   private Path getReleasePath() {
     val releaseDir = new File(workingDir, "release_21").getAbsolutePath();
 

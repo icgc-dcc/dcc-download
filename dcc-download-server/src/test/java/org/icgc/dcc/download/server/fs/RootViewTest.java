@@ -53,6 +53,7 @@ public class RootViewTest extends AbstractFsTest {
     verifyDownloadFiles(releases, of(
         newFile("/README.txt", 18L, getModificationTime("README.txt")),
         newDir("/current", getModificationTime("release_21")),
+        newDir("/legacy_releases", getModificationTime("legacy_releases")),
         newDir("/release_20", getModificationTime("release_20")),
         newDir("/release_21", getModificationTime("release_21"))));
   }

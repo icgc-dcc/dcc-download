@@ -78,6 +78,16 @@ public class PathResolver {
     return new Path(rootPath, childPath);
   }
 
+  /**
+   * Lists files on path {@code dfsPath}. Does not validate if the {@code dfsPath} complies to the release directory
+   * structure.
+   */
+  public Path toLegacyHdfsPath(@NonNull String dfsPath) {
+    val childPath = dfsPath.startsWith("/") ? dfsPath.replaceFirst("/", EMPTY_STRING) : dfsPath;
+
+    return new Path(rootPath, childPath);
+  }
+
   public String toDfsPath(@NonNull Path hdfsPath) {
     return removeRootDirPrefix(hdfsPath.toString());
   }

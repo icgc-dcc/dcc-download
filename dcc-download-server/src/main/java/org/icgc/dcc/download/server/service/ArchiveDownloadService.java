@@ -171,12 +171,13 @@ public class ArchiveDownloadService {
   }
 
   public Optional<FileStreamer> getStaticArchiveStreamer(@NonNull String path, @NonNull OutputStream output) {
-    DfsPaths.validatePath(path);
     if (isLegacyFile(path) || DfsPaths.isRealEntity(path)) {
       log.info("'{}' represents a real file...", path);
+
       return gerRealFileStreamer(path, output);
     }
 
+    DfsPaths.validatePath(path);
     log.info("'{}' is a synthetic file", path);
     String release = DfsPaths.getRelease(path);
     release = release.equals("current") ? fileSystemService.getCurrentRelease() : release;
@@ -193,8 +194,11 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, singleton(downloadDataType), output, fileNames));
   }
 
+  /**
+   * Checks if the file represented by the {@code path} is located in the legacy release directory.
+   */
   private boolean isLegacyFile(String path) {
-    val release = DfsPaths.getRelease(path);
+    val release = DfsPaths.getLegacyRelease(path);
 
     return fileSystemService.isLegacyRelease(release);
   }

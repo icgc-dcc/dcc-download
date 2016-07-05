@@ -47,7 +47,7 @@ import com.google.common.collect.Ordering;
 public abstract class AbstractFileSystemView {
 
   public static final String RELEASE_DIR_PREFIX = "release_";
-  public static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + "\\d+";
+  public static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + ".*";
 
   protected static final String CURRENT_RELEASE_NAME = "current";
   protected static final String CURRENT_PATH = "/" + CURRENT_RELEASE_NAME;

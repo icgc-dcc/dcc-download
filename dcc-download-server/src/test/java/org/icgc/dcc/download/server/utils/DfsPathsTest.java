@@ -19,11 +19,14 @@ package org.icgc.dcc.download.server.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getDownloadDataType;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getLegacyRelease;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getProject;
 import static org.icgc.dcc.download.server.utils.DfsPaths.isRealEntity;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 public class DfsPathsTest {
 
@@ -65,6 +68,16 @@ public class DfsPathsTest {
   public void testGetProject() throws Exception {
     assertThat(getProject("/release_21/Projects/AML-US/donor.AML-US.tsv.gz").get()).isEqualTo("AML-US");
     assertThat(getProject("/current/Summary/sample.all_projects.tsv.gz").isPresent()).isFalse();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testGetLegacyRelease_malformed() throws Exception {
+    getLegacyRelease(ImmutableList.of("/"));
+  }
+
+  @Test
+  public void testGetLegacyRelease() throws Exception {
+    assertThat(getLegacyRelease(ImmutableList.of("/", "legacy_release"))).isEqualTo("legacy_release");
   }
 
 }

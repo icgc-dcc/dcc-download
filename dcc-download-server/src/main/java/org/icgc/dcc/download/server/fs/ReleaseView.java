@@ -55,10 +55,6 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listRelease(@NonNull String releaseName) {
-    if (fsService.isLegacyRelease(releaseName)) {
-      return listLegacy("/" + releaseName);
-    }
-
     val current = "current".equals(releaseName);
     val actualReleaseName = current ? currentRelease : releaseName;
     val hdfsPath = pathResolver.toHdfsPath("/" + actualReleaseName);
@@ -79,12 +75,6 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
-    if (fsService.isLegacyRelease(releaseName)) {
-      val path = "/" + PATH.join(releaseName, "Projects");
-
-      return listLegacy(path);
-    }
-
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val projects = fsService.getReleaseProjects(actualReleaseName);
     if (!projects.isPresent()) {
@@ -100,12 +90,6 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
-    if (fsService.isLegacyRelease(releaseName)) {
-      val path = "/" + PATH.join(releaseName, "Summary");
-
-      return listLegacy(path);
-    }
-
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val releaseDate = getReleaseDate(actualReleaseName);
     val clinicalSizes = fsService.getClinicalSizes(actualReleaseName);
@@ -125,12 +109,6 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
-    if (fsService.isLegacyRelease(releaseName)) {
-      val path = "/" + PATH.join(releaseName, "Projects", project);
-
-      return listLegacy(path);
-    }
-
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val releaseDate = getReleaseDate(actualReleaseName);
     val projectSizes = fsService.getProjectSizes(actualReleaseName, project);
@@ -141,6 +119,15 @@ public class ReleaseView extends AbstractFileSystemView {
         .sorted()
         .collect(toImmutableList());
 
+  }
+
+  public List<DownloadFile> listLegacy(String relativePath) {
+    val path = pathResolver.toLegacyHdfsPath(relativePath);
+    val allFiles = HadoopUtils.lsAll(fileSystem, path);
+
+    return allFiles.stream()
+        .map(file -> createDownloadFile(file, pathResolver.toDfsPath(file)))
+        .collect(toImmutableList());
   }
 
   private DownloadFile createProjectFile(Entry<DownloadDataType, Long> entry, String releaseName, String project,
@@ -207,15 +194,6 @@ public class ReleaseView extends AbstractFileSystemView {
     if (!HadoopUtils.exists(fileSystem, hdfsPath)) {
       throwPathNotFoundException(format("File not exists: '%s'", hdfsPath));
     }
-  }
-
-  private List<DownloadFile> listLegacy(String relativePath) {
-    val path = pathResolver.toHdfsPath(relativePath);
-    val allFiles = HadoopUtils.lsAll(fileSystem, path);
-
-    return allFiles.stream()
-        .map(file -> createDownloadFile(file, pathResolver.toDfsPath(file)))
-        .collect(toImmutableList());
   }
 
   private static boolean isDfsEntity(Path file) {

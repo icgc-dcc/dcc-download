@@ -22,6 +22,8 @@
 # Server
 server:
   port: 9090
+server.compression.enabled: true
+server.compression.mime-types: application/json,application/xml,text/html,text/xml,text/plain
 
 management.security.enabled: false
 management.context-path: /srv-info
