@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.core.jwt;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
@@ -98,8 +99,8 @@ public class JwtService {
     checkArguments(secret, aesKey);
     this.signer = new MACSigner(secret);
     this.verifier = new MACVerifier(secret);
-    this.encrypter = new DirectEncrypter(aesKey.getBytes());
-    this.decrypter = new DirectDecrypter(aesKey.getBytes());
+    this.encrypter = new DirectEncrypter(aesKey.getBytes(UTF_8));
+    this.decrypter = new DirectDecrypter(aesKey.getBytes(UTF_8));
     this.ttlHours = config.getTtlHours();
   }
 
@@ -219,7 +220,7 @@ public class JwtService {
   }
 
   private static void checkArguments(String secret, String aesKey) {
-    val aesKeyLength = aesKey.getBytes().length;
+    val aesKeyLength = aesKey.getBytes(UTF_8).length;
     checkArgument(aesKeyLength == AES_KEY_LENGTH, "Expected AES Key length is %s bytes, but got %s", AES_KEY_LENGTH,
         aesKeyLength);
   }

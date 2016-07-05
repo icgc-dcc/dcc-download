@@ -40,13 +40,16 @@ public final class TestFiles {
 		checkState(srcDir.isDirectory(), "%s exists, but not a directory.", srcDir);
 		ensureExistence(destDir);
 
-		for (val file : srcDir.listFiles()) {
-			val outputFile = getOutputFile(file, destDir);
-			if (file.isDirectory()) {
-				copyDirectory(file, outputFile);
-			} else {
-				log.debug("Copying {} to {} ...", file, outputFile);
-				Files.copy(file, outputFile);
+		File[] dirFiles = srcDir.listFiles();
+		if (dirFiles != null) {
+			for (val file : dirFiles) {
+				val outputFile = getOutputFile(file, destDir);
+				if (file.isDirectory()) {
+					copyDirectory(file, outputFile);
+				} else {
+					log.debug("Copying {} to {} ...", file, outputFile);
+					Files.copy(file, outputFile);
+				}
 			}
 		}
 	}
@@ -56,8 +59,8 @@ public final class TestFiles {
 	}
 
 	private static void ensureExistence(File destDir) {
-		if (destDir.exists() == false) {
-			destDir.mkdirs();
+		if (destDir.exists() == false && destDir.mkdirs() == false) {
+			log.warn("Failed to create directory: {}", destDir);
 		}
 	}
 

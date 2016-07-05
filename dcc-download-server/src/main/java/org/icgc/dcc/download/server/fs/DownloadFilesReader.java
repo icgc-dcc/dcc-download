@@ -73,7 +73,7 @@ public class DownloadFilesReader {
   private final PathResolver pathResolver;
 
   @Getter(lazy = true)
-  private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes =
+  private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes = // NOPMD
       createReleaseFileTypes();
 
   public Map<String, Multimap<String, String>> getReleaseProjectDonors() {
