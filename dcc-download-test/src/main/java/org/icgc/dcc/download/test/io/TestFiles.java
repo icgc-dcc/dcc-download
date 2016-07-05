@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.test.io;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static lombok.AccessLevel.PRIVATE;
 
@@ -40,7 +41,9 @@ public final class TestFiles {
 		checkState(srcDir.isDirectory(), "%s exists, but not a directory.", srcDir);
 		ensureExistence(destDir);
 
-		for (val file : srcDir.listFiles()) {
+		File[] dirFiles = srcDir.listFiles();
+		checkNotNull(dirFiles);
+		for (val file : dirFiles) {
 			val outputFile = getOutputFile(file, destDir);
 			if (file.isDirectory()) {
 				copyDirectory(file, outputFile);
@@ -56,8 +59,8 @@ public final class TestFiles {
 	}
 
 	private static void ensureExistence(File destDir) {
-		if (destDir.exists() == false) {
-			destDir.mkdirs();
+		if (destDir.exists() == false && destDir.mkdirs() == false) {
+			log.warn("Failed to create directory: {}", destDir);
 		}
 	}
 
