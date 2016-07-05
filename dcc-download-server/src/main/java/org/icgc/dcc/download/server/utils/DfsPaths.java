@@ -47,6 +47,7 @@ import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -86,11 +87,29 @@ public final class DfsPaths {
   public static String getRelease(String path) {
     log.debug("Resolving release from path '{}'", path);
     val pathParts = Splitters.PATH.splitToList(path);
+
+    return getRelease(pathParts);
+  }
+
+  public static String getRelease(@NonNull List<String> pathParts) {
+    checkArgument(pathParts.size() > 1, "Malformed path parts: %s", pathParts);
     val release = pathParts.get(1);
     verifyPathPart(RELEASE_PATTERN, release);
 
     return release;
+  }
 
+  public static String getLegacyRelease(@NonNull String path) {
+    log.debug("Resolving legacy release from path '{}'", path);
+    val pathParts = Splitters.PATH.splitToList(path);
+
+    return getLegacyRelease(pathParts);
+  }
+
+  public static String getLegacyRelease(@NonNull List<String> pathParts) {
+    checkArgument(pathParts.size() > 1, "Malformed path parts: %s", pathParts);
+
+    return pathParts.get(1);
   }
 
   public static Optional<String> getProject(String path) {
@@ -123,6 +142,9 @@ public final class DfsPaths {
     return resolveDownloadDataType(fileName);
   }
 
+  /**
+   * Checks if the {@code path} represents a real entity on the file system. E.g. a README file or aggregated SSMs.
+   */
   public static boolean isRealEntity(@NonNull String path) {
     val pathParts = Splitters.PATH.splitToList(path);
     val fileName = pathParts.get(pathParts.size() - 1);
@@ -156,6 +178,25 @@ public final class DfsPaths {
     for (int i = 0; i < pathParts.size(); i++) {
       verifyPathPart(i, pathParts);
     }
+  }
+
+  public static String toDfsPath(@NonNull Path fsPath) {
+    return toDfsPath(fsPath.toString());
+  }
+
+  public static String toDfsPath(@NonNull String fsPath) {
+    val start = fsPath.indexOf(RELEASE_DIR_PREFIX);
+    checkState(start > 0);
+
+    // Include '/'
+    return fsPath.substring(start - 1);
+  }
+
+  /**
+   * Check if the {@code release} is a legacy release according to the {@code releases} collection.
+   */
+  public static boolean isLegacyRelease(@NonNull Collection<String> releases, @NonNull String release) {
+    return !releases.contains(release) && !"current".equals(release);
   }
 
   private static DownloadDataType resolveDownloadDataType(String fileName) {
@@ -241,18 +282,6 @@ public final class DfsPaths {
     checkState(fileNames.size() == DownloadDataType.values().length);
 
     return fileNames;
-  }
-
-  public static String toDfsPath(@NonNull Path fsPath) {
-    return toDfsPath(fsPath.toString());
-  }
-
-  public static String toDfsPath(@NonNull String fsPath) {
-    val start = fsPath.indexOf(RELEASE_DIR_PREFIX);
-    checkState(start > 0);
-
-    // Include '/'
-    return fsPath.substring(start - 1);
   }
 
 }

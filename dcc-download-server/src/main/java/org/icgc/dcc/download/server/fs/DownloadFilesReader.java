@@ -26,12 +26,12 @@ import static org.icgc.dcc.common.core.util.Splitters.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
+import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_REGEX;
 import static org.icgc.dcc.download.server.utils.DfsPaths.toDfsPath;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 import static org.icgc.dcc.download.server.utils.Releases.isLegacyRelease;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -99,15 +99,6 @@ public class DownloadFilesReader {
     return releaseTimes.build();
   }
 
-  public Collection<String> getLegacyReleases() {
-    val allPaths = lsDir(fileSystem, pathResolver.getRootPath());
-
-    return allPaths.stream()
-        .filter(path -> isLegacyRelease(fileSystem, path))
-        .map(path -> path.getName())
-        .collect(toImmutableList());
-  }
-
   Multimap<String, String> createProjectDonors(Table<String, DownloadDataType, DataTypeFile> donorFileTypes) {
     val projectDonors = ArrayListMultimap.<String, String> create();
     val donors = donorFileTypes.column(DONOR);
@@ -145,7 +136,7 @@ public class DownloadFilesReader {
 
     for (val release : releases) {
       val timer = Stopwatch.createStarted();
-      checkState(release.getName().matches("release_\\d+"));
+      checkState(release.getName().matches(RELEASE_DIR_REGEX));
       val releaseName = toDfsPath(release).replace("/", EMPTY_STRING);
       log.info("Creating donor - download data type - data type file table for release '{}'", releaseName);
       releaseFileTypes.put(releaseName, createReleaseCache(release));

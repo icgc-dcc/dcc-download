@@ -40,6 +40,7 @@ import lombok.val;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.server.fs.DownloadFilesReader;
 import org.icgc.dcc.download.server.model.DataTypeFile;
+import org.icgc.dcc.download.server.utils.DfsPaths;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -52,7 +53,6 @@ public class FileSystemService {
   private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes;
   private final Map<String, Multimap<String, String>> releaseProjectDonors;
   private final Map<String, Long> releaseTimes;
-  private final Collection<String> legacyReleases;
   @Getter
   private final String currentRelease;
 
@@ -60,7 +60,6 @@ public class FileSystemService {
     this.releaseDonorFileTypes = reader.getReleaseDonorFileTypes();
     this.releaseProjectDonors = reader.getReleaseProjectDonors();
     this.releaseTimes = reader.getReleaseTimes();
-    this.legacyReleases = reader.getLegacyReleases();
     validateIntegrity();
 
     this.currentRelease = resolveCurrentRelease();
@@ -171,7 +170,11 @@ public class FileSystemService {
   }
 
   public boolean isLegacyRelease(@NonNull String release) {
-    return legacyReleases.contains(release);
+    return DfsPaths.isLegacyRelease(releaseDonorFileTypes.keySet(), release);
+  }
+
+  public Collection<String> getReleases() {
+    return releaseDonorFileTypes.keySet();
   }
 
   private void validateIntegrity() {

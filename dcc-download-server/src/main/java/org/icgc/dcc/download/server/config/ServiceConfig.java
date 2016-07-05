@@ -66,7 +66,7 @@ public class ServiceConfig {
     val rootView = new RootView(fileSystem, fileSystemService, pathResolver);
     val releaseView = new ReleaseView(fileSystem, fileSystemService, pathResolver);
 
-    return new DownloadFileSystem(rootView, releaseView);
+    return new DownloadFileSystem(rootView, releaseView, fileSystemService.getReleases());
   }
 
   @Bean

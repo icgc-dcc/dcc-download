@@ -18,6 +18,8 @@
 package org.icgc.dcc.download.server.fs;
 
 import static java.lang.String.format;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getLegacyRelease;
+import static org.icgc.dcc.download.server.utils.DfsPaths.validatePath;
 
 import java.util.Collection;
 
@@ -39,9 +41,14 @@ public class DownloadFileSystem {
   @NonNull
   private final ReleaseView releaseView;
 
+  /**
+   * Non-legacy releases.
+   */
+  @NonNull
+  private final Collection<String> releases;
+
   public Collection<DownloadFile> listFiles(@NonNull String path) {
-    log.debug("Listing files for path '{}'...", path);
-    DfsPaths.validatePath(path);
+    log.info("Listing files for path '{}'...", path);
 
     // "/"
     if ("/".equals(path)) {
@@ -49,6 +56,14 @@ public class DownloadFileSystem {
     }
 
     val pathParts = Splitters.PATH.splitToList(path);
+    if (isLegacyRelease(getLegacyRelease(pathParts))) {
+      log.info("'{}' is a legacy path. Listing path contents as is.", path);
+
+      return releaseView.listLegacy(path);
+    }
+
+    validatePath(path);
+
     val releaseName = pathParts.get(1);
     // "/release_21"
     if (pathParts.size() == 2) {
@@ -76,6 +91,10 @@ public class DownloadFileSystem {
     }
 
     throw new IllegalArgumentException(format("Malformed path '%s'", path));
+  }
+
+  private boolean isLegacyRelease(String legacyRelease) {
+    return DfsPaths.isLegacyRelease(releases, legacyRelease);
   }
 
 }

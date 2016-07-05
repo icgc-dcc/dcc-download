@@ -50,7 +50,6 @@ public class FileSystemServiceTest {
     when(reader.getReleaseTimes()).thenReturn(ImmutableMap.of("release_21", 123L));
     when(reader.getReleaseProjectDonors()).thenReturn(ImmutableMap.of("release_21", createProjectDonors()));
     when(reader.getReleaseDonorFileTypes()).thenReturn(ImmutableMap.of("release_21", createDonorFileTypesTable()));
-    when(reader.getLegacyReleases()).thenReturn(ImmutableList.of("release_20"));
     service = new FileSystemService(reader);
   }
 

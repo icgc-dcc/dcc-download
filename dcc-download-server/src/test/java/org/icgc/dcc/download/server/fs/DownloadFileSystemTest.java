@@ -20,9 +20,11 @@ package org.icgc.dcc.download.server.fs;
 import static com.google.common.collect.ImmutableList.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Optional;
 
 import lombok.NonNull;
 import lombok.val;
@@ -38,6 +40,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+
+import com.google.common.collect.ImmutableList;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DownloadFileSystemTest extends AbstractTest {
@@ -61,7 +65,7 @@ public class DownloadFileSystemTest extends AbstractTest {
 
     val rootView = new RootView(fs, fsService, pathResolver);
     val releaseView = new ReleaseView(fs, fsService, pathResolver);
-    this.dfs = new DownloadFileSystem(rootView, releaseView);
+    this.dfs = new DownloadFileSystem(rootView, releaseView, ImmutableList.of("release_21"));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -74,8 +78,23 @@ public class DownloadFileSystemTest extends AbstractTest {
     verifyDownloadFiles(dfs.listFiles("/"), of(
         newFile("README.txt"),
         newDir("/current"),
+        newDir("/legacy_releases"),
         newDir("/release_20"),
         newDir("/release_21")));
+  }
+
+  @Test
+  public void testListFiles_legacy() throws Exception {
+    verifyDownloadFiles(dfs.listFiles("/legacy_releases"), of(newFile("/legacy_releases/README_file.txt")));
+  }
+
+  @Test
+  public void testListFiles_current() throws Exception {
+    when(fsService.getReleaseDate("current")).thenReturn(Optional.of(123L));
+    verifyDownloadFiles(dfs.listFiles("/current"), of(
+        newFile("/current/README.txt"),
+        newDir("/current/Projects"),
+        newDir("/current/Summary")));
   }
 
   private static void verifyDownloadFiles(@NonNull Collection<DownloadFile> actual,
