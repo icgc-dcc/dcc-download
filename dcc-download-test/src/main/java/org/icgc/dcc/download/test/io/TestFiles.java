@@ -17,7 +17,6 @@
  */
 package org.icgc.dcc.download.test.io;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static lombok.AccessLevel.PRIVATE;
 
@@ -42,14 +41,15 @@ public final class TestFiles {
 		ensureExistence(destDir);
 
 		File[] dirFiles = srcDir.listFiles();
-		checkNotNull(dirFiles);
-		for (val file : dirFiles) {
-			val outputFile = getOutputFile(file, destDir);
-			if (file.isDirectory()) {
-				copyDirectory(file, outputFile);
-			} else {
-				log.debug("Copying {} to {} ...", file, outputFile);
-				Files.copy(file, outputFile);
+		if (dirFiles != null) {
+			for (val file : dirFiles) {
+				val outputFile = getOutputFile(file, destDir);
+				if (file.isDirectory()) {
+					copyDirectory(file, outputFile);
+				} else {
+					log.debug("Copying {} to {} ...", file, outputFile);
+					Files.copy(file, outputFile);
+				}
 			}
 		}
 	}

@@ -44,7 +44,7 @@ public class MailConfig {
    * Dependencies.
    */
   @Autowired
-  MailProperties mail;
+  private MailProperties mail;
 
   @Bean
   @Primary

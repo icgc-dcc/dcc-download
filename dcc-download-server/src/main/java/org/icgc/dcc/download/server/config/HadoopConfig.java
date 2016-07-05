@@ -43,7 +43,7 @@ public class HadoopConfig {
    * Dependencies.
    */
   @Autowired
-  HadoopProperties hadoop;
+  private HadoopProperties hadoop;
 
   @Bean
   public FileSystem fileSystem() throws IOException {
