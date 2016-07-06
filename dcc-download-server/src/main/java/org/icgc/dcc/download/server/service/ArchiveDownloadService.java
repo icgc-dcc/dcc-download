@@ -33,6 +33,7 @@ import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
 import static org.icgc.dcc.download.server.utils.DataTypeFiles.getDownloadDataType;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.PROJECTS_FILES;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 
 import java.io.OutputStream;
@@ -174,7 +175,7 @@ public class ArchiveDownloadService {
     if (isLegacyFile(path) || DfsPaths.isRealEntity(path)) {
       log.info("'{}' represents a real file...", path);
 
-      return gerRealFileStreamer(path, output);
+      return getRealFileStreamer(path, output);
     }
 
     DfsPaths.validatePath(path);
@@ -194,15 +195,6 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, singleton(downloadDataType), output, fileNames));
   }
 
-  /**
-   * Checks if the file represented by the {@code path} is located in the legacy release directory.
-   */
-  private boolean isLegacyFile(String path) {
-    val release = DfsPaths.getLegacyRelease(path);
-
-    return fileSystemService.isLegacyRelease(release);
-  }
-
   public boolean isUserDownload(@NonNull String id, @NonNull String user) {
     val job = jobRepository.findById(id);
     if (job == null) {
@@ -212,6 +204,16 @@ public class ArchiveDownloadService {
     val allowedUser = job.getJobInfo().getUser();
 
     return allowedUser.equals(user);
+  }
+
+  /**
+   * Checks if the file represented by the {@code path} is located in the legacy release directory.
+   */
+  private boolean isLegacyFile(String path) {
+    log.debug("Checking if '{}' is a legacy file...", path);
+    val release = DfsPaths.getLegacyRelease(path);
+
+    return fileSystemService.isLegacyRelease(release);
   }
 
   private Set<String> getProject(Optional<String> project, String release) {
@@ -227,7 +229,7 @@ public class ArchiveDownloadService {
     return ImmutableSet.copyOf(projectsOpt.get());
   }
 
-  private Optional<FileStreamer> gerRealFileStreamer(String path, OutputStream output) {
+  private Optional<FileStreamer> getRealFileStreamer(String path, OutputStream output) {
     val filePath = getRealFilePath(path, isLegacyFile(path));
     log.info("Resolved download path '{}' to actual path '{}'", path, filePath);
     if (!HadoopUtils.exists(fileSystem, filePath)) {
@@ -244,10 +246,19 @@ public class ArchiveDownloadService {
   private Path getRealFilePath(String path, boolean legacy) {
     return legacy ?
         new Path(rootPath, path.replaceFirst("^/", EMPTY_STRING)) :
-        new Path(rootPath, path
-            .replaceFirst("current", fileSystemService.getCurrentRelease())
-            .replaceFirst("Summary", SUMMARY_FILES)
-            .replaceFirst("^/", EMPTY_STRING));
+        getRealFilePath(path);
+  }
+
+  private Path getRealFilePath(String path) {
+    log.debug("Resolving real path for file '{}'", path);
+    val filePath = new Path(rootPath, path
+        .replaceFirst("current", fileSystemService.getCurrentRelease())
+        .replaceFirst("Summary", SUMMARY_FILES)
+        .replaceFirst("Projects", PROJECTS_FILES)
+        .replaceFirst("^/", EMPTY_STRING));
+    log.debug("Resolved '{}' to '{}'", path, filePath);
+
+    return filePath;
   }
 
   private FileStreamer getArchiveStreamer(

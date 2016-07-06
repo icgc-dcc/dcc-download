@@ -39,8 +39,10 @@ public class DfsPathsTest {
     DfsPaths.validatePath("/current");
     DfsPaths.validatePath("/current/README.txt");
     DfsPaths.validatePath("/release_21/Projects");
+    DfsPaths.validatePath("/release_21/Projects/README.txt");
     DfsPaths.validatePath("/release_21/Summary");
     DfsPaths.validatePath("/release_21/Summary/README.txt");
+    DfsPaths.validatePath("/current/Projects/README.txt");
     DfsPaths.validatePath("/current/Summary");
     DfsPaths.validatePath("/current/Summary/README.txt");
     DfsPaths.validatePath("/release_21/Projects/TST-CA");

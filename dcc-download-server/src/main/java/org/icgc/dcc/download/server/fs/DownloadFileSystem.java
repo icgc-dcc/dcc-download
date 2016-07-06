@@ -19,7 +19,10 @@ package org.icgc.dcc.download.server.fs;
 
 import static java.lang.String.format;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getLegacyRelease;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getProjectsPath;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getSummaryPath;
 import static org.icgc.dcc.download.server.utils.DfsPaths.validatePath;
+import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 
 import java.util.Collection;
 
@@ -30,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.download.core.model.DownloadFile;
+import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.utils.DfsPaths;
 
 @Slf4j
@@ -52,6 +56,7 @@ public class DownloadFileSystem {
 
     // "/"
     if ("/".equals(path)) {
+      log.debug("Listing releases...");
       return rootView.listReleases();
     }
 
@@ -67,6 +72,7 @@ public class DownloadFileSystem {
     val releaseName = pathParts.get(1);
     // "/release_21"
     if (pathParts.size() == 2) {
+      log.debug("Listing release '{}'", releaseName);
       return releaseView.listRelease(releaseName);
     }
 
@@ -75,11 +81,13 @@ public class DownloadFileSystem {
       val dir = pathParts.get(2);
       switch (dir) {
       case "Projects":
+        log.debug("Listing projects path '{}'", getProjectsPath(releaseName));
         return releaseView.listReleaseProjects(releaseName);
       case "Summary":
+        log.debug("Listing projects path '{}'", getSummaryPath(releaseName));
         return releaseView.listReleaseSummary(releaseName);
       default:
-        throw new IllegalArgumentException(format("Malformed path '%s'", path));
+        throwBadRequestException(format("Malformed path '%s'", path));
       }
     }
 
@@ -90,7 +98,9 @@ public class DownloadFileSystem {
       return releaseView.listProject(releaseName, project);
     }
 
-    throw new IllegalArgumentException(format("Malformed path '%s'", path));
+    val message = format("Malformed path '%s'", path);
+    log.warn(message);
+    throw new BadRequestException(message);
   }
 
   private boolean isLegacyRelease(String legacyRelease) {
