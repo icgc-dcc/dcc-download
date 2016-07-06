@@ -20,6 +20,7 @@ package org.icgc.dcc.download.server.endpoint;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.download.server.utils.Requests.checkArgument;
 import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
@@ -88,7 +89,9 @@ public class DownloadController {
     val tokenPayload = getTokenPayload(token);
 
     val jobId = tokenPayload.getId();
+    checkArgument("jobId", jobId);
     val user = tokenPayload.getUser();
+    checkArgument("user", jobId);
     if (!downloadService.isUserDownload(jobId, user)) {
       log.warn("Access forbidden. User: '{}'. Download ID: '{}'", user, jobId);
       throwForbiddenException();
@@ -108,8 +111,11 @@ public class DownloadController {
   public void staticDownload(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
     log.debug("Received download request. Token: '{}'", token);
     val tokenPayload = getTokenPayload(token);
+
     val requestPath = tokenPayload.getPath();
+    checkArgument("path", requestPath);
     log.debug("Static path: '{}'", requestPath);
+
     val filePath = getFsPath(requestPath);
     log.info("Getting download archive for path '{}'", filePath);
 
@@ -128,6 +134,11 @@ public class DownloadController {
 
   @RequestMapping(value = "/size", method = POST)
   public DataTypeSizesResponse getSizes(@RequestBody RecordsSizeRequest request) {
+    if (request.getDonorIds().isEmpty()) {
+      log.warn("Empty donors list");
+      throw new BadRequestException("Empty donors list");
+    }
+
     log.debug("Received get sizes request. Number of donors: {}", request.getDonorIds().size());
     val filesSize = downloadService.getFilesSize(request.getDonorIds());
     log.debug("Resolved file sizes to: {}", filesSize);

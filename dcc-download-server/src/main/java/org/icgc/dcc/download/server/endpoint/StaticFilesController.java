@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.endpoint;
 
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.download.server.utils.Requests.checkArgument;
 import static org.icgc.dcc.download.server.utils.Requests.getRequestPath;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
@@ -47,6 +48,7 @@ public class StaticFilesController {
   @RequestMapping(method = GET)
   public Collection<DownloadFile> list(HttpServletRequest request) throws IOException {
     val requestPath = getRequestPath(request);
+    checkArgument("path", requestPath);
 
     return downloadFileSystem.listFiles(getFsPath(requestPath));
   }

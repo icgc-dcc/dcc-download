@@ -177,6 +177,12 @@ public class FileSystemService {
     return releaseDonorFileTypes.keySet();
   }
 
+  public boolean existsProject(@NonNull String release, @NonNull String project) {
+    val projects = releaseProjectDonors.get(release);
+
+    return projects != null && projects.containsKey(project);
+  }
+
   private void validateIntegrity() {
     val releaseTimesSize = releaseTimes.size();
     val releaseProjectDonorsSize = releaseProjectDonors.size();

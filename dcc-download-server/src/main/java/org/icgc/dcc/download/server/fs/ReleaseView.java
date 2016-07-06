@@ -26,10 +26,13 @@ import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
 import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
 import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getProjectPath;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 import static org.icgc.dcc.download.server.utils.Releases.getActualReleaseName;
+import static org.icgc.dcc.download.server.utils.Requests.checkRequestPath;
+import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 import static org.icgc.dcc.download.server.utils.Responses.throwPathNotFoundException;
 
 import java.util.List;
@@ -111,6 +114,7 @@ public class ReleaseView extends AbstractFileSystemView {
   public List<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val releaseDate = getReleaseDate(actualReleaseName);
+    checkRequestPath(fsService.existsProject(actualReleaseName, project), getProjectPath(releaseName, project));
     val projectSizes = fsService.getProjectSizes(actualReleaseName, project);
 
     // No need to sort the output files, as the input is already sorted
@@ -123,6 +127,8 @@ public class ReleaseView extends AbstractFileSystemView {
 
   public List<DownloadFile> listLegacy(String relativePath) {
     val path = pathResolver.toLegacyHdfsPath(relativePath);
+    ensureDirectory(path);
+
     val allFiles = HadoopUtils.lsAll(fileSystem, path);
 
     return allFiles.stream()
@@ -193,6 +199,20 @@ public class ReleaseView extends AbstractFileSystemView {
   private void ensurePathExistence(Path hdfsPath) {
     if (!HadoopUtils.exists(fileSystem, hdfsPath)) {
       throwPathNotFoundException(format("File not exists: '%s'", hdfsPath));
+    }
+  }
+
+  private void ensureDirectory(Path hdfsPath) {
+    val statusOpt = HadoopUtils.getFileStatus(fileSystem, hdfsPath);
+    if (!statusOpt.isPresent()) {
+      val dfsPath = pathResolver.toDfsPath(hdfsPath);
+      throwPathNotFoundException(format("File not exists: '%s'", dfsPath));
+    }
+
+    val status = statusOpt.get();
+    if (!status.isDirectory()) {
+      val dfsPath = pathResolver.toDfsPath(hdfsPath);
+      throwBadRequestException(format("File is not directory: '%s'", dfsPath));
     }
   }
 

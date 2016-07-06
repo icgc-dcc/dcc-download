@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.server.endpoint.BadRequestException;
@@ -30,14 +31,19 @@ import org.icgc.dcc.download.server.endpoint.NotFoundException;
 public final class Responses {
 
   public static void throwForbiddenException() {
-    throw new ForbiddenException("Invalid token. Access denied.");
+    val message = "Invalid token. Access denied.";
+    log.warn(message);
+    throw new ForbiddenException(message);
   }
 
   public static void throwJobNotFoundException(String jobId) {
-    throw new NotFoundException("Failed to find job with ID " + jobId);
+    val message = "Failed to find job with ID " + jobId;
+    log.warn(message);
+    throw new NotFoundException(message);
   }
 
   public static void throwBadRequestException(String message) {
+    log.warn(message);
     throw new BadRequestException(message);
   }
 
