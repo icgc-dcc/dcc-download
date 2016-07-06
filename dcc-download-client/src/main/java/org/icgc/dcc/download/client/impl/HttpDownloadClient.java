@@ -58,6 +58,7 @@ import org.icgc.dcc.download.core.response.JobResponse;
 
 import com.google.common.collect.ImmutableSet;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
@@ -90,7 +91,7 @@ public class HttpDownloadClient implements DownloadClient {
       response = resource.path(HEALTH_PATH)
           .header(CONTENT_TYPE, JSON_UTF_8)
           .get(HealthResponse.class);
-    } catch (Exception e) {
+    } catch (ClientHandlerException e) {
       log.error("Exception during the health check:\n", e);
 
       return false;
@@ -194,13 +195,13 @@ public class HttpDownloadClient implements DownloadClient {
   }
 
   private static ClientConfig getClientConfig() {
-    ClientConfig cc = new DefaultClientConfig();
-    cc.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-    cc.getClasses().add(JacksonJsonProvider.class);
-    cc.getProperties()
+    ClientConfig config = new DefaultClientConfig();
+    config.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+    config.getClasses().add(JacksonJsonProvider.class);
+    config.getProperties()
         .put(ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS, GZIPContentEncodingFilter.class.getName());
 
-    return cc;
+    return config;
   }
 
   @SneakyThrows

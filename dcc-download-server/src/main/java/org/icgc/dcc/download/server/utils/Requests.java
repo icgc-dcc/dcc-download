@@ -50,7 +50,7 @@ public final class Requests {
 
   public static void checkRequestPath(boolean expression, @NonNull String path) {
     if (!expression) {
-      throwPathNotFoundException(format("Path not found: '{}'", path));
+      throwPathNotFoundException(format("Path not found: '%s'", path));
     }
   }
 

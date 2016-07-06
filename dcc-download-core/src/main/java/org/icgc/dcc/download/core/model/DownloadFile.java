@@ -27,10 +27,10 @@ import lombok.val;
 @AllArgsConstructor
 public class DownloadFile implements Comparable<DownloadFile> {
 
-  String name;
-  DownloadFileType type;
-  long size;
-  long date;
+  private String name;
+  private DownloadFileType type;
+  private long size;
+  private long date;
 
   @Override
   public int compareTo(DownloadFile other) {
