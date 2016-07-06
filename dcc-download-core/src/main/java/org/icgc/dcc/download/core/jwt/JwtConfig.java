@@ -26,8 +26,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class JwtConfig {
 
-  String sharedSecret;
-  String aesKey;
-  int ttlHours = 1;
+  private String sharedSecret;
+  private String aesKey;
+  private int ttlHours = 1;
 
 }

@@ -26,8 +26,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TokenPayload {
 
-  String id;
-  String user;
-  String path;
+  private String id;
+  private String user;
+  private String path;
 
 }
