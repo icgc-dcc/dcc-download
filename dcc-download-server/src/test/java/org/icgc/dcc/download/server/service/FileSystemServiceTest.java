@@ -108,4 +108,12 @@ public class FileSystemServiceTest {
         );
 
   }
+
+  @Test
+  public void testExistsProject() throws Exception {
+    assertThat(service.existsProject("release_21", "TST1-CA")).isTrue();
+    assertThat(service.existsProject("fake", "TST1-CA")).isFalse();
+    assertThat(service.existsProject("release_21", "fake")).isFalse();
+  }
+
 }

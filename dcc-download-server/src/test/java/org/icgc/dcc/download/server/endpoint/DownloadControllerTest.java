@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.Optional;
 
 import lombok.val;
@@ -38,6 +39,7 @@ import org.icgc.dcc.download.core.jwt.JwtService;
 import org.icgc.dcc.download.core.jwt.exception.InvalidJwtTokenException;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.model.TokenPayload;
+import org.icgc.dcc.download.core.request.RecordsSizeRequest;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.service.ArchiveDownloadService;
@@ -160,6 +162,13 @@ public class DownloadControllerTest {
   }
 
   @Test
+  public void testDownloadArchive_missingToken() throws Exception {
+    mockMvc
+        .perform(get(ENDPOINT_PATH))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   public void testDownloadArchive_invalidToken() throws Exception {
     when(tokenService.parseToken("zzz123")).thenThrow(new InvalidJwtTokenException());
 
@@ -176,6 +185,18 @@ public class DownloadControllerTest {
     mockMvc
         .perform(get(ENDPOINT_PATH).param("token", "zzz123"))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  public void testGetSizes_emptyDonors() throws Exception {
+    val request = new RecordsSizeRequest(Collections.emptyList());
+    val requestBody = Jackson.DEFAULT.writeValueAsString(request);
+
+    mockMvc
+        .perform(post(ENDPOINT_PATH + "/size")
+            .contentType(APPLICATION_JSON)
+            .content(requestBody))
+        .andExpect(status().isBadRequest());
   }
 
 }

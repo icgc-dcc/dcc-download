@@ -22,14 +22,16 @@ import static java.util.Optional.empty;
 import static java.util.stream.Collectors.toList;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.checkExistence;
 import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
 import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
-import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
-import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
+import static org.icgc.dcc.download.server.utils.DfsPaths.getProjectPath;
+import static org.icgc.dcc.download.server.utils.DownloadDirectories.PROJECTS_FILES;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 import static org.icgc.dcc.download.server.utils.Releases.getActualReleaseName;
+import static org.icgc.dcc.download.server.utils.Requests.checkRequestPath;
+import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 import static org.icgc.dcc.download.server.utils.Responses.throwPathNotFoundException;
 
 import java.util.List;
@@ -44,7 +46,12 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.DownloadFile;
+import org.icgc.dcc.download.server.endpoint.BadRequestException;
+import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.service.FileSystemService;
+import org.icgc.dcc.download.server.utils.DownloadDirectories;
+
+import com.google.common.collect.Lists;
 
 @Slf4j
 public class ReleaseView extends AbstractFileSystemView {
@@ -57,6 +64,8 @@ public class ReleaseView extends AbstractFileSystemView {
   public List<DownloadFile> listRelease(@NonNull String releaseName) {
     val current = "current".equals(releaseName);
     val actualReleaseName = current ? currentRelease : releaseName;
+    log.debug("Listing release contents for release '{}'", releaseName);
+
     val hdfsPath = pathResolver.toHdfsPath("/" + actualReleaseName);
     ensurePathExistence(hdfsPath);
 
@@ -76,17 +85,23 @@ public class ReleaseView extends AbstractFileSystemView {
 
   public List<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
-    val projects = fsService.getReleaseProjects(actualReleaseName);
-    if (!projects.isPresent()) {
+    val projectNames = fsService.getReleaseProjects(actualReleaseName);
+    if (!projectNames.isPresent()) {
       throwPathNotFoundException(format("Release '%s' doesn't exist.", actualReleaseName));
     }
     val releaseDate = getReleaseDate(actualReleaseName);
 
-    return projects.get().stream()
-        .map(project -> format("/%s/Projects/%s", releaseName, project))
+    val projects = projectNames.get().stream()
+        .map(project -> getProjectPath(releaseName, project))
         .map(path -> createDownloadDir(path, releaseDate))
         .sorted()
         .collect(toImmutableList());
+
+    val projectsFiles = getProjectsFiles(releaseName);
+    log.debug("Projects files: {}", projectsFiles);
+    projectsFiles.addAll(projects);
+
+    return projectsFiles;
   }
 
   public List<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
@@ -111,6 +126,7 @@ public class ReleaseView extends AbstractFileSystemView {
   public List<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
     val releaseDate = getReleaseDate(actualReleaseName);
+    checkRequestPath(fsService.existsProject(actualReleaseName, project), getProjectPath(releaseName, project));
     val projectSizes = fsService.getProjectSizes(actualReleaseName, project);
 
     // No need to sort the output files, as the input is already sorted
@@ -123,11 +139,27 @@ public class ReleaseView extends AbstractFileSystemView {
 
   public List<DownloadFile> listLegacy(String relativePath) {
     val path = pathResolver.toLegacyHdfsPath(relativePath);
+    ensureDirectory(path);
+
     val allFiles = HadoopUtils.lsAll(fileSystem, path);
 
     return allFiles.stream()
         .map(file -> createDownloadFile(file, pathResolver.toDfsPath(file)))
         .collect(toImmutableList());
+  }
+
+  private List<DownloadFile> getProjectsFiles(String releaseName) {
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val projectsFiles = getProjectsFilesPath(actualReleaseName);
+    if (!checkExistence(fileSystem, projectsFiles)) {
+      return Lists.newArrayList();
+    }
+
+    val files = HadoopUtils.lsFile(fileSystem, projectsFiles);
+
+    return files.stream()
+        .map(file -> createProjectsFile(file, releaseName))
+        .collect(toList());
   }
 
   private DownloadFile createProjectFile(Entry<DownloadDataType, Long> entry, String releaseName, String project,
@@ -142,13 +174,35 @@ public class ReleaseView extends AbstractFileSystemView {
 
   private List<DownloadFile> getSummaryFiles(String releaseName) {
     val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
-    val files = HadoopUtils.lsFile(fileSystem, getSummaryFilesPath(actualReleaseName));
+    val summaryFiles = getSummaryFilesPath(actualReleaseName);
+    if (!checkExistence(fileSystem, summaryFiles)) {
+      return Lists.newArrayList();
+    }
+
+    val files = HadoopUtils.lsFile(fileSystem, summaryFiles);
 
     return files.stream()
         .map(file -> createSummaryFile(file, releaseName))
         .collect(toList());
   }
 
+  /**
+   * Creates a {@link DownloadFile} that represents a real file in the {@code Projects} directory.<br>
+   * E.g. {@code /release_21/Projects/README.txt}
+   */
+  private DownloadFile createProjectsFile(Path file, String releaseName) {
+    log.debug("Creating projects file for '{}'", file);
+    val fileName = file.getName();
+    val path = format("/%s/Projects/%s", releaseName, fileName);
+
+    return createDownloadFile(file, path);
+  }
+
+  /**
+   * Creates a {@link DownloadFile} that represents a real file in the {@code Summary} directory.<br>
+   * E.g. {@code /release_21/Summary/README.txt}
+   */
+  // TODO: extract common functionality with createProjectsFile()
   private DownloadFile createSummaryFile(Path file, String releaseName) {
     log.debug("Creating summary file for '{}'", file);
     val fileName = file.getName();
@@ -159,11 +213,18 @@ public class ReleaseView extends AbstractFileSystemView {
 
   private DownloadFile createDownloadFile(Path file, String downloadFilePath) {
     val status = getFileStatus(file);
-    val type = isDirectory(fileSystem, file) ? DIRECTORY : FILE;
+    val type = status.isDirectory() ? DIRECTORY : FILE;
     val size = type == FILE ? status.getLen() : 0L;
     val creationDate = status.getModificationTime();
 
     return createDownloadFile(downloadFilePath, type, size, creationDate);
+  }
+
+  private Path getProjectsFilesPath(String releaseName) {
+    val summaryPath = new Path(PATH.join(pathResolver.getRootDir(), releaseName, PROJECTS_FILES));
+    log.debug("'{}' summary path: {}", releaseName, summaryPath);
+
+    return summaryPath;
   }
 
   private Path getSummaryFilesPath(String releaseName) {
@@ -196,10 +257,32 @@ public class ReleaseView extends AbstractFileSystemView {
     }
   }
 
+  /**
+   * Verifies that the {@code hdfsPath} is a directory.
+   * @throws NotFoundException if {@code hdfsPath} doesn't exist.
+   * @throws BadRequestException if {@code hdfsPath} is not a directory.
+   */
+  private void ensureDirectory(Path hdfsPath) {
+    val statusOpt = HadoopUtils.getFileStatus(fileSystem, hdfsPath);
+    if (!statusOpt.isPresent()) {
+      val dfsPath = pathResolver.toDfsPath(hdfsPath);
+      throwPathNotFoundException(format("File not exists: '%s'", dfsPath));
+    }
+
+    val status = statusOpt.get();
+    if (!status.isDirectory()) {
+      val dfsPath = pathResolver.toDfsPath(hdfsPath);
+      throwBadRequestException(format("File is not directory: '%s'", dfsPath));
+    }
+  }
+
+  /**
+   * Checks if the {@code file} represent DFS specific entity. E.g. {@code data} directory
+   */
   private static boolean isDfsEntity(Path file) {
     val fileName = file.getName();
 
-    return fileName.equals(DATA_DIR) || fileName.equals(HEADERS_DIR) || fileName.equals(SUMMARY_FILES);
+    return DownloadDirectories.DOWNLOAD_DIRS.contains(fileName);
   }
 
 }

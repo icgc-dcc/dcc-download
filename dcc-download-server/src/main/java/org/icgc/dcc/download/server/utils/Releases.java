@@ -33,6 +33,7 @@ public final class Releases {
   public static String getActualReleaseName(@NonNull String releaseName, @NonNull String currentRelease) {
     val current = "current".equals(releaseName);
     val actualReleaseName = current ? currentRelease : releaseName;
+
     return actualReleaseName;
   }
 

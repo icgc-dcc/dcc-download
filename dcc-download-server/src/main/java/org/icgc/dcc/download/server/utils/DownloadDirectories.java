@@ -18,13 +18,25 @@
 package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
+
+import java.util.Collection;
+
 import lombok.NoArgsConstructor;
+
+import com.google.common.collect.ImmutableList;
 
 @NoArgsConstructor(access = PRIVATE)
 public final class DownloadDirectories {
 
   public static final String SUMMARY_FILES = "summary_files";
+  public static final String PROJECTS_FILES = "projects_files";
   public static final String DATA_DIR = "data";
   public static final String HEADERS_DIR = "headers";
+
+  public static final Collection<String> DOWNLOAD_DIRS = ImmutableList.of(
+      SUMMARY_FILES,
+      PROJECTS_FILES,
+      DATA_DIR,
+      HEADERS_DIR);
 
 }

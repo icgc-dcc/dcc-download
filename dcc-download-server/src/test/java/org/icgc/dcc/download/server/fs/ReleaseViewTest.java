@@ -30,6 +30,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.server.config.Properties;
+import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.icgc.dcc.download.server.utils.AbstractFsTest;
@@ -46,6 +47,10 @@ import com.google.common.collect.ImmutableMap;
 @RunWith(MockitoJUnitRunner.class)
 public class ReleaseViewTest extends AbstractFsTest {
 
+  private static final String PROJECT_NAME = "TST1-CA";
+  private static final String FAKE_PROJECT = "fake-CA";
+  private static final String CURRENT_RELEASE = "release_21";
+
   @Mock
   FileSystemService fsService;
 
@@ -61,13 +66,13 @@ public class ReleaseViewTest extends AbstractFsTest {
 
     this.releaseView = new ReleaseView(getDefaultLocalFileSystem(), fsService, pathResolver);
 
-    when(fsService.getReleaseDate("release_21")).thenReturn(Optional.of(321L));
+    when(fsService.getReleaseDate(CURRENT_RELEASE)).thenReturn(Optional.of(321L));
     when(fsService.getReleaseDate("current")).thenReturn(Optional.of(321L));
   }
 
   @Test
   public void testListRelease_releaseName() throws Exception {
-    val files = releaseView.listRelease("release_21");
+    val files = releaseView.listRelease(CURRENT_RELEASE);
     log.info("Files: {}", files);
     verifyDownloadFiles(files, of(
         newFile("/release_21/README.txt", 13L, getModificationTime("release_21/README.txt")),
@@ -92,20 +97,26 @@ public class ReleaseViewTest extends AbstractFsTest {
 
   @Test
   public void testListReleaseProjects() throws Exception {
-    when(fsService.getReleaseProjects("release_21")).thenReturn(Optional.of(ImmutableList.of("TST1-CA", "TST2-CA")));
+    when(fsService.getReleaseProjects(CURRENT_RELEASE)).thenReturn(
+        Optional.of(ImmutableList.of(PROJECT_NAME, "TST2-CA")));
 
-    val files = releaseView.listReleaseProjects("release_21");
-    verifyDownloadFiles(files,
-        of(newDir("/release_21/Projects/TST1-CA", 321L), newDir("/release_21/Projects/TST2-CA", 321L)));
+    val files = releaseView.listReleaseProjects(CURRENT_RELEASE);
+    verifyDownloadFiles(files, of(
+        newFile("/release_21/Projects/README.txt", 17L, getModificationTime("release_21/projects_files/README.txt")),
+        newDir("/release_21/Projects/TST1-CA", 321L),
+        newDir("/release_21/Projects/TST2-CA", 321L)));
   }
 
   @Test
   public void testListReleaseProjects_current() throws Exception {
-    when(fsService.getReleaseProjects("release_21")).thenReturn(Optional.of(ImmutableList.of("TST1-CA", "TST2-CA")));
+    when(fsService.getReleaseProjects(CURRENT_RELEASE)).thenReturn(
+        Optional.of(ImmutableList.of(PROJECT_NAME, "TST2-CA")));
 
     val files = releaseView.listReleaseProjects("current");
-    verifyDownloadFiles(files,
-        of(newDir("/current/Projects/TST1-CA", 321L), newDir("/current/Projects/TST2-CA", 321L)));
+    verifyDownloadFiles(files, of(
+        newFile("/current/Projects/README.txt", 17L, getModificationTime("release_21/projects_files/README.txt")),
+        newDir("/current/Projects/TST1-CA", 321L),
+        newDir("/current/Projects/TST2-CA", 321L)));
   }
 
   @Test(expected = NotFoundException.class)
@@ -116,9 +127,9 @@ public class ReleaseViewTest extends AbstractFsTest {
 
   @Test
   public void testListReleaseSummary() throws Exception {
-    when(fsService.getClinicalSizes("release_21")).thenReturn(ImmutableMap.of(SAMPLE, 2L, DONOR, 8L));
+    when(fsService.getClinicalSizes(CURRENT_RELEASE)).thenReturn(ImmutableMap.of(SAMPLE, 2L, DONOR, 8L));
 
-    val files = releaseView.listReleaseSummary("release_21");
+    val files = releaseView.listReleaseSummary(CURRENT_RELEASE);
     verifyDownloadFiles(files,
         of(
             newFile("/release_21/Summary/README.txt", 22, getModificationTime("release_21/summary_files/README.txt")),
@@ -131,7 +142,7 @@ public class ReleaseViewTest extends AbstractFsTest {
 
   @Test
   public void testListReleaseSummary_current() throws Exception {
-    when(fsService.getClinicalSizes("release_21")).thenReturn(ImmutableMap.of(SAMPLE, 2L, DONOR, 8L));
+    when(fsService.getClinicalSizes(CURRENT_RELEASE)).thenReturn(ImmutableMap.of(SAMPLE, 2L, DONOR, 8L));
 
     val files = releaseView.listReleaseSummary("current");
     log.info("Files: {}", files);
@@ -154,10 +165,11 @@ public class ReleaseViewTest extends AbstractFsTest {
 
   @Test
   public void testListProject() throws Exception {
-    when(fsService.getProjectSizes("release_21", "TST1-CA")).thenReturn(
+    when(fsService.getProjectSizes(CURRENT_RELEASE, PROJECT_NAME)).thenReturn(
         ImmutableMap.of(DONOR, 8L, SAMPLE, 2L, SSM_OPEN, 10L));
+    when(fsService.existsProject(CURRENT_RELEASE, PROJECT_NAME)).thenReturn(true);
 
-    val tst1Files = releaseView.listProject("release_21", "TST1-CA");
+    val tst1Files = releaseView.listProject(CURRENT_RELEASE, PROJECT_NAME);
     verifyDownloadFiles(tst1Files,
         of(
             newFile("/release_21/Projects/TST1-CA/donor.TST1-CA.tsv.gz", 8, 321),
@@ -168,10 +180,11 @@ public class ReleaseViewTest extends AbstractFsTest {
 
   @Test
   public void testListProject_current() throws Exception {
-    when(fsService.getProjectSizes("release_21", "TST1-CA")).thenReturn(
+    when(fsService.getProjectSizes(CURRENT_RELEASE, PROJECT_NAME)).thenReturn(
         ImmutableMap.of(DONOR, 8L, SAMPLE, 2L, SSM_OPEN, 10L));
+    when(fsService.existsProject(CURRENT_RELEASE, PROJECT_NAME)).thenReturn(true);
 
-    val tst1Files = releaseView.listProject("current", "TST1-CA");
+    val tst1Files = releaseView.listProject("current", PROJECT_NAME);
     verifyDownloadFiles(tst1Files,
         of(
             newFile("/current/Projects/TST1-CA/donor.TST1-CA.tsv.gz", 8, 321),
@@ -183,11 +196,28 @@ public class ReleaseViewTest extends AbstractFsTest {
   @Test(expected = NotFoundException.class)
   public void testListProject_invalidRelease() throws Exception {
     when(fsService.getReleaseDate("bogus")).thenReturn(Optional.empty());
-    when(fsService.getProjectSizes("release_21", "TST1-CA")).thenReturn(
+    when(fsService.getProjectSizes(CURRENT_RELEASE, PROJECT_NAME)).thenReturn(
         ImmutableMap.of(DONOR, 8L, SAMPLE, 2L, SSM_OPEN, 10L));
 
-    releaseView.listProject("bogus", "fake-CA");
+    releaseView.listProject("bogus", FAKE_PROJECT);
+  }
 
+  @Test(expected = NotFoundException.class)
+  public void testListProject_invalidProject() throws Exception {
+    when(fsService.getReleaseDate(CURRENT_RELEASE)).thenReturn(Optional.of(123L));
+    when(fsService.existsProject(CURRENT_RELEASE, FAKE_PROJECT)).thenReturn(false);
+
+    releaseView.listProject(CURRENT_RELEASE, FAKE_PROJECT);
+  }
+
+  @Test(expected = NotFoundException.class)
+  public void testListLegacy_notExist() throws Exception {
+    releaseView.listLegacy("/fake");
+  }
+
+  @Test(expected = BadRequestException.class)
+  public void testListLegacy_notDirectory() throws Exception {
+    releaseView.listLegacy("/legacy_releases/README_file.txt");
   }
 
 }

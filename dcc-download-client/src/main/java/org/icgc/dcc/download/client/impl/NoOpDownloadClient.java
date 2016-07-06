@@ -40,17 +40,7 @@ public class NoOpDownloadClient implements DownloadClient {
   }
 
   @Override
-  public void setActiveDownload(String jobId) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void unsetActiveDownload(String jobId) {
     throw new UnsupportedOperationException();
   }
 
@@ -61,11 +51,6 @@ public class NoOpDownloadClient implements DownloadClient {
 
   @Override
   public Collection<DownloadFile> listFiles(String path) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public String getReadme(String token) {
     throw new UnsupportedOperationException();
   }
 

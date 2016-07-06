@@ -32,9 +32,9 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 @JsonInclude(Include.NON_NULL)
 public class JobUiInfo {
 
-  private String filter;
-  private String uiQueryStr;
-  private String user;
-  private boolean controlled;
+  private String filter; // NOPMD
+  private String uiQueryStr;// NOPMD
+  private String user; // NOPMD
+  private boolean controlled; // NOPMD
 
 }

@@ -15,41 +15,63 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.service;
 
-import static lombok.AccessLevel.PRIVATE;
-import lombok.NoArgsConstructor;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
+import java.io.OutputStream;
+
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.server.endpoint.BadRequestException;
-import org.icgc.dcc.download.server.endpoint.ForbiddenException;
-import org.icgc.dcc.download.server.endpoint.NotFoundException;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.server.fs.PathResolver;
+import org.icgc.dcc.download.server.repository.DataFilesRepository;
+import org.icgc.dcc.download.server.repository.JobRepository;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class Responses {
+@RunWith(MockitoJUnitRunner.class)
+public class ArchiveDownloadServiceTest {
 
-  public static void throwForbiddenException() {
-    val message = "Invalid token. Access denied.";
-    log.warn(message);
-    throw new ForbiddenException(message);
+  Path rootPath = new Path("/tmp");
+  @Mock
+  FileSystemService fileSystemService;
+  @Mock
+  FileSystem fileSystem;
+  @Mock
+  JobRepository jobRepository;
+  @Mock
+  DataFilesRepository dataFilesRepository;
+  @Mock
+  PathResolver pathResolver;
+
+  @Mock
+  OutputStream output;
+
+  ArchiveDownloadService service;
+
+  @Before
+  public void setUp() {
+    service =
+        new ArchiveDownloadService(rootPath, fileSystemService, fileSystem, jobRepository, dataFilesRepository,
+            pathResolver);
   }
 
-  public static void throwJobNotFoundException(String jobId) {
-    val message = "Failed to find job with ID " + jobId;
-    log.warn(message);
-    throw new NotFoundException(message);
-  }
+  @Test
+  public void testGetStaticArchiveStreamer() throws Exception {
+    when(fileSystemService.isLegacyRelease("release_21")).thenReturn(false);
+    when(fileSystemService.getCurrentRelease()).thenReturn("release_21");
+    when(fileSystem.exists(new Path("/tmp/release_21/projects_files/README.txt"))).thenReturn(true);
 
-  public static void throwBadRequestException(String message) {
-    log.warn(message);
-    throw new BadRequestException(message);
-  }
-
-  public static void throwPathNotFoundException(String warnMessage) {
-    log.warn(warnMessage);
-    throw new NotFoundException("Malformed path");
+    val streamerOpt = service.getStaticArchiveStreamer("/release_21/Projects/README.txt", output);
+    assertThat(streamerOpt.isPresent()).isTrue();
+    val streamer = streamerOpt.get();
+    assertThat(streamer.getName()).isEqualTo("README.txt");
   }
 
 }

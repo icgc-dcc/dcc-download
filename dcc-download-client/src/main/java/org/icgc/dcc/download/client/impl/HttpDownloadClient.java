@@ -24,11 +24,9 @@ import static com.google.common.net.MediaType.GZIP;
 import static com.google.common.net.MediaType.JSON_UTF_8;
 import static org.icgc.dcc.common.core.model.DownloadDataType.CLINICAL;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableSet;
 import static org.icgc.dcc.download.core.util.Endpoints.DOWNLOADS_PATH;
 import static org.icgc.dcc.download.core.util.Endpoints.HEALTH_PATH;
 import static org.icgc.dcc.download.core.util.Endpoints.LIST_FILES_PATH;
-import static org.icgc.dcc.download.core.util.Endpoints.STATIC_DOWNLOADS_PATH;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -60,6 +58,8 @@ import org.icgc.dcc.download.core.response.JobResponse;
 
 import com.google.common.collect.ImmutableSet;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandlerException;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
@@ -91,7 +91,7 @@ public class HttpDownloadClient implements DownloadClient {
       response = resource.path(HEALTH_PATH)
           .header(CONTENT_TYPE, JSON_UTF_8)
           .get(HealthResponse.class);
-    } catch (Exception e) {
+    } catch (ClientHandlerException e) {
       log.error("Exception during the health check:\n", e);
 
       return false;
@@ -105,36 +105,37 @@ public class HttpDownloadClient implements DownloadClient {
       @NonNull Set<String> donorIds,
       @NonNull Set<DownloadDataType> dataTypes,
       @NonNull JobUiInfo jobInfo) {
-    val submitDataTypes = resolveDataTypes(donorIds, dataTypes);
     val submitJobRequest = SubmitJobRequest.builder()
         .donorIds(donorIds)
-        .dataTypes(submitDataTypes)
+        .dataTypes(resolveSubmitDataTypes(dataTypes))
         .jobInfo(jobInfo)
         .submissionTime(Instant.now().getEpochSecond())
         .build();
 
-    return resource.path(DOWNLOADS_PATH)
+    val response = resource.path(DOWNLOADS_PATH)
         .header(CONTENT_TYPE, JSON_UTF_8)
-        .post(String.class, submitJobRequest);
+        .post(ClientResponse.class, submitJobRequest);
+
+    if (!isSuccessful(response)) {
+      return null;
+    }
+
+    return response.getEntity(String.class);
+  }
+
+  private static boolean isSuccessful(ClientResponse response) {
+    return response.getStatus() == 200;
   }
 
   @Override
   public JobResponse getJob(@NonNull String jobId) {
     val request = resource.path(DOWNLOADS_PATH).path(jobId).path("info");
+    val response = request.get(ClientResponse.class);
+    if (!isSuccessful(response)) {
+      return null;
+    }
 
-    return request.get(JobResponse.class);
-  }
-
-  @Override
-  public void setActiveDownload(@NonNull String jobId) {
-    resource.path(DOWNLOADS_PATH).path(jobId).path("active")
-        .put();
-  }
-
-  @Override
-  public void unsetActiveDownload(@NonNull String jobId) {
-    resource.path(DOWNLOADS_PATH).path(jobId).path("active")
-        .delete();
+    return response.getEntity(JobResponse.class);
   }
 
   @Override
@@ -143,33 +144,23 @@ public class HttpDownloadClient implements DownloadClient {
     val response = resource.path(DOWNLOADS_PATH).path("size")
         .header(CONTENT_TYPE, JSON_UTF_8)
         .header(CONTENT_ENCODING, GZIP)
-        .post(DataTypeSizesResponse.class, body);
+        .post(ClientResponse.class, body);
+    if (!isSuccessful(response)) {
+      return null;
+    }
 
-    return response.getSizes();
+    return response.getEntity(DataTypeSizesResponse.class).getSizes();
   }
 
   @Override
   public Collection<DownloadFile> listFiles(String path) {
-    return resource.path(LIST_FILES_PATH).path(path)
-        .get(new GenericType<Collection<DownloadFile>>() {});
-  }
+    val response = resource.path(LIST_FILES_PATH).path(path)
+        .get(ClientResponse.class);
+    if (!isSuccessful(response)) {
+      return null;
+    }
 
-  @Override
-  public String getReadme(@NonNull String token) {
-    val response = resource.path(STATIC_DOWNLOADS_PATH)
-        .queryParam("token", token)
-        .get(String.class);
-
-    return response;
-  }
-
-  private Set<DownloadDataType> resolveDataTypes(Set<String> donorIds, Set<DownloadDataType> dataTypes) {
-    val submitDataTypes = resolveSubmitDataTypes(dataTypes);
-    val sizes = getSizes(donorIds);
-
-    return submitDataTypes.stream()
-        .filter(dt -> sizes.get(dt) != null && sizes.get(dt) > 0L)
-        .collect(toImmutableSet());
+    return response.getEntity(new GenericType<Collection<DownloadFile>>() {});
   }
 
   private static Set<DownloadDataType> resolveSubmitDataTypes(Set<DownloadDataType> dataTypes) {
@@ -204,13 +195,13 @@ public class HttpDownloadClient implements DownloadClient {
   }
 
   private static ClientConfig getClientConfig() {
-    ClientConfig cc = new DefaultClientConfig();
-    cc.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-    cc.getClasses().add(JacksonJsonProvider.class);
-    cc.getProperties()
+    ClientConfig config = new DefaultClientConfig();
+    config.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+    config.getClasses().add(JacksonJsonProvider.class);
+    config.getProperties()
         .put(ResourceConfig.PROPERTY_CONTAINER_REQUEST_FILTERS, GZIPContentEncodingFilter.class.getName());
 
-    return cc;
+    return config;
   }
 
   @SneakyThrows

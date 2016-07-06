@@ -34,14 +34,8 @@ public interface DownloadClient {
 
   boolean isServiceAvailable();
 
-  void setActiveDownload(String jobId);
-
-  void unsetActiveDownload(String jobId);
-
   String submitJob(Set<String> donorIds, Set<DownloadDataType> dataTypes, JobUiInfo jobInfo);
 
   Collection<DownloadFile> listFiles(String path);
-
-  String getReadme(String token);
 
 }

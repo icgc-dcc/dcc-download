@@ -199,6 +199,27 @@ public final class DfsPaths {
     return !releases.contains(release) && !"current".equals(release);
   }
 
+  /**
+   * Creates a DFS summary path. E.g. {@code /release_21/Summary}
+   */
+  public static String getSummaryPath(@NonNull String release) {
+    return format("/%s/Summary", release);
+  }
+
+  /**
+   * Creates a DFS projects path. E.g. {@code /release_21/Projects}
+   */
+  public static String getProjectsPath(@NonNull String release) {
+    return format("/%s/Projects", release);
+  }
+
+  /**
+   * Creates a DFS project path. E.g. {@code /release_21/Projects/TST-CA}
+   */
+  public static String getProjectPath(@NonNull String release, @NonNull String project) {
+    return format("/%s/Projects/%s", release, project);
+  }
+
   private static DownloadDataType resolveDownloadDataType(String fileName) {
     log.debug("Resolving download data type from file name '{}'", fileName);
     val archiveName = fileName
@@ -233,6 +254,8 @@ public final class DfsPaths {
       val parent = parts.get(2);
       if ("Summary".equals(parent)) {
         verifyFileName(part);
+      } else if ("Projects".equals(parent) && part.equals("README.txt")) {
+        // Do nothing this is /<release>/Projects/README.txt
       } else {
         verifyPathPart(PROJECT_NAME_PATTERN, part);
       }

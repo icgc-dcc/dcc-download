@@ -24,11 +24,11 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 public class DownloadClientConfig {
 
-  String baseUrl;
-  String user;
-  String password;
+  private String baseUrl;
+  private String user;
+  private String password;
 
-  boolean strictSSLCertificates = true;
-  boolean requestLoggingEnabled;
+  private boolean strictSSLCertificates = true;
+  private boolean requestLoggingEnabled;
 
 }
