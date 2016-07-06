@@ -47,6 +47,7 @@ import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.service.ArchiveDownloadService;
 import org.icgc.dcc.download.server.utils.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -102,6 +103,7 @@ public class DownloadController {
     streamArchive(Optional.of(jobId), streamerOpt, response);
   }
 
+  @CrossOrigin(origins = "*")
   @RequestMapping(value = "/static", method = GET)
   public void staticDownload(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
     log.debug("Received download request. Token: '{}'", token);
