@@ -71,7 +71,6 @@ import org.icgc.dcc.download.server.utils.DfsPaths;
 import org.icgc.dcc.download.server.utils.Responses;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
@@ -353,7 +352,9 @@ public class ArchiveDownloadService {
       fileSizes.put(type, size + file.getTotalSize());
     }
 
-    return ImmutableMap.copyOf(fileSizes);
+    return fileSizes.entrySet().stream()
+        .filter(entry -> entry.getValue() > 0)
+        .collect(toImmutableMap(entry -> entry.getKey(), entry -> entry.getValue()));
   }
 
   private static DownloadDataType resolveType(DataTypeFile file) {

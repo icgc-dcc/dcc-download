@@ -19,11 +19,13 @@ package org.icgc.dcc.download.client.impl;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.JSON_UTF_8;
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SAMPLE;
@@ -77,12 +79,41 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   }
 
   @Test
+  public void testSubmitJob_badRequest() throws Exception {
+    // Setup
+    stubGetSizesRequest();
+    stubFor(post(urlEqualTo("/downloads"))
+        .willReturn(aResponse()
+            .withStatus(400)
+        ));
+
+    // Run
+    val jobId = downloadClient.submitJob(
+        ImmutableSet.of("DO1"),
+        ImmutableSet.of(DONOR, SSM_CONTROLLED),
+        JobUiInfo.builder().build());
+
+    // Verify
+    assertThat(jobId).isNull();
+  }
+
+  @Test
   public void testGetSizes() throws Exception {
     stubGetSizesRequest();
 
     val sizes = downloadClient.getSizes(Collections.singleton("DO1"));
     log.info("{}", sizes);
     assertThat(sizes).isEqualTo(ImmutableMap.of(DONOR, 1L, SSM_CONTROLLED, 2L, SAMPLE, 0L, SPECIMEN, 1L));
+  }
+
+  @Test
+  public void testGetSizes_badRequest() throws Exception {
+    stubFor(post(urlEqualTo("/downloads/size")).withRequestBody(equalToJson("{\"donorIds\":[\"DO1\"]}"))
+        .willReturn(aResponse().withStatus(400)
+        ));
+
+    val sizes = downloadClient.getSizes(Collections.emptySet());
+    assertThat(sizes).isNull();
   }
 
   private static void stubSubmitJobRequest() {
@@ -104,6 +135,16 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
             .withBody("{\"sizes\":{\"DONOR\":1,\"SSM_CONTROLLED\":2,\"SAMPLE\":0,\"SPECIMEN\":1}}")
             .withHeader(CONTENT_TYPE, JSON_UTF_8.toString())
         ));
+  }
+
+  @Test
+  public void testGetJob_notFound() throws Exception {
+    stubFor(get(urlEqualTo(format("/downloads/%s/info", JOB_ID)))
+        .willReturn(aResponse()
+            .withStatus(404)
+        ));
+    val info = downloadClient.getJob(JOB_ID);
+    assertThat(info).isNull();
   }
 
 }
