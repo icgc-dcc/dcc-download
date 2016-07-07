@@ -39,12 +39,6 @@ public class Properties {
   }
 
   @Bean
-  @ConfigurationProperties(prefix = "download.server")
-  public DownloadServerProperties downloadServerProperties() {
-    return new DownloadServerProperties();
-  }
-
-  @Bean
   @ConfigurationProperties(prefix = "hadoop")
   public HadoopProperties hadoopProperties() {
     return new HadoopProperties();
@@ -66,11 +60,6 @@ public class Properties {
   public static class JobProperties {
 
     private String inputDir;
-
-  }
-
-  @Data
-  public static class DownloadServerProperties {
 
   }
 

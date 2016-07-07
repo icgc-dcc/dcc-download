@@ -40,6 +40,10 @@ import org.icgc.dcc.download.server.utils.DfsPaths;
 @RequiredArgsConstructor
 public class DownloadFileSystem {
 
+  private static final int ONE_LEVEL_PATH_SIZE = 2;
+  private static final int TWO_LEVEL_PATH_SIZE = 3;
+  private static final int THREE_LEVEL_PATH_SIZE = 4;
+
   @NonNull
   private final RootView rootView;
   @NonNull
@@ -71,13 +75,13 @@ public class DownloadFileSystem {
 
     val releaseName = pathParts.get(1);
     // "/release_21"
-    if (pathParts.size() == 2) {
+    if (pathParts.size() == ONE_LEVEL_PATH_SIZE) {
       log.debug("Listing release '{}'", releaseName);
       return releaseView.listRelease(releaseName);
     }
 
     // "/release_21/{Projects|Summary}"
-    if (pathParts.size() == 3) {
+    if (pathParts.size() == TWO_LEVEL_PATH_SIZE) {
       val dir = pathParts.get(2);
       switch (dir) {
       case "Projects":
@@ -88,11 +92,12 @@ public class DownloadFileSystem {
         return releaseView.listReleaseSummary(releaseName);
       default:
         throwBadRequestException(format("Malformed path '%s'", path));
+        return null; // Doesn't come to this point by makes PMD happy.
       }
     }
 
     // /release_21/Projects/TST1-CA
-    if (pathParts.size() == 4) {
+    if (pathParts.size() == THREE_LEVEL_PATH_SIZE) {
       val project = pathParts.get(3);
 
       return releaseView.listProject(releaseName, project);

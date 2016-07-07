@@ -71,7 +71,7 @@ public class ReleaseView extends AbstractFileSystemView {
 
     val releaseFiles = HadoopUtils.lsAll(fileSystem, hdfsPath);
     val downloadFiles = releaseFiles.stream()
-        .filter(file -> isDfsEntity(file) == false)
+        .filter(file -> !isDfsEntity(file))
         .map(file -> convert2DownloadFile(file, current))
         .collect(toList());
 

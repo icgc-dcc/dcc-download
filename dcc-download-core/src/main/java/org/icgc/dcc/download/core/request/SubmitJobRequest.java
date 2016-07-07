@@ -37,9 +37,9 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 @JsonInclude(Include.NON_NULL)
 public class SubmitJobRequest {
 
-  Set<String> donorIds;
-  Set<DownloadDataType> dataTypes;
-  JobUiInfo jobInfo;
-  long submissionTime;
+  private Set<String> donorIds;
+  private Set<DownloadDataType> dataTypes;
+  private JobUiInfo jobInfo;
+  private long submissionTime;
 
 }

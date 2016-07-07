@@ -28,8 +28,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataFiles {
 
-  String id;
-  String release;
-  List<DataTypeFile> dataFiles;
+  private String id;
+  private String release;
+  private List<DataTypeFile> dataFiles;
 
 }

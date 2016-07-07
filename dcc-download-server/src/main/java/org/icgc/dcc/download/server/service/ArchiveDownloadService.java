@@ -275,14 +275,17 @@ public class ArchiveDownloadService {
     // Stream back as gzip if single dataType, as tar if multiple datatypes
     // during streaming insert headers and create tar entities when required.
 
-    // Convert OutputStream to InputStream http://blog.ostermiller.org/convert-java-outputstream-inputstream
-    if (headers.size() == 1) {
+    if (isSingleEntry(headers)) {
       log.info("Creating gzip streamer for data types {}", dataTypes);
       return getGzipStreamer(downloadFiles, fileSizes, headers, output, release, fileNames);
     } else {
       log.info("Creating tar streamer for data types {}", dataTypes);
       return getTarStreamer(downloadFiles, fileSizes, headers, output, release);
     }
+  }
+
+  private boolean isSingleEntry(Map<DownloadDataType, String> headers) {
+    return headers.size() == 1;
   }
 
   private FileStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
@@ -363,14 +366,13 @@ public class ArchiveDownloadService {
     return DownloadDataType.valueOf(name.toUpperCase());
   }
 
-  // TODO: explicitly specify apache-common dependency
-  private static TarArchiveOutputStream createTarOutputStream(OutputStream out) {
+  private static TarArchiveOutputStream createTarOutputStream(OutputStream outputStream) {
     log.debug("Creating tar output stream...");
-    val tarOut = new TarArchiveOutputStream(out);
-    tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-    tarOut.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
+    val tarOutputStream = new TarArchiveOutputStream(outputStream);
+    tarOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+    tarOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
 
-    return tarOut;
+    return tarOutputStream;
   }
 
   private static String generateId() {
