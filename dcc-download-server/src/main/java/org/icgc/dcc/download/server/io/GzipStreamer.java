@@ -32,6 +32,7 @@ import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.catalina.connector.ClientAbortException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
@@ -136,6 +137,8 @@ public class GzipStreamer implements FileStreamer {
         currentDataFileIndex++;
       }
       log.debug("Finished Streaming '{}' entry.", currentDownloadDataType.getCanonicalName());
+    } catch (ClientAbortException e) {
+      log.info("Archive streaming cancelled by the client.");
     } catch (Exception e) {
       log.error("Got exception while streaming entry: ", e);
       throw new DownloadException("An error occurred while streaming. Please contact the support.");
