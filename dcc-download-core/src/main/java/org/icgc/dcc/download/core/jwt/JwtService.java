@@ -212,11 +212,11 @@ public class JwtService {
   }
 
   private static TokenPayload convert(ObjectNode json) {
-    val id = getTokenValue(json, DOWNLOAD_ID_NAME);
+    val downloadId = getTokenValue(json, DOWNLOAD_ID_NAME);
     val user = getTokenValue(json, DOWNLOAD_USER_NAME);
     val path = getTokenValue(json, DOWNLOAD_PATH_NAME);
 
-    return new TokenPayload(id, user, path);
+    return new TokenPayload(downloadId, user, path);
   }
 
   private static void checkArguments(String secret, String aesKey) {

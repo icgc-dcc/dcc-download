@@ -241,15 +241,19 @@ public final class DfsPaths {
   private static void verifyPathPart(int i, List<String> parts) {
     val part = parts.get(i);
     switch (i) {
+    // when path is split by '/' the first part is always empty
     case 0:
       checkArgument(part.isEmpty());
       break;
+    // /release_21
     case 1:
       verifyPathPart(RELEASE_PATTERN, part);
       break;
+    // /release_21/{Projects|Summary}
     case 2:
       verifyPathPart(RELEASE_DIR_PATTERN, part);
       break;
+    // contents of /release_21/{Projects|Summary}
     case 3:
       val parent = parts.get(2);
       if ("Summary".equals(parent)) {
@@ -260,6 +264,7 @@ public final class DfsPaths {
         verifyPathPart(PROJECT_NAME_PATTERN, part);
       }
       break;
+    // /release_21/Projects/TST-CA/file
     case 4:
       verifyFileName(part);
       break;

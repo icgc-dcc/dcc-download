@@ -141,7 +141,7 @@ public class GzipStreamer implements FileStreamer {
       log.info("Archive streaming cancelled by the client.");
     } catch (Exception e) {
       log.error("Got exception while streaming entry: ", e);
-      throw new DownloadException("An error occurred while streaming. Please contact the support.");
+      throw new DownloadException("An error occurred while streaming. Please contact the support.", e);
     }
   }
 
