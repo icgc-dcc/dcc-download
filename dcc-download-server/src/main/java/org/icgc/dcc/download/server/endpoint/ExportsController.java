@@ -20,7 +20,6 @@ package org.icgc.dcc.download.server.endpoint;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.download.server.utils.Responses.getFileMimeType;
-import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 import java.io.IOException;
@@ -54,12 +53,12 @@ public class ExportsController {
   @RequestMapping(method = GET)
   public ArrayNode listMetadata(HttpServletRequest request) {
     val requestUrl = request.getRequestURL().toString();
-    val baseUrl = requestUrl.replaceFirst("/export(/)?$", EMPTY_STRING);
+    val baseUrl = requestUrl.replaceFirst("/exports(/)?$", EMPTY_STRING);
 
     return exportsService.getMetadata(baseUrl);
   }
 
-  @RequestMapping(value = "/{exportId}", method = GET)
+  @RequestMapping(value = "/{exportId:.+}", method = GET)
   public void downloadArchive(
       @PathVariable("exportId") String exportId,
       @NonNull HttpServletResponse response) throws IOException {
@@ -71,7 +70,7 @@ public class ExportsController {
     val filename = streamer.getName();
 
     response.setContentType(getFileMimeType(filename));
-    response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
+    // response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
 
     streamer.stream();
     streamer.close();
