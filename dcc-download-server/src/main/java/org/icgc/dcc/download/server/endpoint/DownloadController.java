@@ -21,6 +21,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.download.server.utils.Requests.checkArgument;
+import static org.icgc.dcc.download.server.utils.Responses.getFileMimeType;
 import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
@@ -54,9 +55,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.google.common.io.Files;
-import com.google.common.net.MediaType;
 
 @Slf4j
 @RestController
@@ -182,22 +180,6 @@ public class DownloadController {
     }
 
     return Optional.of(DownloadDataType.valueOf(dataType.toUpperCase()));
-  }
-
-  private static String getFileMimeType(String filename) {
-    val extension = Files.getFileExtension(filename);
-    switch (extension) {
-    case "gz":
-      return MediaType.GZIP.toString();
-    case "tar":
-      return MediaType.TAR.toString();
-    case "txt":
-      MediaType.PLAIN_TEXT_UTF_8.toString();
-      return null;
-    default:
-      log.error("Failed to resolve Mime-Type from file name '{}'", filename);
-      throw new BadRequestException("Invalid request");
-    }
   }
 
   private static void checkJobExistence(String jobId, Optional<?> optional) {

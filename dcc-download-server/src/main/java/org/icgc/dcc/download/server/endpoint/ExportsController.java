@@ -17,17 +17,32 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
+import static java.lang.String.format;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.download.server.utils.Responses.getFileMimeType;
+import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
+
+import java.io.IOException;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.download.server.model.ExportEntity;
 import org.icgc.dcc.download.server.service.ExportsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+@Slf4j
 @RestController
 @RequestMapping("/exports")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -37,8 +52,39 @@ public class ExportsController {
   private final ExportsService exportsService;
 
   @RequestMapping(method = GET)
-  public ArrayNode listMetadata() {
-    return exportsService.getMetadata("https://download.icgc.org");
+  public ArrayNode listMetadata(HttpServletRequest request) {
+    val requestUrl = request.getRequestURL().toString();
+    val baseUrl = requestUrl.replaceFirst("/export(/)?$", EMPTY_STRING);
+
+    return exportsService.getMetadata(baseUrl);
+  }
+
+  @RequestMapping(value = "/{exportId}", method = GET)
+  public void downloadArchive(
+      @PathVariable("exportId") String exportId,
+      @NonNull HttpServletResponse response) throws IOException {
+    log.info("Streaming export ID '{}'...", exportId);
+
+    val exportEntity = resolveExportEntity(exportId);
+    val output = response.getOutputStream();
+    val streamer = exportsService.getExportStreamer(exportEntity, output);
+    val filename = streamer.getName();
+
+    response.setContentType(getFileMimeType(filename));
+    response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
+
+    streamer.stream();
+    streamer.close();
+    log.info("Finished streaming export ID '{}'...", exportId);
+  }
+
+  private static ExportEntity resolveExportEntity(String exportId) {
+    try {
+      return ExportEntity.fromId(exportId);
+    } catch (IllegalArgumentException e) {
+      log.warn("Couldn't find export entity with ID '{}'", exportId);
+      throw new NotFoundException(format("%s not found", exportId));
+    }
   }
 
 }

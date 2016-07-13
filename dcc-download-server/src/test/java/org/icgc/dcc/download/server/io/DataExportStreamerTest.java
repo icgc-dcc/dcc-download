@@ -15,60 +15,62 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.io;
 
-import static lombok.AccessLevel.PRIVATE;
-import lombok.NoArgsConstructor;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.download.server.model.ExportEntity.DATA;
+
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+
+import lombok.Cleanup;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.server.endpoint.BadRequestException;
-import org.icgc.dcc.download.server.endpoint.ForbiddenException;
-import org.icgc.dcc.download.server.endpoint.NotFoundException;
-
-import com.google.common.io.Files;
-import com.google.common.net.MediaType;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.common.hadoop.fs.FileSystems;
+import org.icgc.dcc.common.test.file.FileTests;
+import org.icgc.dcc.download.test.AbstractTest;
+import org.junit.Before;
+import org.junit.Test;
 
 @Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class Responses {
+public class DataExportStreamerTest extends AbstractTest {
 
-  public static void throwForbiddenException() {
-    val message = "Invalid token. Access denied.";
-    log.warn(message);
-    throw new ForbiddenException(message);
+  DataExportStreamer streamer;
+  FileSystem fileSystem;
+
+  @Override
+  @Before
+  public void setUp() {
+    fileSystem = FileSystems.getDefaultLocalFileSystem();
   }
 
-  public static void throwJobNotFoundException(String jobId) {
-    val message = "Failed to find job with ID " + jobId;
-    log.warn(message);
-    throw new NotFoundException(message);
-  }
+  @Test
+  public void testStream() throws Exception {
+    val testFile = FileTests.getTempFile();
+    val outStream = new BufferedOutputStream(new FileOutputStream(testFile));
 
-  public static void throwBadRequestException(String message) {
-    log.warn(message);
-    throw new BadRequestException(message);
-  }
+    streamer = new DataExportStreamer(new Path(INPUT_TEST_FIXTURES_DIR + "/release_21"), fileSystem, outStream);
+    streamer.stream();
+    streamer.close();
 
-  public static void throwPathNotFoundException(String warnMessage) {
-    log.warn(warnMessage);
-    throw new NotFoundException("Malformed path");
-  }
+    assertThat(streamer.getName()).isEqualTo(DATA.getId());
 
-  public static String getFileMimeType(String filename) {
-    val extension = Files.getFileExtension(filename);
-    switch (extension) {
-    case "gz":
-      return MediaType.GZIP.toString();
-    case "tar":
-      return MediaType.TAR.toString();
-    case "txt":
-      MediaType.PLAIN_TEXT_UTF_8.toString();
-      return null;
-    default:
-      log.error("Failed to resolve Mime-Type from file name '{}'", filename);
-      throw new BadRequestException("Invalid request");
+    @Cleanup
+    val tarIn = new TarArchiveInputStream(new FileInputStream(testFile));
+    int filesCount = 0;
+    TarArchiveEntry tarEntry = null;
+    while ((tarEntry = tarIn.getNextTarEntry()) != null) {
+      log.info("Entry name: {}", tarEntry.getName());
+      assertThat(tarEntry.getSize()).isGreaterThan(0);
+
+      filesCount++;
     }
+    assertThat(filesCount).isEqualTo(50);
   }
-
 }

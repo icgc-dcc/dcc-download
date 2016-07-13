@@ -23,6 +23,7 @@ import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
+import static org.icgc.dcc.download.server.utils.HadoopUtils2.relativize;
 
 import java.io.File;
 import java.util.List;
@@ -110,10 +111,7 @@ public class PathResolver {
   }
 
   private String removeRootDirPrefix(String file) {
-    val startOfRoot = file.indexOf(rootDir);
-    val schema = file.substring(0, startOfRoot);
-    return file
-        .replaceFirst(schema + rootDir, EMPTY_STRING);
+    return relativize(rootDir, file);
   }
 
   private static String getRootDir(String inputDir) {
