@@ -50,7 +50,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
@@ -68,6 +67,7 @@ import org.icgc.dcc.download.server.model.Job;
 import org.icgc.dcc.download.server.repository.DataFilesRepository;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.icgc.dcc.download.server.utils.DfsPaths;
+import org.icgc.dcc.download.server.utils.OutputStreams;
 import org.icgc.dcc.download.server.utils.Responses;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -290,7 +290,7 @@ public class ArchiveDownloadService {
 
   private FileStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
       Map<DownloadDataType, String> headers, OutputStream output, String release) {
-    val tarOut = createTarOutputStream(output);
+    val tarOut = OutputStreams.createTarOutputStream(output);
     val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut, release, emptyMap());
     return new TarStreamer(tarOut, gzipStreamer);
   }
@@ -364,15 +364,6 @@ public class ArchiveDownloadService {
     val name = new Path(file.getPath()).getName();
 
     return DownloadDataType.valueOf(name.toUpperCase());
-  }
-
-  private static TarArchiveOutputStream createTarOutputStream(OutputStream outputStream) {
-    log.debug("Creating tar output stream...");
-    val tarOutputStream = new TarArchiveOutputStream(outputStream);
-    tarOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-    tarOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
-
-    return tarOutputStream;
   }
 
   private static String generateId() {
