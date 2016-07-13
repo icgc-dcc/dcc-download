@@ -33,6 +33,9 @@ jwt:
   aesKey: "0123456789012345"
   ttlHours: 1
 
+exports:
+  repositoryPath: "/icgc/export"
+
 ---
 #
 # Production
