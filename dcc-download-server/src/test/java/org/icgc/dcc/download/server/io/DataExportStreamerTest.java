@@ -66,11 +66,13 @@ public class DataExportStreamerTest extends AbstractTest {
     int filesCount = 0;
     TarArchiveEntry tarEntry = null;
     while ((tarEntry = tarIn.getNextTarEntry()) != null) {
-      log.info("Entry name: {}", tarEntry.getName());
+      val fileName = tarEntry.getName();
+      log.info("Entry name: {}", fileName);
       assertThat(tarEntry.getSize()).isGreaterThan(0);
+      assertThat(fileName.contains("controlled")).isFalse();
 
       filesCount++;
     }
-    assertThat(filesCount).isEqualTo(50);
+    assertThat(filesCount).isEqualTo(47);
   }
 }

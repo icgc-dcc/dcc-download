@@ -55,6 +55,11 @@ public class DataExportStreamer implements FileStreamer {
   }
 
   @Override
+  public String getName() {
+    return DATA.getId();
+  }
+
+  @Override
   @SneakyThrows
   public void stream() {
     val tarOutputStream = createTarOutputStream(output);
@@ -78,9 +83,12 @@ public class DataExportStreamer implements FileStreamer {
   private void streamFile(TarArchiveOutputStream tarOutputStream, FileStatus status, String parentPath)
       throws Exception {
     val filePath = status.getPath();
-    relativize(parentPath, filePath);
+    val fileName = relativize(parentPath, filePath);
+    if (isControlled(fileName)) {
+      return;
+    }
 
-    val tarEntry = new TarArchiveEntry(relativize(parentPath, filePath));
+    val tarEntry = new TarArchiveEntry(fileName);
     tarEntry.setSize(status.getLen());
 
     tarOutputStream.putArchiveEntry(tarEntry);
@@ -92,9 +100,8 @@ public class DataExportStreamer implements FileStreamer {
     tarOutputStream.closeArchiveEntry();
   }
 
-  @Override
-  public String getName() {
-    return DATA.getId();
+  private static boolean isControlled(String fileName) {
+    return fileName.contains("controlled");
   }
 
 }
