@@ -15,30 +15,36 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.model;
 
+import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
-
-import java.io.OutputStream;
-
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+@Getter
+@RequiredArgsConstructor(access = PRIVATE)
+public enum Export {
 
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class OutputStreams {
+  REPOSITORY("repository.tar.gz"),
+  DATA("data.tar");
 
-  public static TarArchiveOutputStream createTarOutputStream(@NonNull OutputStream outputStream) {
-    log.debug("Creating tar output stream...");
-    val tarOutputStream = new TarArchiveOutputStream(outputStream);
-    tarOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-    tarOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
+  private final String id;
 
-    return tarOutputStream;
+  public String getType() {
+    return name().toLowerCase();
+  }
+
+  public static Export fromId(@NonNull String id) {
+    for (val value : values()) {
+      if (value.getId().equals(id)) {
+        return value;
+      }
+    }
+
+    throw new IllegalArgumentException(format("Failed to resolve export entity from id '%s'", id));
   }
 
 }

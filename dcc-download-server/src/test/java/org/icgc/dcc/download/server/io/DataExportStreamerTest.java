@@ -18,7 +18,7 @@
 package org.icgc.dcc.download.server.io;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.server.model.ExportEntity.DATA;
+import static org.icgc.dcc.download.server.model.Export.DATA;
 
 import java.io.BufferedOutputStream;
 import java.io.FileInputStream;

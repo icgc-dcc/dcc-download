@@ -17,34 +17,29 @@
  */
 package org.icgc.dcc.download.server.model;
 
-import static java.lang.String.format;
-import static lombok.AccessLevel.PRIVATE;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.val;
+import java.util.AbstractCollection;
+import java.util.Collection;
+import java.util.Iterator;
 
-@Getter
-@RequiredArgsConstructor(access = PRIVATE)
-public enum ExportEntity {
+import com.google.common.collect.ImmutableList;
 
-  REPOSITORY("repository.tar.gz"),
-  DATA("data.tar");
+// Extending Collection to make a serialized response to be a collection.
+public class MetadataResponse extends AbstractCollection<ExportFile> {
 
-  private final String id;
+  private final Collection<ExportFile> files;
 
-  public String getType() {
-    return name().toLowerCase();
+  public MetadataResponse(ExportFile... exportFiles) {
+    this.files = ImmutableList.copyOf(exportFiles);
   }
 
-  public static ExportEntity fromId(@NonNull String id) {
-    for (val value : values()) {
-      if (value.getId().equals(id)) {
-        return value;
-      }
-    }
+  @Override
+  public Iterator<ExportFile> iterator() {
+    return files.iterator();
+  }
 
-    throw new IllegalArgumentException(format("Failed to resolve export entity from id '%s'", id));
+  @Override
+  public int size() {
+    return files.size();
   }
 
 }

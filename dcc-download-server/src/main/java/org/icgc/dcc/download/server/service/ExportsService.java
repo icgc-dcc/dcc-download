@@ -18,8 +18,8 @@
 package org.icgc.dcc.download.server.service;
 
 import static java.lang.String.format;
-import static org.icgc.dcc.download.server.model.ExportEntity.DATA;
-import static org.icgc.dcc.download.server.model.ExportEntity.REPOSITORY;
+import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 
 import java.io.OutputStream;
@@ -30,15 +30,13 @@ import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.icgc.dcc.common.core.json.Jackson;
 import org.icgc.dcc.download.server.io.DataExportStreamer;
 import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.io.RealFileStreamer;
-import org.icgc.dcc.download.server.model.ExportEntity;
+import org.icgc.dcc.download.server.model.Export;
+import org.icgc.dcc.download.server.model.ExportFile;
+import org.icgc.dcc.download.server.model.MetadataResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ExportsService {
@@ -50,15 +48,14 @@ public class ExportsService {
   @NonNull
   private final String dataDir;
 
-  public ArrayNode getMetadata(@NonNull String baseUrl) {
-    val response = Jackson.DEFAULT.createArrayNode();
-    response.add(createRepositoryMeta(baseUrl));
-    response.add(createDataMeta(baseUrl));
+  public MetadataResponse getMetadata(@NonNull String baseUrl) {
+    val repositoryFile = createRepositoryMeta(baseUrl);
+    val dataFile = createDataMeta(baseUrl);
 
-    return response;
+    return new MetadataResponse(repositoryFile, dataFile);
   }
 
-  public FileStreamer getExportStreamer(@NonNull ExportEntity exportEntity, @NonNull OutputStream output) {
+  public FileStreamer getExportStreamer(@NonNull Export exportEntity, @NonNull OutputStream output) {
     switch (exportEntity) {
     case REPOSITORY:
       return new RealFileStreamer(new Path(repositoryDir, exportEntity.getId()), fileSystem, output);
@@ -69,13 +66,13 @@ public class ExportsService {
     }
   }
 
-  private ObjectNode createDataMeta(String baseUrl) {
+  private ExportFile createDataMeta(String baseUrl) {
     val creationDate = getFileModificationDate(dataDir);
 
     return createFileMetadata(DATA, baseUrl, creationDate);
   }
 
-  private ObjectNode createRepositoryMeta(@NonNull String baseUrl) {
+  private ExportFile createRepositoryMeta(@NonNull String baseUrl) {
     val creationDate = getFileModificationDate(repositoryDir + "/" + REPOSITORY.getId());
 
     return createFileMetadata(REPOSITORY, baseUrl, creationDate);
@@ -88,19 +85,12 @@ public class ExportsService {
     return status.getModificationTime();
   }
 
-  private static ObjectNode createFileMetadata(ExportEntity exportEntity, String baseUrl, long creationDate) {
-    // date: file date
-    // url: https://download.icgc.org/exports/release_21.tar.gz
-    // id: [release_21.tar.gz | ]
-    // type: [release | data | repository]
-
-    val metadata = Jackson.DEFAULT.createObjectNode();
-    metadata.put("id", exportEntity.getId());
-    metadata.put("type", exportEntity.getType());
-    metadata.put("url", baseUrl + "/exports/" + exportEntity.getId());
-    metadata.put("date", creationDate);
-
-    return metadata;
+  private static ExportFile createFileMetadata(Export exportEntity, String baseUrl, long creationDate) {
+    return new ExportFile(
+        baseUrl + "/exports/" + exportEntity.getId(),
+        exportEntity.getId(),
+        exportEntity,
+        creationDate);
   }
 
 }

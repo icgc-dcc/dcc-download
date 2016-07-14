@@ -18,7 +18,7 @@
 package org.icgc.dcc.download.server.io;
 
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.getFileStatus;
-import static org.icgc.dcc.download.server.model.ExportEntity.DATA;
+import static org.icgc.dcc.download.server.model.Export.DATA;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.relativize;
 import static org.icgc.dcc.download.server.utils.OutputStreams.createTarOutputStream;
 

@@ -19,10 +19,9 @@ package org.icgc.dcc.download.server.service;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.common.core.json.Jackson.asObjectNode;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
-import static org.icgc.dcc.download.server.model.ExportEntity.DATA;
-import static org.icgc.dcc.download.server.model.ExportEntity.REPOSITORY;
+import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 
 import java.io.File;
@@ -62,18 +61,19 @@ public class ExportsServiceTest extends AbstractTest {
     log.info("{}", meta);
     assertThat(meta).hasSize(2);
     val creationTime = getFileStatus(fileSystem, new Path(workingDir.getAbsolutePath())).getModificationTime();
+    val iterator = meta.iterator();
 
-    val repoMeta = asObjectNode(meta.get(0));
-    assertThat(repoMeta.get("id").asText()).isEqualTo(REPOSITORY.getId());
-    assertThat(repoMeta.get("type").asText()).isEqualTo(REPOSITORY.getType());
-    assertThat(repoMeta.get("url").asText()).isEqualTo(getIdUrl(REPOSITORY.getId()));
-    assertThat(repoMeta.get("date").asLong()).isEqualTo(creationTime);
+    val repoMeta = iterator.next();
+    assertThat(repoMeta.getId()).isEqualTo(REPOSITORY.getId());
+    assertThat(repoMeta.getType()).isEqualTo(REPOSITORY);
+    assertThat(repoMeta.getUrl()).isEqualTo(getIdUrl(REPOSITORY.getId()));
+    assertThat(repoMeta.getDate()).isEqualTo(creationTime);
 
-    val dataMeta = asObjectNode(meta.get(1));
-    assertThat(dataMeta.get("id").asText()).isEqualTo(DATA.getId());
-    assertThat(dataMeta.get("type").asText()).isEqualTo(DATA.getType());
-    assertThat(dataMeta.get("url").asText()).isEqualTo(getIdUrl(DATA.getId()));
-    assertThat(dataMeta.get("date").asLong()).isEqualTo(creationTime);
+    val dataMeta = iterator.next();
+    assertThat(dataMeta.getId()).isEqualTo(DATA.getId());
+    assertThat(dataMeta.getType()).isEqualTo(DATA);
+    assertThat(dataMeta.getUrl()).isEqualTo(getIdUrl(DATA.getId()));
+    assertThat(dataMeta.getDate()).isEqualTo(creationTime);
   }
 
   private static String getIdUrl(String id) {

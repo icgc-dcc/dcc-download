@@ -27,19 +27,19 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.server.model.ExportEntity;
+import org.icgc.dcc.download.server.model.Export;
+import org.icgc.dcc.download.server.model.MetadataResponse;
 import org.icgc.dcc.download.server.service.ExportsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 @Slf4j
 @RestController
@@ -51,13 +51,14 @@ public class ExportsController {
   private final ExportsService exportsService;
 
   @RequestMapping(method = GET)
-  public ArrayNode listMetadata(HttpServletRequest request) {
+  public MetadataResponse listMetadata(HttpServletRequest request) {
     val requestUrl = request.getRequestURL().toString();
     val baseUrl = requestUrl.replaceFirst("/exports(/)?$", EMPTY_STRING);
 
     return exportsService.getMetadata(baseUrl);
   }
 
+  // The ':.+' regex is required to keep the file extension in the path
   @RequestMapping(value = "/{exportId:.+}", method = GET)
   public void downloadArchive(
       @PathVariable("exportId") String exportId,
@@ -66,20 +67,19 @@ public class ExportsController {
 
     val exportEntity = resolveExportEntity(exportId);
     val output = response.getOutputStream();
+    @Cleanup
     val streamer = exportsService.getExportStreamer(exportEntity, output);
-    val filename = streamer.getName();
+    val fileName = streamer.getName();
 
-    response.setContentType(getFileMimeType(filename));
-    // response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
+    response.setContentType(getFileMimeType(fileName));
 
     streamer.stream();
-    streamer.close();
     log.info("Finished streaming export ID '{}'...", exportId);
   }
 
-  private static ExportEntity resolveExportEntity(String exportId) {
+  private static Export resolveExportEntity(String exportId) {
     try {
-      return ExportEntity.fromId(exportId);
+      return Export.fromId(exportId);
     } catch (IllegalArgumentException e) {
       log.warn("Couldn't find export entity with ID '{}'", exportId);
       throw new NotFoundException(format("%s not found", exportId));

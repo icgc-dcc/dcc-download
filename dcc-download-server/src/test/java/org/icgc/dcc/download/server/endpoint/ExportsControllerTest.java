@@ -17,8 +17,7 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
-import static org.icgc.dcc.common.core.json.Jackson.asArrayNode;
-import static org.icgc.dcc.common.test.json.JsonNodes.$;
+import static org.icgc.dcc.download.server.model.Export.DATA;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -26,6 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 import lombok.val;
 
+import org.icgc.dcc.download.server.model.ExportFile;
+import org.icgc.dcc.download.server.model.MetadataResponse;
 import org.icgc.dcc.download.server.service.ExportsService;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,13 +56,19 @@ public class ExportsControllerTest {
 
   @Test
   public void testListMetadata() throws Exception {
-    val metadata = asArrayNode($("[{'id':1}]"));
+    val exportFile = new ExportFile("url1", "id1", DATA, 123);
+    val metadata = new MetadataResponse(exportFile);
     when(exportsService.getMetadata("http://localhost")).thenReturn(metadata);
 
     mockMvc
         .perform(get(ENDPOINT_PATH))
         .andExpect(status().isOk())
-        .andExpect(content().json("[{\"id\":1}]"));
+        .andExpect(content().string("[{"
+            + "\"url\":\"url1\","
+            + "\"id\":\"id1\","
+            + "\"type\":\"DATA\","
+            + "\"date\":123"
+            + "}]"));
   }
 
 }

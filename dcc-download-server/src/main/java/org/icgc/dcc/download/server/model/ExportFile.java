@@ -15,30 +15,16 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.model;
 
-import static lombok.AccessLevel.PRIVATE;
+import lombok.Value;
 
-import java.io.OutputStream;
+@Value
+public class ExportFile {
 
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class OutputStreams {
-
-  public static TarArchiveOutputStream createTarOutputStream(@NonNull OutputStream outputStream) {
-    log.debug("Creating tar output stream...");
-    val tarOutputStream = new TarArchiveOutputStream(outputStream);
-    tarOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-    tarOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
-
-    return tarOutputStream;
-  }
+  String url;
+  String id;
+  Export type;
+  long date;
 
 }
