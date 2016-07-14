@@ -65,10 +65,10 @@ public class ExportsController {
       @NonNull HttpServletResponse response) throws IOException {
     log.info("Streaming export ID '{}'...", exportId);
 
-    val exportEntity = resolveExportEntity(exportId);
+    val export = resolveExport(exportId);
     val output = response.getOutputStream();
     @Cleanup
-    val streamer = exportsService.getExportStreamer(exportEntity, output);
+    val streamer = exportsService.getExportStreamer(export, output);
     val fileName = streamer.getName();
 
     response.setContentType(getFileMimeType(fileName));
@@ -77,7 +77,7 @@ public class ExportsController {
     log.info("Finished streaming export ID '{}'...", exportId);
   }
 
-  private static Export resolveExportEntity(String exportId) {
+  private static Export resolveExport(String exportId) {
     try {
       return Export.fromId(exportId);
     } catch (IllegalArgumentException e) {

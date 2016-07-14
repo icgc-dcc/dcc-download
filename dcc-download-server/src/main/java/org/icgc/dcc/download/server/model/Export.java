@@ -44,7 +44,7 @@ public enum Export {
       }
     }
 
-    throw new IllegalArgumentException(format("Failed to resolve export entity from id '%s'", id));
+    throw new IllegalArgumentException(format("Failed to resolve export from id '%s'", id));
   }
 
 }

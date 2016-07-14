@@ -55,14 +55,14 @@ public class ExportsService {
     return new MetadataResponse(repositoryFile, dataFile);
   }
 
-  public FileStreamer getExportStreamer(@NonNull Export exportEntity, @NonNull OutputStream output) {
-    switch (exportEntity) {
+  public FileStreamer getExportStreamer(@NonNull Export export, @NonNull OutputStream output) {
+    switch (export) {
     case REPOSITORY:
-      return new RealFileStreamer(new Path(repositoryDir, exportEntity.getId()), fileSystem, output);
+      return new RealFileStreamer(new Path(repositoryDir, export.getId()), fileSystem, output);
     case DATA:
       return new DataExportStreamer(new Path(dataDir), fileSystem, output);
     default:
-      throw new IllegalArgumentException(format("Failed to resolve streamer for ID '%s'", exportEntity.getId()));
+      throw new IllegalArgumentException(format("Failed to resolve streamer for ID '%s'", export.getId()));
     }
   }
 
@@ -85,11 +85,11 @@ public class ExportsService {
     return status.getModificationTime();
   }
 
-  private static ExportFile createFileMetadata(Export exportEntity, String baseUrl, long creationDate) {
+  private static ExportFile createFileMetadata(Export export, String baseUrl, long creationDate) {
     return new ExportFile(
-        baseUrl + "/exports/" + exportEntity.getId(),
-        exportEntity.getId(),
-        exportEntity,
+        baseUrl + "/exports/" + export.getId(),
+        export.getId(),
+        export,
         creationDate);
   }
 
