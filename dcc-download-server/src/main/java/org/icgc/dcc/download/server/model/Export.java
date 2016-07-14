@@ -15,60 +15,36 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.model;
 
+import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.server.endpoint.BadRequestException;
-import org.icgc.dcc.download.server.endpoint.ForbiddenException;
-import org.icgc.dcc.download.server.endpoint.NotFoundException;
+@Getter
+@RequiredArgsConstructor(access = PRIVATE)
+public enum Export {
 
-import com.google.common.io.Files;
-import com.google.common.net.MediaType;
+  REPOSITORY("repository.tar.gz"),
+  DATA("data.tar");
 
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class Responses {
+  private final String id;
 
-  public static void throwForbiddenException() {
-    val message = "Invalid token. Access denied.";
-    log.warn(message);
-    throw new ForbiddenException(message);
+  public String getType() {
+    return name().toLowerCase();
   }
 
-  public static void throwJobNotFoundException(String jobId) {
-    val message = "Failed to find job with ID " + jobId;
-    log.warn(message);
-    throw new NotFoundException(message);
-  }
-
-  public static void throwBadRequestException(String message) {
-    log.warn(message);
-    throw new BadRequestException(message);
-  }
-
-  public static void throwPathNotFoundException(String warnMessage) {
-    log.warn(warnMessage);
-    throw new NotFoundException("Malformed path");
-  }
-
-  public static String getFileMimeType(String filename) {
-    val extension = Files.getFileExtension(filename);
-    switch (extension) {
-    case "gz":
-      return MediaType.GZIP.toString();
-    case "tar":
-      return MediaType.TAR.toString();
-    case "txt":
-      MediaType.PLAIN_TEXT_UTF_8.toString();
-      return null;
-    default:
-      log.error("Failed to resolve Mime-Type from file name '{}'", filename);
-      throw new BadRequestException("Invalid request");
+  public static Export fromId(@NonNull String id) {
+    for (val value : values()) {
+      if (value.getId().equals(id)) {
+        return value;
+      }
     }
+
+    throw new IllegalArgumentException(format("Failed to resolve export from id '%s'", id));
   }
 
 }

@@ -57,7 +57,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 
   <dependencyManagement>
     <dependencies>
-      <!-- DCC - Common -->
+      <!-- DCC -->
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>dcc-common-core</artifactId>
@@ -121,10 +121,6 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
           <exclusion>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
-          </exclusion>
-          <exclusion>
-            <artifactId>avro</artifactId>
-            <groupId>org.apache.avro</groupId>
           </exclusion>
         </exclusions>
       </dependency>

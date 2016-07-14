@@ -15,60 +15,31 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.utils;
+package org.icgc.dcc.download.server.model;
 
-import static lombok.AccessLevel.PRIVATE;
-import lombok.NoArgsConstructor;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import java.util.AbstractCollection;
+import java.util.Collection;
+import java.util.Iterator;
 
-import org.icgc.dcc.download.server.endpoint.BadRequestException;
-import org.icgc.dcc.download.server.endpoint.ForbiddenException;
-import org.icgc.dcc.download.server.endpoint.NotFoundException;
+import com.google.common.collect.ImmutableList;
 
-import com.google.common.io.Files;
-import com.google.common.net.MediaType;
+// Extending Collection to make a serialized response to be a collection.
+public class MetadataResponse extends AbstractCollection<ExportFile> {
 
-@Slf4j
-@NoArgsConstructor(access = PRIVATE)
-public final class Responses {
+  private final Collection<ExportFile> files;
 
-  public static void throwForbiddenException() {
-    val message = "Invalid token. Access denied.";
-    log.warn(message);
-    throw new ForbiddenException(message);
+  public MetadataResponse(ExportFile... exportFiles) {
+    this.files = ImmutableList.copyOf(exportFiles);
   }
 
-  public static void throwJobNotFoundException(String jobId) {
-    val message = "Failed to find job with ID " + jobId;
-    log.warn(message);
-    throw new NotFoundException(message);
+  @Override
+  public Iterator<ExportFile> iterator() {
+    return files.iterator();
   }
 
-  public static void throwBadRequestException(String message) {
-    log.warn(message);
-    throw new BadRequestException(message);
-  }
-
-  public static void throwPathNotFoundException(String warnMessage) {
-    log.warn(warnMessage);
-    throw new NotFoundException("Malformed path");
-  }
-
-  public static String getFileMimeType(String filename) {
-    val extension = Files.getFileExtension(filename);
-    switch (extension) {
-    case "gz":
-      return MediaType.GZIP.toString();
-    case "tar":
-      return MediaType.TAR.toString();
-    case "txt":
-      MediaType.PLAIN_TEXT_UTF_8.toString();
-      return null;
-    default:
-      log.error("Failed to resolve Mime-Type from file name '{}'", filename);
-      throw new BadRequestException("Invalid request");
-    }
+  @Override
+  public int size() {
+    return files.size();
   }
 
 }

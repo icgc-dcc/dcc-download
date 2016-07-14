@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.utils;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import lombok.NoArgsConstructor;
 import lombok.val;
 
@@ -36,6 +37,18 @@ public final class HadoopUtils2 {
     checkArgument(statusOpt.isPresent(), "Path '%s' not found", path);
 
     return statusOpt.get();
+  }
+
+  public static String relativize(String parentPath, Path path) {
+    return relativize(parentPath, path.toString());
+  }
+
+  public static String relativize(String parentPath, String file) {
+    val startOfParent = file.indexOf(parentPath);
+    val schema = file.substring(0, startOfParent);
+
+    return file
+        .replaceFirst(schema + parentPath, EMPTY_STRING);
   }
 
 }

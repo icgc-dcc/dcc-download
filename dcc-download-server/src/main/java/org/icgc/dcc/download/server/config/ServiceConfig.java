@@ -32,8 +32,10 @@ import org.icgc.dcc.download.server.fs.RootView;
 import org.icgc.dcc.download.server.repository.DataFilesRepository;
 import org.icgc.dcc.download.server.repository.JobRepository;
 import org.icgc.dcc.download.server.service.ArchiveDownloadService;
+import org.icgc.dcc.download.server.service.ExportsService;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -46,6 +48,9 @@ public class ServiceConfig {
   private FileSystem fileSystem;
   @Autowired
   private PathResolver pathResolver;
+
+  @Value("${exports.repositoryPath}")
+  private String repositoryPath;
 
   @Bean
   public ArchiveDownloadService archiveDownloadService(
@@ -77,6 +82,13 @@ public class ServiceConfig {
   @Bean
   public JwtService tokenService(JwtConfig config) {
     return new JwtService(config);
+  }
+
+  @Bean
+  public ExportsService exportsService(FileSystemService fileSystemService) {
+    val dataDir = jobProperties.getInputDir() + "/" + fileSystemService.getCurrentRelease();
+
+    return new ExportsService(fileSystem, repositoryPath, dataDir);
   }
 
   private DownloadFilesReader downloadFilesReader() {

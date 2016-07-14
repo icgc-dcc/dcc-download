@@ -47,11 +47,14 @@ public class SecurityConfig {
       http.requestMatchers()
 
           // Start security configuration for endpoints matching the patterns
-          .antMatchers("/downloads/**", "/list/**", "/srv-info/**")
+          .antMatchers("/downloads/**", "/list/**", "/srv-info/**", "/exports*")
           .and()
 
           // Set access permissions for particular endpoints
           .authorizeRequests()
+          
+          // Allow export files download to everyone
+          .antMatchers(GET, "/exports*").permitAll()
           
           // Allow static and dynamic download to everyone 
           .antMatchers(GET, "/downloads/*").permitAll()
