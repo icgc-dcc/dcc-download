@@ -21,8 +21,10 @@ import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.RELEASE;
 import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
+import static org.icgc.dcc.download.test.io.TestFiles.copyDirectory;
 
 import java.io.File;
 
@@ -53,13 +55,14 @@ public class ExportsServiceTest extends AbstractTest {
 
   @Test
   public void testGetMetadata() throws Exception {
+    copyDirectory(new File(TEST_FIXTURES_DIR, "es_export"), new File(workingDir, "es_export"));
     val repoFile = new File(workingDir, REPOSITORY.getId());
     repoFile.createNewFile();
 
     val meta = service.getMetadata(BASE_URL);
 
     log.info("{}", meta);
-    assertThat(meta).hasSize(2);
+    assertThat(meta).hasSize(3);
     val creationTime = getFileStatus(fileSystem, new Path(workingDir.getAbsolutePath())).getModificationTime();
     val iterator = meta.iterator();
 
@@ -74,6 +77,12 @@ public class ExportsServiceTest extends AbstractTest {
     assertThat(dataMeta.getType()).isEqualTo(DATA);
     assertThat(dataMeta.getUrl()).isEqualTo(getIdUrl(DATA.getId()));
     assertThat(dataMeta.getDate()).isEqualTo(creationTime);
+
+    val releaseMeta = iterator.next();
+    assertThat(releaseMeta.getId()).isEqualTo("release21.tar");
+    assertThat(releaseMeta.getType()).isEqualTo(RELEASE);
+    assertThat(releaseMeta.getUrl()).isEqualTo(format("%s/exports/%s", BASE_URL, RELEASE.getId(21)));
+    assertThat(releaseMeta.getDate()).isEqualTo(creationTime);
   }
 
   private static String getIdUrl(String id) {
