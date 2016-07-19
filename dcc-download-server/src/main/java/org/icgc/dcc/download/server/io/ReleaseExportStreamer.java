@@ -17,35 +17,52 @@
  */
 package org.icgc.dcc.download.server.io;
 
-import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.getFileStatus;
-import static org.icgc.dcc.download.server.model.Export.DATA;
-import static org.icgc.dcc.download.server.utils.HadoopUtils2.relativize;
+import static com.google.common.base.Preconditions.checkState;
+import static java.util.regex.Pattern.compile;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsFile;
+import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 import static org.icgc.dcc.download.server.utils.OutputStreams.createTarOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.regex.Pattern;
 
 import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.io.ByteStreams;
 
+@Slf4j
 @RequiredArgsConstructor
-public class DataExportStreamer implements FileStreamer {
+public class ReleaseExportStreamer implements FileStreamer {
 
+  private static final Pattern RELEASE_FILES_PATTERN = compile(".*\\.tar\\.gz");
+
+  /**
+   * Configuration.
+   */
   @NonNull
-  private final Path dataPath;
+  private final String archiveName;
+  @NonNull
+  private final Path exportPath;
+
+  /**
+   * Dependencies.
+   */
   @NonNull
   private final FileSystem fileSystem;
+
+  /**
+   * State.
+   */
   @NonNull
   private final OutputStream output;
 
@@ -55,55 +72,38 @@ public class DataExportStreamer implements FileStreamer {
   }
 
   @Override
-  public String getName() {
-    return DATA.getId();
+  @SneakyThrows
+  public void stream() {
+    log.info("Started streaming {}...", archiveName);
+    val tarOutputStream = createTarOutputStream(output);
+    val files = lsFile(fileSystem, exportPath, RELEASE_FILES_PATTERN);
+    checkState(!files.isEmpty(), "Export release directory is empty.");
+
+    for (val file : files) {
+      val fileStatus = getFileStatus(fileSystem, file);
+      val fileName = file.getName();
+      log.info("Streaming {}...", fileName);
+
+      val tarEntry = new TarArchiveEntry(fileName);
+      tarEntry.setSize(fileStatus.getLen());
+      tarOutputStream.putArchiveEntry(tarEntry);
+
+      @Cleanup
+      val fileInput = fileSystem.open(file);
+      ByteStreams.copy(fileInput, tarOutputStream);
+
+      tarOutputStream.closeArchiveEntry();
+      log.info("Finished streaming {}.", fileName);
+    }
+
+    tarOutputStream.finish();
+    tarOutputStream.flush();
+    log.info("Finished streaming {}.", archiveName);
   }
 
   @Override
-  @SneakyThrows
-  public void stream() {
-    val tarOutputStream = createTarOutputStream(output);
-    val dataDirStatus = getFileStatus(fileSystem, dataPath).get();
-    val parentPath = dataPath.toString();
-
-    streamDir(tarOutputStream, dataDirStatus, parentPath);
-    tarOutputStream.finish();
-    tarOutputStream.flush();
-  }
-
-  @SneakyThrows
-  private void streamDir(TarArchiveOutputStream tarOutputStream, FileStatus dir, String parentPath) {
-    for (val status : fileSystem.listStatus(dir.getPath())) {
-      if (status.isDirectory()) {
-        streamDir(tarOutputStream, status, parentPath);
-      } else {
-        streamFile(tarOutputStream, status, parentPath);
-      }
-    }
-  }
-
-  @SneakyThrows
-  private void streamFile(TarArchiveOutputStream tarOutputStream, FileStatus status, String parentPath) {
-    val filePath = status.getPath();
-    val fileName = relativize(parentPath, filePath);
-    if (isControlled(fileName)) {
-      return;
-    }
-
-    val tarEntry = new TarArchiveEntry(fileName);
-    tarEntry.setSize(status.getLen());
-
-    tarOutputStream.putArchiveEntry(tarEntry);
-
-    @Cleanup
-    val fileInput = fileSystem.open(filePath);
-    ByteStreams.copy(fileInput, tarOutputStream);
-
-    tarOutputStream.closeArchiveEntry();
-  }
-
-  private static boolean isControlled(String fileName) {
-    return fileName.contains("controlled");
+  public String getName() {
+    return archiveName;
   }
 
 }

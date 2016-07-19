@@ -49,8 +49,8 @@ public class ServiceConfig {
   @Autowired
   private PathResolver pathResolver;
 
-  @Value("${exports.repositoryPath}")
-  private String repositoryPath;
+  @Value("${exports.exportsPath}")
+  private String exportsPath;
 
   @Bean
   public ArchiveDownloadService archiveDownloadService(
@@ -88,7 +88,7 @@ public class ServiceConfig {
   public ExportsService exportsService(FileSystemService fileSystemService) {
     val dataDir = jobProperties.getInputDir() + "/" + fileSystemService.getCurrentRelease();
 
-    return new ExportsService(fileSystem, repositoryPath, dataDir);
+    return new ExportsService(fileSystem, exportsPath, dataDir);
   }
 
   private DownloadFilesReader downloadFilesReader() {

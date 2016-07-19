@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.server.utils;
 
+import static java.util.Locale.ENGLISH;
 import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
 import lombok.val;
@@ -36,7 +37,7 @@ public class DataTypeFiles {
     // TODO: Is this cheaper to use Guava's PATH Splitter here?
     val dataTypeName = new Path(file.getPath()).getName();
 
-    return DownloadDataType.valueOf(dataTypeName.toUpperCase());
+    return DownloadDataType.valueOf(dataTypeName.toUpperCase(ENGLISH));
   }
 
 }

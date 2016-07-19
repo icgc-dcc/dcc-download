@@ -19,6 +19,9 @@ package org.icgc.dcc.download.server.model;
 
 import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
+
+import java.util.regex.Pattern;
+
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -29,15 +32,30 @@ import lombok.val;
 public enum Export {
 
   REPOSITORY("repository.tar.gz"),
-  DATA("data.tar");
+  DATA("data.tar"),
+  RELEASE("release");
+
+  private static final Pattern RELEASE_ID_PATTERN = Pattern.compile("^release.*\\.tar$");
 
   private final String id;
+
+  public String getId(int releaseNumber) {
+    if (this == RELEASE) {
+      return id + releaseNumber + ".tar";
+    }
+
+    return id;
+  }
 
   public String getType() {
     return name().toLowerCase();
   }
 
   public static Export fromId(@NonNull String id) {
+    if (RELEASE_ID_PATTERN.matcher(id).matches()) {
+      return RELEASE;
+    }
+
     for (val value : values()) {
       if (value.getId().equals(id)) {
         return value;

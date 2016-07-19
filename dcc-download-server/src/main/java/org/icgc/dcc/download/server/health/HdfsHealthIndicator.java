@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
+import org.icgc.dcc.common.hadoop.fs.HdfsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
@@ -43,7 +44,7 @@ public class HdfsHealthIndicator implements HealthIndicator {
   public Health health() {
     try {
       HadoopUtils.lsDir(fileSystem, ROOT_PATH);
-    } catch (Exception e) {
+    } catch (HdfsException e) {
       log.error("Failed to check Spark health: \n", e);
       return Health.down().build();
     }

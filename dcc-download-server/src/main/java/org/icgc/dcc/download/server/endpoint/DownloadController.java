@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.endpoint;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
+import static java.util.Locale.ENGLISH;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.download.server.utils.Requests.checkArgument;
 import static org.icgc.dcc.download.server.utils.Responses.getFileMimeType;
@@ -148,7 +149,7 @@ public class DownloadController {
     TokenPayload payload = null;
     try {
       payload = tokenService.parseToken(token);
-    } catch (Exception e) {
+    } catch (Exception e) { // NOPMD
       log.warn("Failed to parse token '{}'", token);
       throwBadRequestException("Invalid download token.");
     }
@@ -179,7 +180,7 @@ public class DownloadController {
       return Optional.empty();
     }
 
-    return Optional.of(DownloadDataType.valueOf(dataType.toUpperCase()));
+    return Optional.of(DownloadDataType.valueOf(dataType.toUpperCase(ENGLISH)));
   }
 
   private static void checkJobExistence(String jobId, Optional<?> optional) {

@@ -29,4 +29,8 @@ public class NotFoundException extends RuntimeException {
     super(message);
   }
 
+  public NotFoundException(@NonNull String message, @NonNull Throwable cause) {
+    super(message, cause);
+  }
+
 }

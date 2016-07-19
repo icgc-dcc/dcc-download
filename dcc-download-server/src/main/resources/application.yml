@@ -34,7 +34,7 @@ jwt:
   ttlHours: 1
 
 exports:
-  repositoryPath: "/icgc/export"
+  exportsPath: "/icgc/export"
 
 ---
 #

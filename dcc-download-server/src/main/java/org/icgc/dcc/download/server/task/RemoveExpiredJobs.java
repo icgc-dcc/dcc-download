@@ -46,6 +46,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class RemoveExpiredJobs {
 
+  private static final String ID_FIELD = "_id";
+
   @NonNull
   private final MongoTemplate mongoTemplate;
 
@@ -71,7 +73,7 @@ public class RemoveExpiredJobs {
 
   private List<String> findAllIds() {
     val query = new Query();
-    query.fields().include("_id");
+    query.fields().include(ID_FIELD);
     val dataFiles = mongoTemplate.find(query, DataFiles.class);
 
     return dataFiles.stream()
@@ -81,8 +83,8 @@ public class RemoveExpiredJobs {
 
   private List<String> findExpired(List<String> ids, long expiration) {
     log.info("Looking for jobs older than: {}", ofEpochSecond(expiration));
-    val query = query(where("_id").in(ids).and("submissionDate").lt(expiration));
-    query.fields().include("_id");
+    val query = query(where(ID_FIELD).in(ids).and("submissionDate").lt(expiration));
+    query.fields().include(ID_FIELD);
     val jobs = mongoTemplate.find(query, Job.class);
 
     return jobs.stream()
@@ -91,7 +93,7 @@ public class RemoveExpiredJobs {
   }
 
   private void remove(List<String> ids) {
-    val query = query(where("_id").in(ids));
+    val query = query(where(ID_FIELD).in(ids));
     val result = mongoTemplate.remove(query, DataFiles.class);
     log.info("Removed {} jobs", result.getN());
   }
