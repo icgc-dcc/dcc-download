@@ -71,7 +71,8 @@ public class DataExportStreamer implements FileStreamer {
     tarOutputStream.flush();
   }
 
-  private void streamDir(TarArchiveOutputStream tarOutputStream, FileStatus dir, String parentPath) throws Exception {
+  @SneakyThrows
+  private void streamDir(TarArchiveOutputStream tarOutputStream, FileStatus dir, String parentPath) {
     for (val status : fileSystem.listStatus(dir.getPath())) {
       if (status.isDirectory()) {
         streamDir(tarOutputStream, status, parentPath);
@@ -81,8 +82,8 @@ public class DataExportStreamer implements FileStreamer {
     }
   }
 
-  private void streamFile(TarArchiveOutputStream tarOutputStream, FileStatus status, String parentPath)
-      throws Exception {
+  @SneakyThrows
+  private void streamFile(TarArchiveOutputStream tarOutputStream, FileStatus status, String parentPath) {
     val filePath = status.getPath();
     val fileName = relativize(parentPath, filePath);
     if (isControlled(fileName)) {

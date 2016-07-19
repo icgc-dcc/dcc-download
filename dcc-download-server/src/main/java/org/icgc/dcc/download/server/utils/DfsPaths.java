@@ -41,6 +41,7 @@ import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_CONTROLLED;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_OPEN;
 import static org.icgc.dcc.common.core.model.DownloadDataType.STSM;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.common.core.util.Splitters.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_REGEX;
@@ -59,7 +60,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
-import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
 
 import com.google.common.collect.BiMap;
@@ -75,6 +75,28 @@ public final class DfsPaths {
   private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.(vcf|tsv)\\.gz)$");
   private static final Pattern REAL_FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.vcf\\.gz)$");
 
+  private static final int VALID_PATH_MIN_PARTS_COUNT = 1;
+  private static final int VALID_PATH_MAX_PARTS_COUNT = 6;
+
+  private static final int RELEASE_PATH_POSITION = 1;
+  private static final int PROJECTS_SUMMARY_PATH_POSITION = 2;
+  private static final int PROJECTS_SUMMARY_CONTENTS_PATH_POSITION = 3;
+
+  /**
+   * E.g.: {@code ' , release_21, Projects, TST1-CA'}
+   */
+  private static final int PROJECT_PATH_POSITION = 3;
+  private static final int PROJECT_PATH_SIZE = 4;
+
+  /**
+   * E.g.: {@code ' , release_21, Summary, donor.all_projects.tsv.gz'}
+   */
+  private static final int SUMMARY_FILE_PATH_POSITION = 3;
+  private static final int SUMMARY_FILE_PATH_SIZE = 4;
+
+  private static final int PROJECT_FILE_PATH_POSITION = 4;
+  private static final int PROJECT_FILE_PATH_SIZE = 5;
+
   private static final BiMap<DownloadDataType, String> FILE_NAMES = defineFileNames();
 
   public static String getFileName(@NonNull DownloadDataType dataType, @NonNull Optional<String> suffix) {
@@ -84,16 +106,16 @@ public final class DfsPaths {
     return suffix.isPresent() ? fileName + suffix.get() : fileName;
   }
 
-  public static String getRelease(String path) {
+  public static String getRelease(@NonNull String path) {
     log.debug("Resolving release from path '{}'", path);
-    val pathParts = Splitters.PATH.splitToList(path);
+    val pathParts = PATH.splitToList(path);
 
     return getRelease(pathParts);
   }
 
   public static String getRelease(@NonNull List<String> pathParts) {
-    checkArgument(pathParts.size() > 1, "Malformed path parts: %s", pathParts);
-    val release = pathParts.get(1);
+    verifyMinPathLength(pathParts);
+    val release = pathParts.get(RELEASE_PATH_POSITION);
     verifyPathPart(RELEASE_PATTERN, release);
 
     return release;
@@ -101,25 +123,25 @@ public final class DfsPaths {
 
   public static String getLegacyRelease(@NonNull String path) {
     log.debug("Resolving legacy release from path '{}'", path);
-    val pathParts = Splitters.PATH.splitToList(path);
+    val pathParts = PATH.splitToList(path);
 
     return getLegacyRelease(pathParts);
   }
 
   public static String getLegacyRelease(@NonNull List<String> pathParts) {
-    checkArgument(pathParts.size() > 1, "Malformed path parts: %s", pathParts);
+    verifyMinPathLength(pathParts);
 
-    return pathParts.get(1);
+    return pathParts.get(RELEASE_PATH_POSITION);
   }
 
-  public static Optional<String> getProject(String path) {
-    val pathParts = Splitters.PATH.splitToList(path);
-    if (pathParts.size() == 4) {
+  public static Optional<String> getProject(@NonNull String path) {
+    val pathParts = PATH.splitToList(path);
+    if (pathParts.size() == PROJECT_PATH_SIZE) {
       log.info("'{}' is a summary file. It has no project.", path);
       return Optional.empty();
     }
 
-    val project = pathParts.get(3);
+    val project = pathParts.get(PROJECT_PATH_POSITION);
     log.debug("Resolved project '{}' from path '{}'", project, path);
 
     return Optional.of(project);
@@ -127,13 +149,13 @@ public final class DfsPaths {
 
   public static DownloadDataType getDownloadDataType(@NonNull String path) {
     log.debug("Resolving download data type from path '{}'", path);
-    val pathParts = Splitters.PATH.splitToList(path);
+    val pathParts = PATH.splitToList(path);
 
     String fileName = null;
-    if (pathParts.size() == 4) {
-      fileName = pathParts.get(3);
-    } else if (pathParts.size() == 5) {
-      fileName = pathParts.get(4);
+    if (pathParts.size() == SUMMARY_FILE_PATH_SIZE) {
+      fileName = pathParts.get(SUMMARY_FILE_PATH_POSITION);
+    } else if (pathParts.size() == PROJECT_FILE_PATH_SIZE) {
+      fileName = pathParts.get(PROJECT_FILE_PATH_POSITION);
     } else {
       throw new IllegalArgumentException(format("Failed to resolve download data type form path '%s'. Parts: %s", path,
           pathParts));
@@ -146,7 +168,7 @@ public final class DfsPaths {
    * Checks if the {@code path} represents a real entity on the file system. E.g. a README file or aggregated SSMs.
    */
   public static boolean isRealEntity(@NonNull String path) {
-    val pathParts = Splitters.PATH.splitToList(path);
+    val pathParts = PATH.splitToList(path);
     val fileName = pathParts.get(pathParts.size() - 1);
 
     return REAL_FILE_NAME_PATTERN.matcher(fileName).matches();
@@ -168,13 +190,13 @@ public final class DfsPaths {
     return hasHeaders && hasData;
   }
 
-  public static void validatePath(String path) {
+  public static void validatePath(@NonNull String path) {
     if ("/".equals(path)) {
       return;
     }
 
-    val pathParts = Splitters.PATH.splitToList(path);
-    checkArgument(pathParts.size() < 6, "Invalid path '%s'", path);
+    val pathParts = PATH.splitToList(path);
+    checkArgument(pathParts.size() < VALID_PATH_MAX_PARTS_COUNT, "Invalid path '%s'", path);
     for (int i = 0; i < pathParts.size(); i++) {
       verifyPathPart(i, pathParts);
     }
@@ -241,31 +263,31 @@ public final class DfsPaths {
   private static void verifyPathPart(int i, List<String> parts) {
     val part = parts.get(i);
     switch (i) {
-    // when path is split by '/' the first part is always empty
+    // When path is split by '/' the first part is always empty
     case 0:
       checkArgument(part.isEmpty());
       break;
     // /release_21
-    case 1:
+    case RELEASE_PATH_POSITION:
       verifyPathPart(RELEASE_PATTERN, part);
       break;
     // /release_21/{Projects|Summary}
-    case 2:
+    case PROJECTS_SUMMARY_PATH_POSITION:
       verifyPathPart(RELEASE_DIR_PATTERN, part);
       break;
-    // contents of /release_21/{Projects|Summary}
-    case 3:
-      val parent = parts.get(2);
+    // Contents of /release_21/{Projects|Summary}
+    case PROJECTS_SUMMARY_CONTENTS_PATH_POSITION:
+      val parent = parts.get(PROJECTS_SUMMARY_PATH_POSITION);
       if ("Summary".equals(parent)) {
         verifyFileName(part);
-      } else if ("Projects".equals(parent) && part.equals("README.txt")) {
+      } else if ("Projects".equals(parent) && "README.txt".equals(part)) {
         // Do nothing this is /<release>/Projects/README.txt
       } else {
         verifyPathPart(PROJECT_NAME_PATTERN, part);
       }
       break;
     // /release_21/Projects/TST-CA/file
-    case 4:
+    case PROJECT_FILE_PATH_POSITION:
       verifyFileName(part);
       break;
     default:
@@ -310,6 +332,10 @@ public final class DfsPaths {
     checkState(fileNames.size() == DownloadDataType.values().length);
 
     return fileNames;
+  }
+
+  private static void verifyMinPathLength(List<String> pathParts) {
+    checkArgument(pathParts.size() > VALID_PATH_MIN_PARTS_COUNT, "Malformed path parts: %s", pathParts);
   }
 
 }

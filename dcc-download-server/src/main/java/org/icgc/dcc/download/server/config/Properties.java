@@ -73,7 +73,10 @@ public class Properties {
   @Data
   public static class MailProperties {
 
-    private boolean enabled = false;
+    // Defaults to false but did not explicitly specify because of the PMD warning below.
+    // Java will initialize fields with known default values so any explicit initialization of those same defaults is
+    // redundant and results in a larger class file (approximately three additional bytecode instructions per field).
+    private boolean enabled;
     private String serviceUrl = "";
     private String portalUrl = "";
     private Map<String, String> properties = newLinkedHashMap();

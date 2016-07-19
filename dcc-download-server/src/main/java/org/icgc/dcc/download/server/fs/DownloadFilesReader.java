@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Locale.ENGLISH;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.regex.Pattern.compile;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
@@ -189,12 +190,12 @@ public class DownloadFilesReader {
     val dataType = getDataType(fileParts.get(1));
 
     val dataTypeFile = releaseTable.get(donorId, dataType);
-    val updatedDataTypeFile = updateDataTypeFile(fileSystem, dataTypeFile, fileStatus);
+    val updatedDataTypeFile = updateDataTypeFile(dataTypeFile, fileStatus);
     log.debug("Adding {}", updatedDataTypeFile);
     releaseTable.put(donorId, dataType, updatedDataTypeFile);
   }
 
-  private DataTypeFile updateDataTypeFile(FileSystem fileSystem, DataTypeFile dataTypeFile, FileStatus fileStatus) {
+  private DataTypeFile updateDataTypeFile(DataTypeFile dataTypeFile, FileStatus fileStatus) {
     val fileSize = fileStatus.getLen();
     val filePath = fileStatus.getPath();
     if (dataTypeFile == null) {
@@ -242,7 +243,7 @@ public class DownloadFilesReader {
   }
 
   private static DownloadDataType getDataType(String dataType) {
-    return DownloadDataType.valueOf(dataType.toUpperCase());
+    return DownloadDataType.valueOf(dataType.toUpperCase(ENGLISH));
   }
 
 }

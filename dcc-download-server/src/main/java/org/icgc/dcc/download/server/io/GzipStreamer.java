@@ -62,7 +62,7 @@ public class GzipStreamer implements FileStreamer {
   /**
    * State.
    */
-  private int currentDataFileIndex = 0;
+  private int currentDataFileIndex; // Not setting default value, because of the RedundantFieldInitializer PMD warning
 
   public GzipStreamer(
       @NonNull FileSystem fileSystem,
@@ -139,7 +139,7 @@ public class GzipStreamer implements FileStreamer {
       log.debug("Finished Streaming '{}' entry.", currentDownloadDataType.getCanonicalName());
     } catch (ClientAbortException e) {
       log.info("Archive streaming cancelled by the client.");
-    } catch (Exception e) {
+    } catch (Exception e) { // NOPMD
       log.error("Got exception while streaming entry: ", e);
       throw new DownloadException("An error occurred while streaming. Please contact the support.", e);
     }
@@ -152,7 +152,7 @@ public class GzipStreamer implements FileStreamer {
   private void streamCurrentDataType() throws IOException {
     log.debug("Streaming data file '{}'", getCurrentDataFile().getPath());
     for (val partFile : getPartFiles()) {
-      val path = new Path(partFile);
+      val path = new Path(partFile); // NOPMD
       log.debug("Streaming path '{}'", path);
 
       @Cleanup

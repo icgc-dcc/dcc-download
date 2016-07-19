@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.config;
 
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -41,7 +42,8 @@ public class SecurityConfig {
   public static class EndpointSecurity extends WebSecurityConfigurerAdapter {
 
     @Override
-    public void configure(HttpSecurity http) throws Exception {
+    @SneakyThrows
+    public void configure(HttpSecurity http) {
       log.info("Configuring enpoint security...");
       // @formatter:off
       http.requestMatchers()
@@ -90,7 +92,8 @@ public class SecurityConfig {
     private String adminPassword;
 
     @Override
-    public void init(AuthenticationManagerBuilder auth) throws Exception {
+    @SneakyThrows
+    public void init(AuthenticationManagerBuilder auth) {
       log.info("Configuring authentication security...");
       // @formatter:off
       auth.inMemoryAuthentication()

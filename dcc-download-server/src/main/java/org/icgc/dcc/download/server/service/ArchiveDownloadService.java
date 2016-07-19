@@ -24,6 +24,7 @@ import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
+import static java.util.Locale.ENGLISH;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
 import static org.icgc.dcc.common.core.util.Joiners.PATH;
 import static org.icgc.dcc.common.core.util.Separators.DASH;
@@ -180,16 +181,16 @@ public class ArchiveDownloadService {
     DfsPaths.validatePath(path);
     log.info("'{}' is a synthetic file", path);
     String release = DfsPaths.getRelease(path);
-    release = release.equals("current") ? fileSystemService.getCurrentRelease() : release;
+    release = "current".equals(release) ? fileSystemService.getCurrentRelease() : release; // NOPMD
     val projects = getProject(DfsPaths.getProject(path), release);
     log.info("Getting data files for projects: {}", projects);
     val downloadDataType = DfsPaths.getDownloadDataType(path);
     val downloadFiles = fileSystemService.getDataTypeFiles(release, projects, downloadDataType);
-    val fileNames = resolveFileNames(downloadDataType, projects);
 
     if (downloadFiles.isEmpty()) {
       return Optional.empty();
     }
+    val fileNames = resolveFileNames(downloadDataType, projects);
 
     return Optional.of(getArchiveStreamer(release, downloadFiles, singleton(downloadDataType), output, fileNames));
   }
@@ -341,7 +342,7 @@ public class ArchiveDownloadService {
         .filter(dataFile -> {
           DownloadDataType downloadDataType = getDownloadDataType(dataFile);
 
-          return (dataType == DONOR && downloadDataType.isClinicalSubtype()) || downloadDataType == dataType;
+          return dataType == DONOR && downloadDataType.isClinicalSubtype() || downloadDataType == dataType;
         })
         .collect(toImmutableList());
 
@@ -363,7 +364,7 @@ public class ArchiveDownloadService {
   private static DownloadDataType resolveType(DataTypeFile file) {
     val name = new Path(file.getPath()).getName();
 
-    return DownloadDataType.valueOf(name.toUpperCase());
+    return DownloadDataType.valueOf(name.toUpperCase(ENGLISH));
   }
 
   private static String generateId() {

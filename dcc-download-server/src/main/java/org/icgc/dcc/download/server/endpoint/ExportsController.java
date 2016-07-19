@@ -82,7 +82,7 @@ public class ExportsController {
       return Export.fromId(exportId);
     } catch (IllegalArgumentException e) {
       log.warn("Couldn't find export entity with ID '{}'", exportId);
-      throw new NotFoundException(format("%s not found", exportId));
+      throw new NotFoundException(format("%s not found", exportId), e);
     }
   }
 
