@@ -25,6 +25,7 @@ import static org.icgc.dcc.download.server.utils.OutputStreams.createTarOutputSt
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.regex.Pattern;
 
 import lombok.Cleanup;
 import lombok.NonNull;
@@ -43,19 +44,31 @@ import com.google.common.io.ByteStreams;
 @RequiredArgsConstructor
 public class ReleaseExportStreamer implements FileStreamer {
 
+  private static final Pattern RELEASE_FILES_PATTERN = compile(".*\\.tar\\.gz");
+
+  /**
+   * Configuration.
+   */
   @NonNull
   private final String archiveName;
   @NonNull
-  private final Path exportDir;
+  private final Path exportPath;
+
+  /**
+   * Dependencies.
+   */
   @NonNull
   private final FileSystem fileSystem;
+
+  /**
+   * State.
+   */
   @NonNull
   private final OutputStream output;
 
   @Override
   public void close() throws IOException {
     output.close();
-
   }
 
   @Override
@@ -63,12 +76,14 @@ public class ReleaseExportStreamer implements FileStreamer {
   public void stream() {
     log.info("Started streaming {}...", archiveName);
     val tarOutputStream = createTarOutputStream(output);
-    val files = lsFile(fileSystem, exportDir, compile(".*\\.tar\\.gz"));
+    val files = lsFile(fileSystem, exportPath, RELEASE_FILES_PATTERN);
     checkState(!files.isEmpty(), "Export release directory is empty.");
+
     for (val file : files) {
       val fileStatus = getFileStatus(fileSystem, file);
       val fileName = file.getName();
       log.info("Streaming {}...", fileName);
+
       val tarEntry = new TarArchiveEntry(fileName);
       tarEntry.setSize(fileStatus.getLen());
       tarOutputStream.putArchiveEntry(tarEntry);
