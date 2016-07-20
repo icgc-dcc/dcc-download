@@ -26,12 +26,14 @@ import java.util.concurrent.ExecutionException;
 
 import lombok.val;
 
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.node.Node;
 import org.icgc.dcc.download.imports.core.DownloadImportException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,6 +63,19 @@ public class IndexServiceTest {
     service = new IndexService(INDEX_NAME, client);
   }
 
+  @After
+  public void tearDown() throws Exception {
+    client.admin().indices()
+        .delete(new DeleteIndexRequest(INDEX_NAME))
+        .actionGet();
+  }
+
+  @Test(expected = DownloadImportException.class)
+  public void indexServiceTest_duplicateSettings() {
+    service.applySettings(SETTINGS);
+    service.applySettings(SETTINGS);
+  }
+
   @Test
   public void indexServiceTest() throws Exception {
     service.applySettings(SETTINGS);
@@ -85,12 +100,6 @@ public class IndexServiceTest {
     val settingsResponse = indexClient.getSettings(new GetSettingsRequest().indices(INDEX_NAME)).get();
     val setting = settingsResponse.getSetting(INDEX_NAME, "index.store.compress.stored");
     assertThat(setting).isEqualTo("true");
-  }
-
-  @Test(expected = DownloadImportException.class)
-  public void indexServiceTest_duplicateSettings() {
-    service.applySettings(SETTINGS);
-    service.applySettings(SETTINGS);
   }
 
 }
