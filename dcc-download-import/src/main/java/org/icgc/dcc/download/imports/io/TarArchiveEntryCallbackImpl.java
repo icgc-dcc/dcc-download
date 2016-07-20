@@ -17,6 +17,8 @@
  */
 package org.icgc.dcc.download.imports.io;
 
+import java.io.IOException;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -31,6 +33,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class TarArchiveEntryCallbackImpl implements TarArchiveEntryCallback {
 
   /**
+   * Configuration.
+   */
+  private final boolean applySettings;
+
+  /**
    * Dependencies.
    */
   @NonNull
@@ -38,16 +45,10 @@ public class TarArchiveEntryCallbackImpl implements TarArchiveEntryCallback {
   @NonNull
   private final IndexService indexService;
 
-  /**
-   * State.
-   */
-  private boolean applySettings = true;
-
   @Override
   public void onSettings(ObjectNode settings) {
     if (applySettings) {
       indexService.applySettings(settings);
-      applySettings = false;
     }
   }
 
@@ -60,6 +61,11 @@ public class TarArchiveEntryCallbackImpl implements TarArchiveEntryCallback {
   @SneakyThrows
   public void onDocument(Document document) {
     documentWriter.write(document);
+  }
+
+  @Override
+  public void close() throws IOException {
+    documentWriter.close();
   }
 
 }

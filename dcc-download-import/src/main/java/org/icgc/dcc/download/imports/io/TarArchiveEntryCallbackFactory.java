@@ -24,7 +24,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-import org.elasticsearch.client.Client;
 import org.icgc.dcc.download.imports.service.IndexService;
 
 @RequiredArgsConstructor
@@ -34,22 +33,22 @@ public class TarArchiveEntryCallbackFactory {
    * Dependencies.
    */
   @NonNull
-  private final Client client;
+  private final String esUri;
   private IndexService indexService;
 
   public static TarArchiveEntryCallbackFactory create(@NonNull String esUri) {
-    return new TarArchiveEntryCallbackFactory(newTransportClient(esUri, true));
+    return new TarArchiveEntryCallbackFactory(esUri);
   }
 
-  public TarArchiveEntryCallback createCallback(@NonNull String indexName) {
+  public TarArchiveEntryCallback createCallback(@NonNull String indexName, boolean applySettings) {
     if (indexService == null) {
-      indexService = new IndexService(indexName, client);
+      indexService = new IndexService(indexName, newTransportClient(esUri, true));
     }
 
     // TODO: DocumentType is not used in createDocumentWriter(). Remove it.
-    val esDocumentWriter = createDocumentWriter(client, indexName, DIAGRAM_TYPE);
+    val esDocumentWriter = createDocumentWriter(newTransportClient(esUri, true), indexName, DIAGRAM_TYPE);
 
-    return new TarArchiveEntryCallbackImpl(esDocumentWriter, indexService);
+    return new TarArchiveEntryCallbackImpl(applySettings, esDocumentWriter, indexService);
   }
 
 }

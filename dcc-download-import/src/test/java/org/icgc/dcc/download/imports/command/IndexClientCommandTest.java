@@ -15,7 +15,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.command.index;
+package org.icgc.dcc.download.imports.command;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -58,7 +58,7 @@ public class IndexClientCommandTest {
   public void testExecute() throws Exception {
     when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(288L))).thenReturn(donorReader);
     when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(300L))).thenReturn(mutationCentricReader);
-    when(callbackFactory.createCallback("icgc21-0-0")).thenReturn(callback);
+    when(callbackFactory.createCallback(eq("icgc21-0-0"), any(Boolean.class))).thenReturn(callback);
     indexCommand = new IndexClientCommand(DATA_FILE, callbackFactory, readerFactory);
     indexCommand.execute();
     verify(donorReader, times(1)).read(DocumentType.DONOR_TYPE, callback);

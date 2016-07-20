@@ -15,7 +15,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.command.index;
+package org.icgc.dcc.download.imports.command;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.icgc.dcc.download.imports.command.ClientCommand;
 import org.icgc.dcc.download.imports.core.DownloadImportException;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
@@ -60,6 +59,7 @@ public class IndexClientCommand implements ClientCommand {
     val tarInput = getTarInputStream(inputFile);
 
     TarArchiveEntry tarEntry = null;
+    boolean applySettings = true;
     while ((tarEntry = tarInput.getNextTarEntry()) != null) {
       val entryName = tarEntry.getName();
       val entrySize = tarEntry.getSize();
@@ -70,7 +70,12 @@ public class IndexClientCommand implements ClientCommand {
       val indexName = resolveIndexName(entryName);
 
       log.info("Indexing file '{}' into index '{}'", entryName, indexName);
-      reader.read(documentType, callbackFactory.createCallback(indexName));
+      @Cleanup
+      val callback = callbackFactory.createCallback(indexName, applySettings);
+      reader.read(documentType, callback);
+
+      // Apply index settings only once, but each tar entry contains own settings copy
+      applySettings = false;
       log.info("Finished indexing file {}", entryName);
     }
 

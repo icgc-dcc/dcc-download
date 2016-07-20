@@ -26,7 +26,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.imports.command.ClientCommand;
-import org.icgc.dcc.download.imports.command.index.IndexClientCommand;
+import org.icgc.dcc.download.imports.command.IndexClientCommand;
 import org.icgc.dcc.download.imports.conf.ClientOptions;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;

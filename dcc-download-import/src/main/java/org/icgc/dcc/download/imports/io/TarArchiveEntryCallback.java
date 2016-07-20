@@ -17,11 +17,13 @@
  */
 package org.icgc.dcc.download.imports.io;
 
+import java.io.Closeable;
+
 import org.icgc.dcc.release.core.document.Document;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public interface TarArchiveEntryCallback {
+public interface TarArchiveEntryCallback extends Closeable {
 
   void onSettings(ObjectNode settings);
 

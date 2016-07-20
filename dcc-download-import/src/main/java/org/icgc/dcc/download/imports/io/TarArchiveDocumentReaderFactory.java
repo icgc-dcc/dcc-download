@@ -22,8 +22,6 @@ import java.io.InputStream;
 import lombok.SneakyThrows;
 import lombok.val;
 
-import org.icgc.dcc.download.imports.command.index.GzipInputStream;
-
 public class TarArchiveDocumentReaderFactory {
 
   public static TarArchiveDocumentReaderFactory create() {
