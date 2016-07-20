@@ -35,14 +35,14 @@ public class GzipInputStream extends GZIPInputStream {
    */
   private long bytesRead;
 
-  public GzipInputStream(InputStream in, long streamBytes) throws IOException {
-    super(in);
+  public GzipInputStream(InputStream inputStream, long streamBytes) throws IOException {
+    super(inputStream);
     this.streamBytes = streamBytes;
   }
 
   @Override
   public int read() throws IOException {
-    if (bytesRead++ >= streamBytes) {
+    if (bytesRead++ >= streamBytes) { // NOPMD
       return EOS;
     }
 

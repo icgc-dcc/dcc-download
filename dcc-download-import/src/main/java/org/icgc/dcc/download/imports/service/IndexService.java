@@ -48,7 +48,7 @@ public class IndexService {
   private final Client client;
 
   @Getter(lazy = true, value = PRIVATE)
-  private final IndicesAdminClient indexClient = client.admin().indices();
+  private final IndicesAdminClient indexClient = client.admin().indices(); // NOPMD
 
   public void applySettings(@NonNull ObjectNode settings) {
     val client = getIndexClient();

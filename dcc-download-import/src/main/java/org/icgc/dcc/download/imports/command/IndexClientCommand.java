@@ -19,9 +19,11 @@ package org.icgc.dcc.download.imports.command;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.regex.Pattern;
 
 import lombok.Cleanup;
@@ -37,6 +39,8 @@ import org.icgc.dcc.download.imports.core.DownloadImportException;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
 import org.icgc.dcc.release.core.document.DocumentType;
+
+import com.google.common.base.Stopwatch;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -58,28 +62,40 @@ public class IndexClientCommand implements ClientCommand {
     @Cleanup
     val tarInput = getTarInputStream(inputFile);
 
-    TarArchiveEntry tarEntry = null;
+    TarArchiveEntry tarEntry;
     boolean applySettings = true;
-    while ((tarEntry = tarInput.getNextTarEntry()) != null) {
-      val entryName = tarEntry.getName();
-      val entrySize = tarEntry.getSize();
-
-      log.debug("Creating tar document reader for tar entry {}", entryName);
-      val reader = readerFactory.createReader(tarInput, entrySize);
-      val documentType = resolveDocumentType(entryName);
-      val indexName = resolveIndexName(entryName);
-
-      log.info("Indexing file '{}' into index '{}'", entryName, indexName);
-      @Cleanup
-      val callback = callbackFactory.createCallback(indexName, applySettings);
-      reader.read(documentType, callback);
-
-      // Apply index settings only once, but each tar entry contains own settings copy
+    val indexWatches = Stopwatch.createStarted();
+    while ((tarEntry = tarInput.getNextTarEntry()) != null) { // NOPMD
+      processTypeTarEntry(tarInput, tarEntry, applySettings);
       applySettings = false;
-      log.info("Finished indexing file {}", entryName);
     }
 
-    log.info("Finished processing {}", inputFile);
+    log.info("Finished processing {} in {} seconds.", inputFile, indexWatches.elapsed(SECONDS));
+  }
+
+  private void processTypeTarEntry(TarArchiveInputStream tarInput, TarArchiveEntry tarEntry, boolean applySettings)
+      throws IOException {
+    val entryName = tarEntry.getName();
+    val entrySize = tarEntry.getSize();
+
+    log.debug("Creating tar document reader for tar entry {}", entryName);
+    val reader = readerFactory.createReader(tarInput, entrySize);
+    val documentType = resolveDocumentType(entryName);
+    val indexName = resolveIndexName(entryName);
+
+    log.info("Indexing file '{}' into index '{}'", entryName, indexName);
+    // Don't use @Cleanup as the callback will be closed after the log message "Finished indexing file" has been
+    // written.
+    val callback = callbackFactory.createCallback(indexName, applySettings);
+
+    try {
+      reader.read(documentType, callback);
+    } finally {
+      callback.close();
+    }
+
+    // Apply index settings only once, but each tar entry contains own settings copy
+    log.info("Finished indexing file {}", entryName);
   }
 
   private static String resolveIndexName(String entryName) {

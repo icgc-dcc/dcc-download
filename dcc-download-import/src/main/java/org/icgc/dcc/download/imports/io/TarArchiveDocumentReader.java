@@ -63,8 +63,8 @@ public class TarArchiveDocumentReader {
     val archiveStream = readArchiveStream(inputStream);
 
     int count = 0;
-    TarArchiveEntry entry = null;
-    while ((entry = archiveStream.getNextTarEntry()) != null) {
+    TarArchiveEntry entry;
+    while ((entry = archiveStream.getNextTarEntry()) != null) { // NOPMD
       val entryName = entry.getName();
       log.debug("Processing entry: {}", entryName);
       // An archive contains directories when it's manually created with the tar utility
@@ -83,9 +83,9 @@ public class TarArchiveDocumentReader {
 
         callback.onMapping(mappingTypeName, mapping);
       } else {
-        val id = getEntryNamePart(entry, 2);
+        val docId = getEntryNamePart(entry, 2);
         val source = readSource(archiveStream);
-        val document = new Document(type, id, source);
+        val document = new Document(type, docId, source); // NOPMD
 
         // Dispatch
         callback.onDocument(document);

@@ -75,7 +75,7 @@ public class ClientMain {
       log.error("Invalid parameter(s): ", e);
       err.println("Invalid parameter(s): " + e.getMessage());
       usage(cli);
-    } catch (Exception e) {
+    } catch (Exception e) { // NOPMD
       log.error("Unknown error: ", e);
       err.println("Unknow error. Please check the log for detailed error messages: " + e.getMessage());
       System.exit(FAILURE_STATUS_CODE);
@@ -84,7 +84,6 @@ public class ClientMain {
 
   private static void execute(ClientOptions options) {
     banner("Running with {}", options);
-    log.info("{}\n", repeat("-", 100));
 
     val command = resolveCommand(options);
     command.execute();

@@ -29,8 +29,8 @@ public class TarArchiveDocumentReaderFactory {
   }
 
   @SneakyThrows
-  public TarArchiveDocumentReader createReader(InputStream in, long streamBytes) {
-    val entryInputStream = new GzipInputStream(in, streamBytes);
+  public TarArchiveDocumentReader createReader(InputStream inputStream, long streamBytes) {
+    val entryInputStream = new GzipInputStream(inputStream, streamBytes);
     return new TarArchiveDocumentReader(entryInputStream);
   }
 
