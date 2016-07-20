@@ -36,6 +36,8 @@ Modules
 Top level system modules:
 
 - [Client](dcc-download-client/README.md)
-- [Job](dcc-download-job/README.md)
+- [Core libraries](dcc-download-core/README.md)
+- [Import](dcc-download-import/README.md)
 - [Server](dcc-download-server/README.md)
+- [Test utilities](dcc-download-test/README.md)
 
