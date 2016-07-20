@@ -130,6 +130,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
           <descriptorRefs>
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
+          <appendAssemblyId>false</appendAssemblyId>
         </configuration>
         <executions>
           <execution>

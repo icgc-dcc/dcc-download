@@ -86,6 +86,7 @@ public class IndexClientCommand implements ClientCommand {
     log.info("Indexing file '{}' into index '{}'", entryName, indexName);
     // Don't use @Cleanup as the callback will be closed after the log message "Finished indexing file" has been
     // written.
+    val typeWatches = Stopwatch.createStarted();
     val callback = callbackFactory.createCallback(indexName, applySettings);
 
     try {
@@ -95,7 +96,7 @@ public class IndexClientCommand implements ClientCommand {
     }
 
     // Apply index settings only once, but each tar entry contains own settings copy
-    log.info("Finished indexing file {}", entryName);
+    log.info("Finished indexing file {} in {} seconds.", entryName, typeWatches.elapsed(SECONDS));
   }
 
   private static String resolveIndexName(String entryName) {
