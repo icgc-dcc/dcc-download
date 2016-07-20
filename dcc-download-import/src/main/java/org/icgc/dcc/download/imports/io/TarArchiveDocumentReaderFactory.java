@@ -18,9 +18,9 @@
 package org.icgc.dcc.download.imports.io;
 
 import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
 
 import lombok.SneakyThrows;
-import lombok.val;
 
 public class TarArchiveDocumentReaderFactory {
 
@@ -30,8 +30,7 @@ public class TarArchiveDocumentReaderFactory {
 
   @SneakyThrows
   public TarArchiveDocumentReader createReader(InputStream inputStream, long streamBytes) {
-    val entryInputStream = new GzipInputStream(inputStream, streamBytes);
-    return new TarArchiveDocumentReader(entryInputStream);
+    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
   }
 
 }
