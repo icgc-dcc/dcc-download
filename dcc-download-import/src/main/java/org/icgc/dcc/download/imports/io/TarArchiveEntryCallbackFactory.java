@@ -46,7 +46,7 @@ public class TarArchiveEntryCallbackFactory {
     }
 
     // TODO: DocumentType is not used in createDocumentWriter(). Remove it.
-    val esDocumentWriter = createDocumentWriter(newTransportClient(esUri, true), indexName, DIAGRAM_TYPE);
+    val esDocumentWriter = createDocumentWriter(newTransportClient(esUri, false), indexName, DIAGRAM_TYPE);
 
     return new TarArchiveEntryCallbackImpl(applySettings, esDocumentWriter, indexService);
   }

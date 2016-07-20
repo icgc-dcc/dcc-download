@@ -18,25 +18,24 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 -->
 
 <configuration debug="false">
-	<property name="pattern"
-		value="%date{ISO8601} [%thread] %-5level %logger{20} - %msg%n" />
+  <property name="pattern" value="%date{ISO8601} [%thread] %-5level %logger{20} - %msg%n" />
 
-	<contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
-		<resetJUL>true</resetJUL>
-	</contextListener>
+  <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+    <resetJUL>true</resetJUL>
+  </contextListener>
 
-	<statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+  <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
 
-	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-		<encoder>
-			<pattern>${pattern}</pattern>
-		</encoder>
-	</appender>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${pattern}</pattern>
+    </encoder>
+  </appender>
 
   <logger name="org.icgc.dcc" level="INFO" />
 
-	<root level="WARN">
-		<appender-ref ref="STDOUT" />
-	</root>
+  <root level="WARN">
+    <appender-ref ref="STDOUT" />
+  </root>
 
 </configuration>

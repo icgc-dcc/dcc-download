@@ -239,7 +239,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     <!-- Utilities -->
     <apache-commons.version>1.4.1</apache-commons.version>
     
-    <!--  Test -->
+    <!-- Test -->
     <wiremock.version>1.57</wiremock.version>
     <elasticsearch-test.version>1.2.1</elasticsearch-test.version>
     
