@@ -55,7 +55,7 @@ public class ExportsControllerTest {
   @Mock
   ExportsService exportsService;
   @Mock
-  AuthService tokenService;
+  AuthService authService;
   @Mock
   FileStreamer fileStreamer;
 
@@ -89,8 +89,8 @@ public class ExportsControllerTest {
     val exportFile = new ExportFile("url1", RELEASE_CONTROLLED.getId(21), RELEASE_CONTROLLED.getType(), 123);
     val metadata = new MetadataResponse(exportFile);
     when(exportsService.getControlledMetadata("http://localhost")).thenReturn(metadata);
-    when(tokenService.parseToken(AUTH_HEADER_VALUE)).thenReturn(TOKEN);
-    when(tokenService.isAuthorized(TOKEN)).thenReturn(true);
+    when(authService.parseToken(AUTH_HEADER_VALUE)).thenReturn(TOKEN);
+    when(authService.isAuthorized(TOKEN)).thenReturn(true);
 
     val expecedBody = $("[{url:'url1',id:'release21.controlled.tar',type:'release',date:123}]");
     mockMvc
@@ -117,8 +117,8 @@ public class ExportsControllerTest {
     val exportId = RELEASE_CONTROLLED.getId(21);
     when(exportsService.getExportStreamer(eq(RELEASE_CONTROLLED), any())).thenReturn(fileStreamer);
     when(fileStreamer.getName()).thenReturn(exportId);
-    when(tokenService.parseToken(AUTH_HEADER_VALUE)).thenReturn(TOKEN);
-    when(tokenService.isAuthorized(TOKEN)).thenReturn(true);
+    when(authService.parseToken(AUTH_HEADER_VALUE)).thenReturn(TOKEN);
+    when(authService.isAuthorized(TOKEN)).thenReturn(true);
 
     mockMvc
         .perform(get(ENDPOINT_PATH + "/" + exportId)

@@ -56,7 +56,7 @@ public class ExportsController {
   @NonNull
   private final ExportsService exportsService;
   @NonNull
-  private final AuthService tokenService;
+  private final AuthService authService;
 
   @RequestMapping(method = GET)
   public MetadataResponse listMetadata(
@@ -108,9 +108,9 @@ public class ExportsController {
     }
 
     try {
-      val token = tokenService.parseToken(authHeader);
+      val token = authService.parseToken(authHeader);
 
-      return tokenService.isAuthorized(token);
+      return authService.isAuthorized(token);
     } catch (IllegalArgumentException e) {
       throwBadRequestException("Invalid authorization header", e);
     }
