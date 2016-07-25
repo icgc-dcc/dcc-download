@@ -31,17 +31,16 @@ import lombok.val;
 public enum Export {
 
   REPOSITORY("repository.tar.gz"),
-  DATA("data.tar"),
-  RELEASE_OPEN("release%s.open.tar"),
-  RELEASE_CONTROLLED("release%s.controlled.tar");
+  DATA_OPEN("data.open.tar"),
+  DATA_CONTROLLED("data.controlled.tar"),
+  RELEASE("release%s.tar");
 
-  private static final Pattern RELEASE_OPEN_ID_PATTERN = Pattern.compile("^release.*\\.open\\.tar$");
-  private static final Pattern RELEASE_CONTROLLED_ID_PATTERN = Pattern.compile("^release.*\\.controlled\\.tar$");
+  private static final Pattern RELEASE_ID_PATTERN = Pattern.compile("^release.*\\.tar$");
 
   private final String idTemplate;
 
   public String getId() {
-    if (isReleaseType()) {
+    if (this == RELEASE) {
       throw new UnsupportedOperationException(format("Call to this method is not supported for type %s. "
           + "Use getId(releaseNumber)", getType()));
     }
@@ -50,7 +49,7 @@ public enum Export {
   }
 
   public String getId(int releaseNumber) {
-    if (isReleaseType()) {
+    if (this == RELEASE) {
       return format(idTemplate, releaseNumber);
     }
 
@@ -64,11 +63,17 @@ public enum Export {
     return suffixIndex == -1 ? name : name.substring(0, suffixIndex);
   }
 
+  public boolean isControlled() {
+    if (this == DATA_CONTROLLED) {
+      return true;
+    }
+
+    return false;
+  }
+
   public static Export fromId(@NonNull String id) {
-    if (RELEASE_OPEN_ID_PATTERN.matcher(id).matches()) {
-      return RELEASE_OPEN;
-    } else if (RELEASE_CONTROLLED_ID_PATTERN.matcher(id).matches()) {
-      return RELEASE_CONTROLLED;
+    if (RELEASE_ID_PATTERN.matcher(id).matches()) {
+      return RELEASE;
     }
 
     for (val value : values()) {
@@ -78,10 +83,6 @@ public enum Export {
     }
 
     throw new IllegalArgumentException(format("Failed to resolve export from id '%s'", id));
-  }
-
-  private boolean isReleaseType() {
-    return getType().equals("release");
   }
 
 }

@@ -18,9 +18,10 @@
 package org.icgc.dcc.download.server.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.server.model.Export.DATA;
-import static org.icgc.dcc.download.server.model.Export.RELEASE_CONTROLLED;
-import static org.icgc.dcc.download.server.model.Export.RELEASE_OPEN;
+import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
+import static org.icgc.dcc.download.server.model.Export.DATA_OPEN;
+import static org.icgc.dcc.download.server.model.Export.RELEASE;
+import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
 
 import org.junit.Test;
 
@@ -28,31 +29,38 @@ public class ExportTest {
 
   @Test
   public void testFromId() throws Exception {
-    assertThat(Export.fromId("release21.open.tar")).isEqualTo(RELEASE_OPEN);
-    assertThat(Export.fromId("release21.controlled.tar")).isEqualTo(RELEASE_CONTROLLED);
+    assertThat(Export.fromId("release21.tar")).isEqualTo(RELEASE);
+    assertThat(Export.fromId("data.open.tar")).isEqualTo(DATA_OPEN);
+    assertThat(Export.fromId("data.controlled.tar")).isEqualTo(DATA_CONTROLLED);
   }
 
   @Test
   public void testGetIdInt() throws Exception {
-    assertThat(RELEASE_OPEN.getId(21)).isEqualTo("release21.open.tar");
-    assertThat(RELEASE_CONTROLLED.getId(21)).isEqualTo("release21.controlled.tar");
+    assertThat(RELEASE.getId(21)).isEqualTo("release21.tar");
   }
 
   @Test
   public void testGetType() throws Exception {
-    assertThat(RELEASE_OPEN.getType()).isEqualTo("release");
-    assertThat(RELEASE_CONTROLLED.getType()).isEqualTo("release");
-    assertThat(DATA.getType()).isEqualTo("data");
+    assertThat(RELEASE.getType()).isEqualTo("release");
+    assertThat(DATA_OPEN.getType()).isEqualTo("data");
   }
 
   @Test
   public void testGetId() throws Exception {
-    assertThat(DATA.getId()).isEqualTo("data.tar");
+    assertThat(DATA_OPEN.getId()).isEqualTo("data.open.tar");
   }
 
   @Test(expected = UnsupportedOperationException.class)
   public void testGetId_unsupported() throws Exception {
-    RELEASE_OPEN.getId();
+    RELEASE.getId();
+  }
+
+  @Test
+  public void testIsControlled() throws Exception {
+    assertThat(DATA_OPEN.isControlled()).isFalse();
+    assertThat(DATA_CONTROLLED.isControlled()).isTrue();
+    assertThat(RELEASE.isControlled()).isFalse();
+    assertThat(REPOSITORY.isControlled()).isFalse();
   }
 
 }

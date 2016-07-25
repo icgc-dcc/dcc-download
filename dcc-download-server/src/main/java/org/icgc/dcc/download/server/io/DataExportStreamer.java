@@ -18,7 +18,7 @@
 package org.icgc.dcc.download.server.io;
 
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.getFileStatus;
-import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.relativize;
 import static org.icgc.dcc.download.server.utils.OutputStreams.createTarOutputStream;
 
@@ -36,6 +36,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.server.model.Export;
 
 import com.google.common.io.ByteStreams;
 
@@ -44,6 +45,8 @@ public class DataExportStreamer implements FileStreamer {
 
   @NonNull
   private final Path dataPath;
+  @NonNull
+  private final Export export;
   @NonNull
   private final FileSystem fileSystem;
   @NonNull
@@ -56,7 +59,7 @@ public class DataExportStreamer implements FileStreamer {
 
   @Override
   public String getName() {
-    return DATA.getId();
+    return export.getId();
   }
 
   @Override
@@ -86,7 +89,7 @@ public class DataExportStreamer implements FileStreamer {
   private void streamFile(TarArchiveOutputStream tarOutputStream, FileStatus status, String parentPath) {
     val filePath = status.getPath();
     val fileName = relativize(parentPath, filePath);
-    if (isControlled(fileName)) {
+    if (!isAuthorized(fileName)) {
       return;
     }
 
@@ -100,6 +103,10 @@ public class DataExportStreamer implements FileStreamer {
     ByteStreams.copy(fileInput, tarOutputStream);
 
     tarOutputStream.closeArchiveEntry();
+  }
+
+  private boolean isAuthorized(String fileName) {
+    return DATA_CONTROLLED == export || !isControlled(fileName);
   }
 
   private static boolean isControlled(String fileName) {

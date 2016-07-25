@@ -20,7 +20,7 @@ package org.icgc.dcc.download.server.endpoint;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
-import static org.icgc.dcc.download.server.model.Export.RELEASE_CONTROLLED;
+import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
 import static org.icgc.dcc.download.server.utils.Responses.getFileMimeType;
 import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
@@ -70,7 +70,7 @@ public class ExportsController {
       return exportsService.getControlledMetadata(baseUrl);
     } else {
       log.info("Serving open exports metadata...");
-      return exportsService.getMetadata(baseUrl);
+      return exportsService.getOpenMetadata(baseUrl);
     }
   }
 
@@ -83,7 +83,7 @@ public class ExportsController {
     log.info("Received get export archive request for id '{}'", exportId);
     val export = resolveExport(exportId);
     val output = response.getOutputStream();
-    if (export == RELEASE_CONTROLLED && !isAuthorized(authHeader)) {
+    if (export == DATA_CONTROLLED && !isAuthorized(authHeader)) {
       log.warn("Client requested controlled archive without authorization. Authorization header: '{}'", authHeader);
       throwForbiddenException();
     }
