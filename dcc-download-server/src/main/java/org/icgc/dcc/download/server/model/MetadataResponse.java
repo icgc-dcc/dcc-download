@@ -21,6 +21,9 @@ import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 import com.google.common.collect.ImmutableList;
 
 // Extending Collection to make a serialized response to be a collection.
@@ -32,6 +35,10 @@ public class MetadataResponse extends AbstractCollection<ExportFile> {
     this.files = ImmutableList.copyOf(exportFiles);
   }
 
+  private MetadataResponse(Collection<ExportFile> files) {
+    this.files = files;
+  }
+
   @Override
   public Iterator<ExportFile> iterator() {
     return files.iterator();
@@ -40,6 +47,27 @@ public class MetadataResponse extends AbstractCollection<ExportFile> {
   @Override
   public int size() {
     return files.size();
+  }
+
+  public static MetadataResponseBuilder builder() {
+    return new MetadataResponseBuilder();
+  }
+
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class MetadataResponseBuilder {
+
+    private final ImmutableList.Builder<ExportFile> builder = ImmutableList.builder();
+
+    public MetadataResponseBuilder add(ExportFile exportFile) {
+      builder.add(exportFile);
+
+      return this;
+    }
+
+    public MetadataResponse build() {
+      return new MetadataResponse(builder.build());
+    }
+
   }
 
 }

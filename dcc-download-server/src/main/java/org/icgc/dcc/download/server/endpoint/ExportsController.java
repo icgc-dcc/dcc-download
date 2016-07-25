@@ -17,9 +17,13 @@
  */
 package org.icgc.dcc.download.server.endpoint;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
+import static org.icgc.dcc.download.server.model.Export.RELEASE_CONTROLLED;
 import static org.icgc.dcc.download.server.utils.Responses.getFileMimeType;
+import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
+import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 import java.io.IOException;
@@ -35,9 +39,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.server.model.Export;
 import org.icgc.dcc.download.server.model.MetadataResponse;
+import org.icgc.dcc.download.server.service.DccAuthTokenService;
 import org.icgc.dcc.download.server.service.ExportsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -49,32 +55,68 @@ public class ExportsController {
 
   @NonNull
   private final ExportsService exportsService;
+  @NonNull
+  private final DccAuthTokenService tokenService;
 
   @RequestMapping(method = GET)
-  public MetadataResponse listMetadata(HttpServletRequest request) {
+  public MetadataResponse listMetadata(
+      @RequestHeader(value = "Authorization", required = false) String authHeader,
+      HttpServletRequest request) {
     val requestUrl = request.getRequestURL().toString();
     val baseUrl = requestUrl.replaceFirst("/exports(/)?$", EMPTY_STRING);
 
-    return exportsService.getMetadata(baseUrl);
+    MetadataResponse metadata;
+    if (isAuthorized(authHeader)) {
+      log.info("Serving controlled exports metadata...");
+      metadata = exportsService.getControlledMetadata(baseUrl);
+    } else {
+      log.info("Serving open exports metadata...");
+      metadata = exportsService.getMetadata(baseUrl);
+    }
+
+    return metadata;
   }
 
   // The ':.+' regex is required to keep the file extension in the path
   @RequestMapping(value = "/{exportId:.+}", method = GET)
   public void downloadArchive(
       @PathVariable("exportId") String exportId,
+      @RequestHeader(value = "Authorization", required = false) String authHeader,
       @NonNull HttpServletResponse response) throws IOException {
-    log.info("Streaming export ID '{}'...", exportId);
-
+    log.info("Received get export archive request for id '{}'", exportId);
     val export = resolveExport(exportId);
     val output = response.getOutputStream();
+    if (export == RELEASE_CONTROLLED && !isAuthorized(authHeader)) {
+      log.warn("Client requested controlled archive without authorization. Authorization header: '{}'", authHeader);
+      throwForbiddenException();
+    }
+
     @Cleanup
     val streamer = exportsService.getExportStreamer(export, output);
     val fileName = streamer.getName();
 
     response.setContentType(getFileMimeType(fileName));
 
+    log.info("Streaming export ID '{}'...", exportId);
     streamer.stream();
     log.info("Finished streaming export ID '{}'...", exportId);
+  }
+
+  private boolean isAuthorized(String authHeader) {
+    if (isNullOrEmpty(authHeader)) {
+      return false;
+    }
+
+    try {
+      val token = tokenService.parseToken(authHeader);
+
+      return tokenService.isAuthorized(token);
+    } catch (IllegalArgumentException e) {
+      throwBadRequestException("Invalid authorization header", e);
+    }
+
+    // Won't come to this point
+    return false;
   }
 
   private static Export resolveExport(String exportId) {

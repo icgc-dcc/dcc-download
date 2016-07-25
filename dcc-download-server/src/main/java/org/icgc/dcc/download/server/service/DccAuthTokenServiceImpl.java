@@ -15,73 +15,54 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.service;
 
-import static java.lang.String.format;
-import static java.util.Locale.ENGLISH;
-import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 
-import java.util.regex.Pattern;
+import java.util.Collection;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-@RequiredArgsConstructor(access = PRIVATE)
-public enum Export {
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.token.RemoteTokenServices;
 
-  REPOSITORY("repository.tar.gz"),
-  DATA("data.tar"),
-  RELEASE_OPEN("release%s.open.tar"),
-  RELEASE_CONTROLLED("release%s.controlled.tar");
+@Slf4j
+@RequiredArgsConstructor
+public class DccAuthTokenServiceImpl implements DccAuthTokenService {
 
-  private static final Pattern RELEASE_OPEN_ID_PATTERN = Pattern.compile("^release.*\\.open\\.tar$");
-  private static final Pattern RELEASE_CONTROLLED_ID_PATTERN = Pattern.compile("^release.*\\.controlled\\.tar$");
+  /**
+   * Constants.
+   */
+  private static final String VALID_SCOPE = "portal.export";
 
-  private final String idTemplate;
+  /**
+   * Dependencies.
+   */
+  private final RemoteTokenServices remoteTokenServices;
 
-  public String getId() {
-    if (isReleaseType()) {
-      throw new UnsupportedOperationException(format("Call to this method is not supported for type %s. "
-          + "Use getId(releaseNumber)", getType()));
+  @Override
+  public boolean isAuthorized(@NonNull String token) {
+    OAuth2Authentication auth = null;
+    try {
+      auth = remoteTokenServices.loadAuthentication(token);
+    } catch (AuthenticationException | InvalidTokenException e) {
+      log.warn("Failed to verify token '{}'. Exception:\n{}", token, e);
+      throwForbiddenException();
     }
 
-    return idTemplate;
+    val scopes = auth.getOAuth2Request().getScope();
+
+    return isAuthorized(scopes);
   }
 
-  public String getId(int releaseNumber) {
-    if (isReleaseType()) {
-      return format(idTemplate, releaseNumber);
-    }
-
-    return idTemplate;
-  }
-
-  public String getType() {
-    val name = name().toLowerCase(ENGLISH);
-    val suffixIndex = name.indexOf("_");
-
-    return suffixIndex == -1 ? name : name.substring(0, suffixIndex);
-  }
-
-  public static Export fromId(@NonNull String id) {
-    if (RELEASE_OPEN_ID_PATTERN.matcher(id).matches()) {
-      return RELEASE_OPEN;
-    } else if (RELEASE_CONTROLLED_ID_PATTERN.matcher(id).matches()) {
-      return RELEASE_CONTROLLED;
-    }
-
-    for (val value : values()) {
-      if (value.getId().equals(id)) {
-        return value;
-      }
-    }
-
-    throw new IllegalArgumentException(format("Failed to resolve export from id '%s'", id));
-  }
-
-  private boolean isReleaseType() {
-    return getType().equals("release");
+  private static boolean isAuthorized(Collection<String> scopes) {
+    return scopes.stream()
+        .anyMatch(scope -> VALID_SCOPE.equals(scope));
   }
 
 }

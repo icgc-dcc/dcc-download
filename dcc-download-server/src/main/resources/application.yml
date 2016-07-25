@@ -120,6 +120,11 @@ download.server:
   adminUser: admin
   adminPassword: secret
   
+auth.server:
+  url: https://localhost/oauth/check_token
+  clientId:
+  clientsecret:
+  
 management.security.enabled: true
 
 ---

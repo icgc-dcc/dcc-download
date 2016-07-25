@@ -15,73 +15,29 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.service;
 
-import static java.lang.String.format;
-import static java.util.Locale.ENGLISH;
-import static lombok.AccessLevel.PRIVATE;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.regex.Pattern;
 
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-@RequiredArgsConstructor(access = PRIVATE)
-public enum Export {
+public interface DccAuthTokenService {
 
-  REPOSITORY("repository.tar.gz"),
-  DATA("data.tar"),
-  RELEASE_OPEN("release%s.open.tar"),
-  RELEASE_CONTROLLED("release%s.controlled.tar");
+  public static final Pattern AUTH_HEADER_PATTERN = Pattern.compile("^Bearer (.*)$");
 
-  private static final Pattern RELEASE_OPEN_ID_PATTERN = Pattern.compile("^release.*\\.open\\.tar$");
-  private static final Pattern RELEASE_CONTROLLED_ID_PATTERN = Pattern.compile("^release.*\\.controlled\\.tar$");
+  default String parseToken(@NonNull String authHeader) {
+    val matcher = AUTH_HEADER_PATTERN.matcher(authHeader);
+    checkArgument(matcher.matches(), "{} is not a valid Authorization header value. Expected to match {}", authHeader,
+        AUTH_HEADER_PATTERN);
 
-  private final String idTemplate;
-
-  public String getId() {
-    if (isReleaseType()) {
-      throw new UnsupportedOperationException(format("Call to this method is not supported for type %s. "
-          + "Use getId(releaseNumber)", getType()));
-    }
-
-    return idTemplate;
+    return matcher.group(1);
   }
 
-  public String getId(int releaseNumber) {
-    if (isReleaseType()) {
-      return format(idTemplate, releaseNumber);
-    }
-
-    return idTemplate;
-  }
-
-  public String getType() {
-    val name = name().toLowerCase(ENGLISH);
-    val suffixIndex = name.indexOf("_");
-
-    return suffixIndex == -1 ? name : name.substring(0, suffixIndex);
-  }
-
-  public static Export fromId(@NonNull String id) {
-    if (RELEASE_OPEN_ID_PATTERN.matcher(id).matches()) {
-      return RELEASE_OPEN;
-    } else if (RELEASE_CONTROLLED_ID_PATTERN.matcher(id).matches()) {
-      return RELEASE_CONTROLLED;
-    }
-
-    for (val value : values()) {
-      if (value.getId().equals(id)) {
-        return value;
-      }
-    }
-
-    throw new IllegalArgumentException(format("Failed to resolve export from id '%s'", id));
-  }
-
-  private boolean isReleaseType() {
-    return getType().equals("release");
+  default boolean isAuthorized(@NonNull String token) {
+    return false;
   }
 
 }

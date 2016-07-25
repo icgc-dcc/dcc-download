@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,23 +40,28 @@ public final class Responses {
     throw new ForbiddenException(message);
   }
 
-  public static void throwJobNotFoundException(String jobId) {
+  public static void throwJobNotFoundException(@NonNull String jobId) {
     val message = "Failed to find job with ID " + jobId;
     log.warn(message);
     throw new NotFoundException(message);
   }
 
-  public static void throwBadRequestException(String message) {
+  public static void throwBadRequestException(@NonNull String message) {
     log.warn(message);
     throw new BadRequestException(message);
   }
 
-  public static void throwPathNotFoundException(String warnMessage) {
+  public static void throwBadRequestException(@NonNull String message, @NonNull Throwable cause) {
+    log.warn(message);
+    throw new BadRequestException(message, cause);
+  }
+
+  public static void throwPathNotFoundException(@NonNull String warnMessage) {
     log.warn(warnMessage);
     throw new NotFoundException("Malformed path");
   }
 
-  public static String getFileMimeType(String filename) {
+  public static String getFileMimeType(@NonNull String filename) {
     val extension = Files.getFileExtension(filename);
     switch (extension) {
     case "gz":

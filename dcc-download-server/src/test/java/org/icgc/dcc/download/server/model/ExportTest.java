@@ -17,14 +17,42 @@
  */
 package org.icgc.dcc.download.server.model;
 
-import lombok.Value;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.RELEASE_CONTROLLED;
+import static org.icgc.dcc.download.server.model.Export.RELEASE_OPEN;
 
-@Value
-public class ExportFile {
+import org.junit.Test;
 
-  String url;
-  String id;
-  String type;
-  long date;
+public class ExportTest {
+
+  @Test
+  public void testFromId() throws Exception {
+    assertThat(Export.fromId("release21.open.tar")).isEqualTo(RELEASE_OPEN);
+    assertThat(Export.fromId("release21.controlled.tar")).isEqualTo(RELEASE_CONTROLLED);
+  }
+
+  @Test
+  public void testGetIdInt() throws Exception {
+    assertThat(RELEASE_OPEN.getId(21)).isEqualTo("release21.open.tar");
+    assertThat(RELEASE_CONTROLLED.getId(21)).isEqualTo("release21.controlled.tar");
+  }
+
+  @Test
+  public void testGetType() throws Exception {
+    assertThat(RELEASE_OPEN.getType()).isEqualTo("release");
+    assertThat(RELEASE_CONTROLLED.getType()).isEqualTo("release");
+    assertThat(DATA.getType()).isEqualTo("data");
+  }
+
+  @Test
+  public void testGetId() throws Exception {
+    assertThat(DATA.getId()).isEqualTo("data.tar");
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testGetId_unsupported() throws Exception {
+    RELEASE_OPEN.getId();
+  }
 
 }
