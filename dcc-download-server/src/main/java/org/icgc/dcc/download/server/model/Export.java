@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.model;
 
 import static java.lang.String.format;
+import static java.util.Arrays.stream;
 import static java.util.Locale.ENGLISH;
 import static lombok.AccessLevel.PRIVATE;
 
@@ -76,13 +77,16 @@ public enum Export {
       return RELEASE;
     }
 
-    for (val value : values()) {
-      if (value.getId().equals(id)) {
-        return value;
-      }
+    val export = stream(values())
+        .filter(value -> value != RELEASE)
+        .filter(value -> value.getId().equals(id))
+        .findFirst();
+
+    if (!export.isPresent()) {
+      throw new IllegalArgumentException(format("Failed to resolve export from id '%s'", id));
     }
 
-    throw new IllegalArgumentException(format("Failed to resolve export from id '%s'", id));
+    return export.get();
   }
 
 }

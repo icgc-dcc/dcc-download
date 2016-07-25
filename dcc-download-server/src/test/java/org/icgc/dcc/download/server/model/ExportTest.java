@@ -34,6 +34,11 @@ public class ExportTest {
     assertThat(Export.fromId("data.controlled.tar")).isEqualTo(DATA_CONTROLLED);
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testFromId_invalid() throws Exception {
+    Export.fromId("invalid_export");
+  }
+
   @Test
   public void testGetIdInt() throws Exception {
     assertThat(RELEASE.getId(21)).isEqualTo("release21.tar");

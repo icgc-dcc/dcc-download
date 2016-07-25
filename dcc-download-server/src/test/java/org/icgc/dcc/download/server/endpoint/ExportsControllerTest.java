@@ -135,4 +135,11 @@ public class ExportsControllerTest {
         .andExpect(status().isForbidden());
   }
 
+  @Test
+  public void testDownloadArchive_notFound() throws Exception {
+    mockMvc
+        .perform(get(ENDPOINT_PATH + "/invalid_id"))
+        .andExpect(status().isNotFound());
+  }
+
 }
