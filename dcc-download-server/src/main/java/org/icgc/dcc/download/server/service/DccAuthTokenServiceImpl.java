@@ -33,7 +33,7 @@ import org.springframework.security.oauth2.provider.token.RemoteTokenServices;
 
 @Slf4j
 @RequiredArgsConstructor
-public class DccAuthTokenServiceImpl implements DccAuthTokenService {
+public class DccAuthTokenServiceImpl implements AuthService {
 
   /**
    * Constants.

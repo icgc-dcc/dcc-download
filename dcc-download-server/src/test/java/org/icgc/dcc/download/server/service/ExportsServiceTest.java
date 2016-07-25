@@ -62,12 +62,12 @@ public class ExportsServiceTest extends AbstractTest {
     val repoFile = new File(workingDir, REPOSITORY.getId());
     repoFile.createNewFile();
 
-    val meta = service.getMetadata(BASE_URL);
+    val metaFiles = service.getMetadata(BASE_URL).getFiles();
 
-    log.info("{}", meta);
-    assertThat(meta).hasSize(3);
+    log.info("{}", metaFiles);
+    assertThat(metaFiles).hasSize(3);
     val creationTime = getFileStatus(fileSystem, new Path(workingDir.getAbsolutePath())).getModificationTime();
-    val iterator = meta.iterator();
+    val iterator = metaFiles.iterator();
 
     val repoMeta = iterator.next();
     verifyNonReleaseExportFile(repoMeta, REPOSITORY, creationTime);
@@ -85,12 +85,12 @@ public class ExportsServiceTest extends AbstractTest {
     val repoFile = new File(workingDir, REPOSITORY.getId());
     repoFile.createNewFile();
 
-    val meta = service.getControlledMetadata(BASE_URL);
+    val metaFiles = service.getControlledMetadata(BASE_URL).getFiles();
 
-    log.info("{}", meta);
-    assertThat(meta).hasSize(4);
+    log.info("{}", metaFiles);
+    assertThat(metaFiles).hasSize(4);
     val creationTime = getFileStatus(fileSystem, new Path(workingDir.getAbsolutePath())).getModificationTime();
-    val iterator = meta.iterator();
+    val iterator = metaFiles.iterator();
 
     val repoMeta = iterator.next();
     verifyNonReleaseExportFile(repoMeta, REPOSITORY, creationTime);

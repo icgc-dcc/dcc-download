@@ -17,17 +17,15 @@
  */
 package org.icgc.dcc.download.server.model;
 
-import java.util.AbstractCollection;
 import java.util.Collection;
-import java.util.Iterator;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 
-// Extending Collection to make a serialized response to be a collection.
-public class MetadataResponse extends AbstractCollection<ExportFile> {
+public class MetadataResponse {
 
   private final Collection<ExportFile> files;
 
@@ -39,14 +37,9 @@ public class MetadataResponse extends AbstractCollection<ExportFile> {
     this.files = files;
   }
 
-  @Override
-  public Iterator<ExportFile> iterator() {
-    return files.iterator();
-  }
-
-  @Override
-  public int size() {
-    return files.size();
+  @JsonValue
+  public Collection<ExportFile> getFiles() {
+    return files;
   }
 
   public static MetadataResponseBuilder builder() {

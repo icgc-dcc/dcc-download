@@ -39,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.server.model.Export;
 import org.icgc.dcc.download.server.model.MetadataResponse;
-import org.icgc.dcc.download.server.service.DccAuthTokenService;
+import org.icgc.dcc.download.server.service.AuthService;
 import org.icgc.dcc.download.server.service.ExportsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,7 +56,7 @@ public class ExportsController {
   @NonNull
   private final ExportsService exportsService;
   @NonNull
-  private final DccAuthTokenService tokenService;
+  private final AuthService tokenService;
 
   @RequestMapping(method = GET)
   public MetadataResponse listMetadata(

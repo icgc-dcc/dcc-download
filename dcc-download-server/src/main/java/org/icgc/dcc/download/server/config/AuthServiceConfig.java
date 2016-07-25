@@ -21,7 +21,7 @@ import static java.util.Arrays.stream;
 import lombok.NoArgsConstructor;
 import lombok.val;
 
-import org.icgc.dcc.download.server.service.DccAuthTokenService;
+import org.icgc.dcc.download.server.service.AuthService;
 import org.icgc.dcc.download.server.service.DccAuthTokenServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +34,7 @@ import org.springframework.security.oauth2.provider.token.RemoteTokenServices;
 
 @Configuration
 @NoArgsConstructor
-public class DccAuthTokenServiceConfig {
+public class AuthServiceConfig {
 
   private static final String SECURE_PROFILE_NAME = "secure";
 
@@ -48,12 +48,12 @@ public class DccAuthTokenServiceConfig {
   String clientSecret;
 
   @Bean
-  public DccAuthTokenService dccAuthTokenService() {
+  public AuthService dccAuthTokenService() {
     if (isSecureProfile()) {
       return new DccAuthTokenServiceImpl(remoteTokenServices());
     }
 
-    return new DccAuthTokenService() {};
+    return new AuthService() {};
   }
 
   private RemoteTokenServices remoteTokenServices() {

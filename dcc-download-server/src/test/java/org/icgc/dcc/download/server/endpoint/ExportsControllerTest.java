@@ -35,7 +35,7 @@ import lombok.val;
 import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.model.ExportFile;
 import org.icgc.dcc.download.server.model.MetadataResponse;
-import org.icgc.dcc.download.server.service.DccAuthTokenService;
+import org.icgc.dcc.download.server.service.AuthService;
 import org.icgc.dcc.download.server.service.ExportsService;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class ExportsControllerTest {
   @Mock
   ExportsService exportsService;
   @Mock
-  DccAuthTokenService tokenService;
+  AuthService tokenService;
   @Mock
   FileStreamer fileStreamer;
 

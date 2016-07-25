@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import lombok.NonNull;
 import lombok.val;
 
-public interface DccAuthTokenService {
+public interface AuthService {
 
   public static final Pattern AUTH_HEADER_PATTERN = Pattern.compile("^Bearer (.*)$");
 
