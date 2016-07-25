@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.endpoint.ForbiddenException;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
+import org.icgc.dcc.download.server.endpoint.UnauthorizedException;
 
 import com.google.common.io.Files;
 import com.google.common.net.MediaType;
@@ -59,6 +60,11 @@ public final class Responses {
   public static void throwPathNotFoundException(@NonNull String warnMessage) {
     log.warn(warnMessage);
     throw new NotFoundException("Malformed path");
+  }
+
+  public static void throwUnauthorizedException(@NonNull String userMessage, @NonNull String logMessage) {
+    log.warn(logMessage);
+    throw new UnauthorizedException(userMessage);
   }
 
   public static String getFileMimeType(@NonNull String filename) {

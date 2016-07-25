@@ -21,6 +21,7 @@ import static java.util.Arrays.stream;
 import lombok.NoArgsConstructor;
 import lombok.val;
 
+import org.icgc.dcc.download.server.provider.AuthResponseErrorHandler;
 import org.icgc.dcc.download.server.service.AuthService;
 import org.icgc.dcc.download.server.service.DccAuthTokenServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.security.oauth2.provider.token.AccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.DefaultAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.RemoteTokenServices;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @NoArgsConstructor
@@ -62,6 +64,7 @@ public class AuthServiceConfig {
     remoteTokenServices.setClientId(clientId);
     remoteTokenServices.setClientSecret(clientSecret);
     remoteTokenServices.setAccessTokenConverter(accessTokenConverter());
+    remoteTokenServices.setRestTemplate(restTemplate());
 
     return remoteTokenServices;
   }
@@ -73,6 +76,13 @@ public class AuthServiceConfig {
 
   private static AccessTokenConverter accessTokenConverter() {
     return new DefaultAccessTokenConverter();
+  }
+
+  private static RestTemplate restTemplate() {
+    val restTemplate = new RestTemplate();
+    restTemplate.setErrorHandler(new AuthResponseErrorHandler());
+
+    return restTemplate;
   }
 
 }
