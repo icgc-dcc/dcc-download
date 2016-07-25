@@ -28,12 +28,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.RemoteTokenServices;
 
 @Slf4j
 @RequiredArgsConstructor
-public class DccAuthTokenServiceImpl implements AuthService {
+public class AuthServiceImpl implements AuthService {
 
   /**
    * Constants.
@@ -47,22 +46,21 @@ public class DccAuthTokenServiceImpl implements AuthService {
 
   @Override
   public boolean isAuthorized(@NonNull String token) {
-    OAuth2Authentication auth = null;
     try {
-      auth = remoteTokenServices.loadAuthentication(token);
+      val auth = remoteTokenServices.loadAuthentication(token);
+      val scopes = auth.getOAuth2Request().getScope();
+
+      return isAuthorized(scopes);
     } catch (AuthenticationException | InvalidTokenException e) {
       log.warn("Failed to verify token '{}'. Exception:\n{}", token, e);
       throwForbiddenException();
     }
 
-    val scopes = auth.getOAuth2Request().getScope();
-
-    return isAuthorized(scopes);
+    return false;
   }
 
   private static boolean isAuthorized(Collection<String> scopes) {
-    return scopes.stream()
-        .anyMatch(scope -> VALID_SCOPE.equals(scope));
+    return scopes.contains(VALID_SCOPE);
   }
 
 }

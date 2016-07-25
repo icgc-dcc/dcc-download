@@ -67,8 +67,8 @@ public final class Responses {
     throw new UnauthorizedException(userMessage);
   }
 
-  public static String getFileMimeType(@NonNull String filename) {
-    val extension = Files.getFileExtension(filename);
+  public static String getFileMimeType(@NonNull String fileName) {
+    val extension = Files.getFileExtension(fileName);
     switch (extension) {
     case "gz":
       return MediaType.GZIP.toString();
@@ -78,7 +78,7 @@ public final class Responses {
       MediaType.PLAIN_TEXT_UTF_8.toString();
       return null;
     default:
-      log.error("Failed to resolve Mime-Type from file name '{}'", filename);
+      log.error("Failed to resolve Mime-Type from file name '{}'", fileName);
       throw new BadRequestException("Invalid request");
     }
   }

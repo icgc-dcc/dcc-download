@@ -17,13 +17,14 @@
  */
 package org.icgc.dcc.download.server.config;
 
-import static java.util.Arrays.stream;
+import static com.google.common.collect.ImmutableList.copyOf;
+import static com.google.common.collect.Iterables.contains;
 import lombok.NoArgsConstructor;
 import lombok.val;
 
 import org.icgc.dcc.download.server.provider.AuthResponseErrorHandler;
 import org.icgc.dcc.download.server.service.AuthService;
-import org.icgc.dcc.download.server.service.DccAuthTokenServiceImpl;
+import org.icgc.dcc.download.server.service.AuthServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -38,6 +39,9 @@ import org.springframework.web.client.RestTemplate;
 @NoArgsConstructor
 public class AuthServiceConfig {
 
+  /**
+   * Constants.
+   */
   private static final String SECURE_PROFILE_NAME = "secure";
 
   @Autowired
@@ -50,11 +54,12 @@ public class AuthServiceConfig {
   String clientSecret;
 
   @Bean
-  public AuthService dccAuthTokenService() {
+  public AuthService authService() {
     if (isSecureProfile()) {
-      return new DccAuthTokenServiceImpl(remoteTokenServices());
+      return new AuthServiceImpl(remoteTokenServices());
     }
 
+    // Using the AuthService interface's default implementaion.
     return new AuthService() {};
   }
 
@@ -70,8 +75,7 @@ public class AuthServiceConfig {
   }
 
   private boolean isSecureProfile() {
-    return stream(env.getActiveProfiles())
-        .anyMatch(profile -> SECURE_PROFILE_NAME.equals(profile));
+    return contains(copyOf(env.getActiveProfiles()), SECURE_PROFILE_NAME);
   }
 
   private static AccessTokenConverter accessTokenConverter() {

@@ -65,16 +65,13 @@ public class ExportsController {
     val requestUrl = request.getRequestURL().toString();
     val baseUrl = requestUrl.replaceFirst("/exports(/)?$", EMPTY_STRING);
 
-    MetadataResponse metadata;
     if (isAuthorized(authHeader)) {
       log.info("Serving controlled exports metadata...");
-      metadata = exportsService.getControlledMetadata(baseUrl);
+      return exportsService.getControlledMetadata(baseUrl);
     } else {
       log.info("Serving open exports metadata...");
-      metadata = exportsService.getMetadata(baseUrl);
+      return exportsService.getMetadata(baseUrl);
     }
-
-    return metadata;
   }
 
   // The ':.+' regex is required to keep the file extension in the path
