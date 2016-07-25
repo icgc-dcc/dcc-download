@@ -15,16 +15,52 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.service;
 
-import lombok.Value;
+import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 
-@Value
-public class ExportFile {
+import java.util.Collection;
 
-  String url;
-  String id;
-  String type;
-  long date;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.token.RemoteTokenServices;
+
+@Slf4j
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+  /**
+   * Constants.
+   */
+  private static final String VALID_SCOPE = "portal.export";
+
+  /**
+   * Dependencies.
+   */
+  private final RemoteTokenServices remoteTokenServices;
+
+  @Override
+  public boolean isAuthorized(@NonNull String token) {
+    try {
+      val auth = remoteTokenServices.loadAuthentication(token);
+      val scopes = auth.getOAuth2Request().getScope();
+
+      return isAuthorized(scopes);
+    } catch (AuthenticationException | InvalidTokenException e) {
+      log.warn("Failed to verify token '{}'. Exception:\n{}", token, e);
+      throwForbiddenException();
+    }
+
+    return false;
+  }
+
+  private static boolean isAuthorized(Collection<String> scopes) {
+    return scopes.contains(VALID_SCOPE);
+  }
 
 }

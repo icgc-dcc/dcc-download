@@ -15,16 +15,29 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.service;
 
-import lombok.Value;
+import static com.google.common.base.Preconditions.checkArgument;
 
-@Value
-public class ExportFile {
+import java.util.regex.Pattern;
 
-  String url;
-  String id;
-  String type;
-  long date;
+import lombok.NonNull;
+import lombok.val;
+
+public interface AuthService {
+
+  public static final Pattern AUTH_HEADER_PATTERN = Pattern.compile("^Bearer (.*)$");
+
+  default String parseToken(@NonNull String authHeader) {
+    val matcher = AUTH_HEADER_PATTERN.matcher(authHeader);
+    checkArgument(matcher.matches(), "{} is not a valid Authorization header value. Expected to match {}", authHeader,
+        AUTH_HEADER_PATTERN);
+
+    return matcher.group(1);
+  }
+
+  default boolean isAuthorized(@NonNull String token) {
+    return false;
+  }
 
 }

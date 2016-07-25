@@ -19,12 +19,14 @@ package org.icgc.dcc.download.server.utils;
 
 import static lombok.AccessLevel.PRIVATE;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.endpoint.ForbiddenException;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
+import org.icgc.dcc.download.server.endpoint.UnauthorizedException;
 
 import com.google.common.io.Files;
 import com.google.common.net.MediaType;
@@ -39,24 +41,34 @@ public final class Responses {
     throw new ForbiddenException(message);
   }
 
-  public static void throwJobNotFoundException(String jobId) {
+  public static void throwJobNotFoundException(@NonNull String jobId) {
     val message = "Failed to find job with ID " + jobId;
     log.warn(message);
     throw new NotFoundException(message);
   }
 
-  public static void throwBadRequestException(String message) {
+  public static void throwBadRequestException(@NonNull String message) {
     log.warn(message);
     throw new BadRequestException(message);
   }
 
-  public static void throwPathNotFoundException(String warnMessage) {
+  public static void throwBadRequestException(@NonNull String message, @NonNull Throwable cause) {
+    log.warn(message);
+    throw new BadRequestException(message, cause);
+  }
+
+  public static void throwPathNotFoundException(@NonNull String warnMessage) {
     log.warn(warnMessage);
     throw new NotFoundException("Malformed path");
   }
 
-  public static String getFileMimeType(String filename) {
-    val extension = Files.getFileExtension(filename);
+  public static void throwUnauthorizedException(@NonNull String userMessage, @NonNull String logMessage) {
+    log.warn(logMessage);
+    throw new UnauthorizedException(userMessage);
+  }
+
+  public static String getFileMimeType(@NonNull String fileName) {
+    val extension = Files.getFileExtension(fileName);
     switch (extension) {
     case "gz":
       return MediaType.GZIP.toString();
@@ -66,7 +78,7 @@ public final class Responses {
       MediaType.PLAIN_TEXT_UTF_8.toString();
       return null;
     default:
-      log.error("Failed to resolve Mime-Type from file name '{}'", filename);
+      log.error("Failed to resolve Mime-Type from file name '{}'", fileName);
       throw new BadRequestException("Invalid request");
     }
   }

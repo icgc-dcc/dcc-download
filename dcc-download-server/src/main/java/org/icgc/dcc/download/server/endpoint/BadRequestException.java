@@ -29,4 +29,8 @@ public class BadRequestException extends RuntimeException {
     super(message);
   }
 
+  public BadRequestException(@NonNull String message, @NonNull Throwable cause) {
+    super(message, cause);
+  }
+
 }

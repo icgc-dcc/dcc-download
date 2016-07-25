@@ -15,16 +15,22 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.endpoint;
 
-import lombok.Value;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import lombok.NonNull;
 
-@Value
-public class ExportFile {
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-  String url;
-  String id;
-  String type;
-  long date;
+@ResponseStatus(UNAUTHORIZED)
+public class UnauthorizedException extends RuntimeException {
+
+  public UnauthorizedException(@NonNull String message) {
+    super(message);
+  }
+
+  public UnauthorizedException(@NonNull String message, @NonNull Throwable cause) {
+    super(message, cause);
+  }
 
 }

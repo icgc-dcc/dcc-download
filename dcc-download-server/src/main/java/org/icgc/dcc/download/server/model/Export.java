@@ -18,37 +18,57 @@
 package org.icgc.dcc.download.server.model;
 
 import static java.lang.String.format;
+import static java.util.Locale.ENGLISH;
 import static lombok.AccessLevel.PRIVATE;
 
 import java.util.regex.Pattern;
 
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
-@Getter
 @RequiredArgsConstructor(access = PRIVATE)
 public enum Export {
 
   REPOSITORY("repository.tar.gz"),
-  DATA("data.tar"),
-  RELEASE("release");
+  DATA_OPEN("data.open.tar"),
+  DATA_CONTROLLED("data.controlled.tar"),
+  RELEASE("release%s.tar");
 
   private static final Pattern RELEASE_ID_PATTERN = Pattern.compile("^release.*\\.tar$");
 
-  private final String id;
+  private final String idTemplate;
+
+  public String getId() {
+    if (this == RELEASE) {
+      throw new UnsupportedOperationException(format("Call to this method is not supported for type %s. "
+          + "Use getId(releaseNumber)", getType()));
+    }
+
+    return idTemplate;
+  }
 
   public String getId(int releaseNumber) {
     if (this == RELEASE) {
-      return id + releaseNumber + ".tar";
+      return format(idTemplate, releaseNumber);
     }
 
-    return id;
+    return idTemplate;
   }
 
   public String getType() {
-    return name().toLowerCase();
+    val name = name().toLowerCase(ENGLISH);
+    val suffixIndex = name.indexOf("_");
+
+    return suffixIndex == -1 ? name : name.substring(0, suffixIndex);
+  }
+
+  public boolean isControlled() {
+    if (this == DATA_CONTROLLED) {
+      return true;
+    }
+
+    return false;
   }
 
   public static Export fromId(@NonNull String id) {

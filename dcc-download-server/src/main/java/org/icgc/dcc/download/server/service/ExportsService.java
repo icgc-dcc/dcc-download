@@ -20,7 +20,8 @@ package org.icgc.dcc.download.server.service;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Splitters.UNDERSCORE;
-import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
+import static org.icgc.dcc.download.server.model.Export.DATA_OPEN;
 import static org.icgc.dcc.download.server.model.Export.RELEASE;
 import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
@@ -31,6 +32,7 @@ import java.util.regex.Pattern;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -42,8 +44,10 @@ import org.icgc.dcc.download.server.io.ReleaseExportStreamer;
 import org.icgc.dcc.download.server.model.Export;
 import org.icgc.dcc.download.server.model.ExportFile;
 import org.icgc.dcc.download.server.model.MetadataResponse;
+import org.icgc.dcc.download.server.model.MetadataResponse.MetadataResponseBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Slf4j
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ExportsService {
 
@@ -57,41 +61,66 @@ public class ExportsService {
   @NonNull
   private final String dataDir;
 
-  public MetadataResponse getMetadata(@NonNull String baseUrl) {
-    val repositoryFile = createRepositoryMeta(baseUrl);
-    val dataFile = createDataMeta(baseUrl);
-    val releaseFile = createReleaseMeta(baseUrl);
+  public MetadataResponse getOpenMetadata(@NonNull String baseUrl) {
+    return getOpenMetadataResponseBuilder(baseUrl).build();
+  }
 
-    return new MetadataResponse(repositoryFile, dataFile, releaseFile);
+  public MetadataResponse getControlledMetadata(@NonNull String baseUrl) {
+    return getOpenMetadataResponseBuilder(baseUrl)
+        .add(createControlledDataMeta(baseUrl))
+        .build();
   }
 
   public FileStreamer getExportStreamer(@NonNull Export export, @NonNull OutputStream output) {
+    log.debug("Getting exports streamer for {}...", export);
     switch (export) {
     case REPOSITORY:
       return new RealFileStreamer(new Path(exportsPath, export.getId()), fileSystem, output);
-    case DATA:
-      return new DataExportStreamer(new Path(dataDir), fileSystem, output);
+    case DATA_OPEN:
+      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output);
+    case DATA_CONTROLLED:
+      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output);
     case RELEASE:
-      val releaseNumber = resolveReleaseNumber();
-      val exportId = RELEASE.getId(releaseNumber);
-      val releaseExportsPath = getReleaseExportsPath();
-
-      return new ReleaseExportStreamer(exportId, releaseExportsPath, fileSystem, output);
+      return getReleaseExportStreamer(output);
     default:
-      throw new IllegalArgumentException(format("Failed to resolve streamer for ID '%s'", export.getId()));
+      throw new IllegalArgumentException(format("Failed to resolve streamer for export '%s'", export));
     }
   }
 
-  private ExportFile createDataMeta(String baseUrl) {
-    val creationDate = getFileModificationDate(dataDir);
+  private ReleaseExportStreamer getReleaseExportStreamer(OutputStream output) {
+    log.debug("Resolving release streamer for {}", RELEASE);
+    val releaseNumber = resolveReleaseNumber();
+    val exportId = RELEASE.getId(releaseNumber);
+    val releaseExportsPath = getReleaseExportsPath();
+    log.debug("Creating release export streamer with configuration(export ID: {}, exports path: {})...", exportId,
+        releaseExportsPath);
 
-    return createFileMetadata(DATA, baseUrl, creationDate);
+    return new ReleaseExportStreamer(exportId, releaseExportsPath, fileSystem, output);
+  }
+
+  private MetadataResponseBuilder getOpenMetadataResponseBuilder(String baseUrl) {
+    return MetadataResponse.builder()
+        .add(createRepositoryMeta(baseUrl))
+        .add(createOpenDataMeta(baseUrl))
+        .add(createReleaseMeta(baseUrl));
   }
 
   private ExportFile createRepositoryMeta(@NonNull String baseUrl) {
     val creationDate = getFileModificationDate(exportsPath + "/" + REPOSITORY.getId());
 
     return createFileMetadata(REPOSITORY, baseUrl, creationDate);
+  }
+
+  private ExportFile createOpenDataMeta(String baseUrl) {
+    val creationDate = getFileModificationDate(dataDir);
+
+    return createFileMetadata(DATA_OPEN, baseUrl, creationDate);
+  }
+
+  private ExportFile createControlledDataMeta(String baseUrl) {
+    val creationDate = getFileModificationDate(dataDir);
+
+    return createFileMetadata(DATA_CONTROLLED, baseUrl, creationDate);
   }
 
   private ExportFile createReleaseMeta(String baseUrl) {
@@ -103,7 +132,7 @@ public class ExportsService {
     return new ExportFile(
         filePath,
         exportId,
-        RELEASE,
+        RELEASE.getType(),
         creationDate);
   }
 
@@ -152,7 +181,7 @@ public class ExportsService {
     return new ExportFile(
         getExportFilePath(baseUrl, export.getId()),
         export.getId(),
-        export,
+        export.getType(),
         creationDate);
   }
 

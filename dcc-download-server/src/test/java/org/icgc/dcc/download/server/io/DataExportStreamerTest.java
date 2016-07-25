@@ -18,7 +18,8 @@
 package org.icgc.dcc.download.server.io;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
+import static org.icgc.dcc.download.server.model.Export.DATA_OPEN;
 
 import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
@@ -34,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.FileSystems;
 import org.icgc.dcc.common.test.file.FileTests;
+import org.icgc.dcc.download.server.model.Export;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,15 +53,15 @@ public class DataExportStreamerTest extends AbstractTest {
   }
 
   @Test
-  public void testStream() throws Exception {
+  public void testStream_open() throws Exception {
     val testFile = FileTests.getTempFile();
     val outStream = new BufferedOutputStream(new FileOutputStream(testFile));
 
-    streamer = new DataExportStreamer(new Path(INPUT_TEST_FIXTURES_DIR + "/release_21"), fileSystem, outStream);
+    streamer = getDataStreamer(outStream, DATA_OPEN);
     streamer.stream();
     streamer.close();
 
-    assertThat(streamer.getName()).isEqualTo(DATA.getId());
+    assertThat(streamer.getName()).isEqualTo(DATA_OPEN.getId());
 
     @Cleanup
     val tarIn = new TarArchiveInputStream(new FileInputStream(testFile));
@@ -75,4 +77,43 @@ public class DataExportStreamerTest extends AbstractTest {
     }
     assertThat(filesCount).isEqualTo(47);
   }
+
+  @Test
+  public void testStream_controlled() throws Exception {
+    val testFile = FileTests.getTempFile();
+    val outStream = new BufferedOutputStream(new FileOutputStream(testFile));
+
+    streamer = getDataStreamer(outStream, DATA_CONTROLLED);
+    streamer.stream();
+    streamer.close();
+
+    assertThat(streamer.getName()).isEqualTo(DATA_CONTROLLED.getId());
+
+    @Cleanup
+    val tarIn = new TarArchiveInputStream(new FileInputStream(testFile));
+    int filesCount = 0;
+    TarArchiveEntry tarEntry = null;
+    boolean hasControlled = false;
+    while ((tarEntry = tarIn.getNextTarEntry()) != null) {
+      val fileName = tarEntry.getName();
+      log.info("Entry name: {}", fileName);
+      assertThat(tarEntry.getSize()).isGreaterThan(0);
+      if (fileName.contains("controlled")) {
+        hasControlled = true;
+      }
+
+      filesCount++;
+    }
+    assertThat(filesCount).isEqualTo(50);
+    assertThat(hasControlled).isTrue();
+  }
+
+  private DataExportStreamer getDataStreamer(BufferedOutputStream outStream, Export export) {
+    return new DataExportStreamer(
+        new Path(INPUT_TEST_FIXTURES_DIR + "/release_21"),
+        export,
+        fileSystem,
+        outStream);
+  }
+
 }

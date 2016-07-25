@@ -15,16 +15,31 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.server.provider;
 
-import lombok.Value;
+import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
+import static org.icgc.dcc.download.server.utils.Responses.throwUnauthorizedException;
 
-@Value
-public class ExportFile {
+import java.io.IOException;
 
-  String url;
-  String id;
-  String type;
-  long date;
+import lombok.val;
+
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.DefaultResponseErrorHandler;
+
+public class AuthResponseErrorHandler extends DefaultResponseErrorHandler {
+
+  @Override
+  public void handleError(ClientHttpResponse response) throws IOException {
+    val rawStatusCode = response.getRawStatusCode();
+    if (rawStatusCode == 401) {
+      val message = "Unauthorized";
+      throwUnauthorizedException(message, message);
+    } else if (rawStatusCode == 400) {
+      throwBadRequestException("Bad request");
+    }
+
+    super.handleError(response);
+  }
 
 }

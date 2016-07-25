@@ -20,7 +20,8 @@ package org.icgc.dcc.download.server.service;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
-import static org.icgc.dcc.download.server.model.Export.DATA;
+import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
+import static org.icgc.dcc.download.server.model.Export.DATA_OPEN;
 import static org.icgc.dcc.download.server.model.Export.RELEASE;
 import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
@@ -33,6 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.icgc.dcc.download.server.model.Export;
+import org.icgc.dcc.download.server.model.ExportFile;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,35 +57,67 @@ public class ExportsServiceTest extends AbstractTest {
   }
 
   @Test
-  public void testGetMetadata() throws Exception {
+  public void testGetOpenMetadata() throws Exception {
     copyDirectory(new File(TEST_FIXTURES_DIR, "es_export"), new File(workingDir, "es_export"));
     val repoFile = new File(workingDir, REPOSITORY.getId());
     repoFile.createNewFile();
 
-    val meta = service.getMetadata(BASE_URL);
+    val metaFiles = service.getOpenMetadata(BASE_URL).getFiles();
 
-    log.info("{}", meta);
-    assertThat(meta).hasSize(3);
+    log.info("{}", metaFiles);
+    assertThat(metaFiles).hasSize(3);
     val creationTime = getFileStatus(fileSystem, new Path(workingDir.getAbsolutePath())).getModificationTime();
-    val iterator = meta.iterator();
+    val iterator = metaFiles.iterator();
 
     val repoMeta = iterator.next();
-    assertThat(repoMeta.getId()).isEqualTo(REPOSITORY.getId());
-    assertThat(repoMeta.getType()).isEqualTo(REPOSITORY);
-    assertThat(repoMeta.getUrl()).isEqualTo(getIdUrl(REPOSITORY.getId()));
-    assertThat(repoMeta.getDate()).isEqualTo(creationTime);
+    verifyNonReleaseExportFile(repoMeta, REPOSITORY, creationTime);
 
     val dataMeta = iterator.next();
-    assertThat(dataMeta.getId()).isEqualTo(DATA.getId());
-    assertThat(dataMeta.getType()).isEqualTo(DATA);
-    assertThat(dataMeta.getUrl()).isEqualTo(getIdUrl(DATA.getId()));
-    assertThat(dataMeta.getDate()).isEqualTo(creationTime);
+    verifyNonReleaseExportFile(dataMeta, DATA_OPEN, creationTime);
 
     val releaseMeta = iterator.next();
-    assertThat(releaseMeta.getId()).isEqualTo("release21.tar");
-    assertThat(releaseMeta.getType()).isEqualTo(RELEASE);
-    assertThat(releaseMeta.getUrl()).isEqualTo(format("%s/exports/%s", BASE_URL, RELEASE.getId(21)));
-    assertThat(releaseMeta.getDate()).isEqualTo(creationTime);
+    verifyRelease(releaseMeta, creationTime);
+  }
+
+  @Test
+  public void testGetControlledMetadata() throws Exception {
+    copyDirectory(new File(TEST_FIXTURES_DIR, "es_export"), new File(workingDir, "es_export"));
+    val repoFile = new File(workingDir, REPOSITORY.getId());
+    repoFile.createNewFile();
+
+    val metaFiles = service.getControlledMetadata(BASE_URL).getFiles();
+
+    log.info("{}", metaFiles);
+    assertThat(metaFiles).hasSize(4);
+    val creationTime = getFileStatus(fileSystem, new Path(workingDir.getAbsolutePath())).getModificationTime();
+    val iterator = metaFiles.iterator();
+
+    val repoMeta = iterator.next();
+    verifyNonReleaseExportFile(repoMeta, REPOSITORY, creationTime);
+
+    val openDataMeta = iterator.next();
+    verifyNonReleaseExportFile(openDataMeta, DATA_OPEN, creationTime);
+
+    val releaseOpenMeta = iterator.next();
+    verifyRelease(releaseOpenMeta, creationTime);
+
+    val controlledDataMeta = iterator.next();
+    verifyNonReleaseExportFile(controlledDataMeta, DATA_CONTROLLED, creationTime);
+  }
+
+  private static void verifyRelease(ExportFile file, long creationTime) {
+    val releaseId = RELEASE.getId(21);
+    assertThat(file.getId()).isEqualTo(releaseId);
+    assertThat(file.getType()).isEqualTo(RELEASE.getType());
+    assertThat(file.getUrl()).isEqualTo(format("%s/exports/%s", BASE_URL, releaseId));
+    assertThat(file.getDate()).isEqualTo(creationTime);
+  }
+
+  private static void verifyNonReleaseExportFile(ExportFile file, Export expectedExport, long creationTime) {
+    assertThat(file.getId()).isEqualTo(expectedExport.getId());
+    assertThat(file.getType()).isEqualTo(expectedExport.getType());
+    assertThat(file.getUrl()).isEqualTo(getIdUrl(expectedExport.getId()));
+    assertThat(file.getDate()).isEqualTo(creationTime);
   }
 
   private static String getIdUrl(String id) {
