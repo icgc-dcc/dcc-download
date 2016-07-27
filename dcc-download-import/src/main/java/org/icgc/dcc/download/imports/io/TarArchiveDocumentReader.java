@@ -109,7 +109,7 @@ public class TarArchiveDocumentReader {
 
   private boolean isSkipIndexing(ObjectNode source, DocumentType type) {
     if (project.isPresent() && hasProject(type)) {
-      val project = project.get();
+      val projectName = project.get();
       val documentProjectPath = resolveDocumentProjectPath(type);
       if (!documentProjectPath.isPresent()) {
         return false;
@@ -117,7 +117,7 @@ public class TarArchiveDocumentReader {
 
       val documentProject = getDocumentProject(source, documentProjectPath.get());
 
-      return !project.equals(documentProject);
+      return !projectName.equals(documentProject);
     }
 
     return false;
