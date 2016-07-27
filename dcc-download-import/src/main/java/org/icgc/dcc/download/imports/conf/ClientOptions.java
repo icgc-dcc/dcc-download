@@ -33,6 +33,8 @@ public class ClientOptions {
   public File inputFile;
   @Parameter(names = { "-es", "--elasticsearch-url" }, help = true, description = "Target Elastisticsearch cluster URL")
   public String esUrl;
+  @Parameter(names = { "-p", "--project" }, help = true, description = "Project to import")
+  public String project;
   // TODO: Add delete existing index option.
 
   /**

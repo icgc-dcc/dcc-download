@@ -22,6 +22,9 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Strings.repeat;
 import static java.lang.System.err;
 import static java.lang.System.out;
+
+import java.util.Optional;
+
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -92,6 +95,7 @@ public class ClientMain {
   private static ClientCommand resolveCommand(ClientOptions options) {
     return new IndexClientCommand(
         options.inputFile,
+        Optional.ofNullable(options.project),
         TarArchiveEntryCallbackFactory.create(options.esUrl),
         TarArchiveDocumentReaderFactory.create());
   }

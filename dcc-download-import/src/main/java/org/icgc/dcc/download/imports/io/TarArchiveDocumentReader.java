@@ -18,10 +18,13 @@
 package org.icgc.dcc.download.imports.io;
 
 import static com.fasterxml.jackson.core.JsonParser.Feature.AUTO_CLOSE_SOURCE;
+import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Formats.formatCount;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,7 @@ import org.icgc.dcc.release.core.document.Document;
 import org.icgc.dcc.release.core.document.DocumentType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -57,6 +61,8 @@ public class TarArchiveDocumentReader {
    */
   @NonNull
   private final InputStream inputStream;
+  @NonNull
+  private final Optional<String> project;
 
   @SneakyThrows
   public void read(@NonNull DocumentType type, @NonNull TarArchiveEntryCallback callback) {
@@ -85,6 +91,10 @@ public class TarArchiveDocumentReader {
       } else {
         val docId = getEntryNamePart(entry, 2);
         val source = readSource(archiveStream);
+        if (isSkipIndexing(source, type)) {
+          continue;
+        }
+
         val document = new Document(type, docId, source); // NOPMD
 
         // Dispatch
@@ -94,6 +104,71 @@ public class TarArchiveDocumentReader {
           log.info("Document count: {}", formatCount(count));
         }
       }
+    }
+  }
+
+  private boolean isSkipIndexing(ObjectNode source, DocumentType type) {
+    if (project.isPresent() && hasProject(type)) {
+      val project = project.get();
+      val documentProjectPath = resolveDocumentProjectPath(type);
+      if (!documentProjectPath.isPresent()) {
+        return false;
+      }
+
+      val documentProject = getDocumentProject(source, documentProjectPath.get());
+
+      return !project.equals(documentProject);
+    }
+
+    return false;
+  }
+
+  private static boolean hasProject(DocumentType type) {
+    return resolveDocumentProjectPath(type).isPresent();
+  }
+
+  private static String getDocumentProject(ObjectNode source, String documentProjectPath) {
+    log.debug("Resolving document project from path '{}'", documentProjectPath);
+    JsonNode projectNode = null;
+    for (val path : documentProjectPath.split("\\.")) {
+      projectNode = projectNode == null ? source.path(path) : projectNode.path(path);
+      checkState(!(projectNode.isMissingNode() || projectNode.isNull()), "Failed to resolve document project. Path: "
+          + "'%s'. Path part: '%s'. Document: %s", documentProjectPath, path, source);
+    }
+
+    return projectNode.textValue();
+  }
+
+  private static Optional<String> resolveDocumentProjectPath(DocumentType type) {
+    switch (type) {
+    case DIAGRAM_TYPE:
+    case DRUG_TEXT_TYPE:
+    case DRUG_CENTRIC_TYPE:
+    case RELEASE_TYPE:
+    case GENE_SET_TYPE:
+    case GENE_SET_TEXT_TYPE:
+    case GENE_TYPE:
+    case GENE_TEXT_TYPE:
+    case MUTATION_TEXT_TYPE:
+      return Optional.empty();
+    case PROJECT_TYPE:
+      return Optional.of("_project_id");
+    case PROJECT_TEXT_TYPE:
+      return Optional.of("id");
+    case DONOR_TYPE:
+      return Optional.of("_project_id");
+    case DONOR_TEXT_TYPE:
+      return Optional.of("projectId");
+    case DONOR_CENTRIC_TYPE:
+      return Optional.of("_project_id");
+    case GENE_CENTRIC_TYPE:
+      return Optional.of("donor.project._project_id");
+    case OBSERVATION_CENTRIC_TYPE:
+      return Optional.of("project._project_id");
+    case MUTATION_CENTRIC_TYPE:
+      return Optional.of("ssm_occurrence.project._project_id");
+    default:
+      throw new IllegalArgumentException(format("Failed to resolve project path for type '%s'", type));
     }
   }
 
