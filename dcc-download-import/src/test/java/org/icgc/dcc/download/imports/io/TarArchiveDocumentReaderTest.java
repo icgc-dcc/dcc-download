@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 The Ontario Institute for Cancer Research. All rights reserved.                             
+ * Copyright (c) 2016 The Ontario Institute for Cancer Research. All rights reserved.
  *                                                                                                               
  * This program and the accompanying materials are made available under the terms of the GNU Public License v3.0.
  * You should have received a copy of the GNU General Public License along with                                  
@@ -15,56 +15,56 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.command;
+package org.icgc.dcc.download.imports.io;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.icgc.dcc.common.test.json.JsonNodes.$;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.util.Optional;
+import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.icgc.dcc.download.imports.io.TarArchiveDocumentReader;
-import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import lombok.val;
+
+import org.icgc.dcc.release.core.document.Document;
 import org.icgc.dcc.release.core.document.DocumentType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 @RunWith(MockitoJUnitRunner.class)
-public class IndexClientCommandTest {
+public class TarArchiveDocumentReaderTest {
 
-  private static final File DATA_FILE = new File("src/test/resources/fixtures/input/data.tar");
+  private static final DocumentType TYPE = DocumentType.DONOR_TYPE;
+  private static final String INPUT_FILE = "src/test/resources/fixtures/input/icgc21-0-0_donor.tar.gz";
+  private static final ObjectNode DO1_NODE = (ObjectNode) $("{_donor_id:'DO1',_project_id:'TST1-CA'}");
+  private static final ObjectNode DO2_NODE = (ObjectNode) $("{_donor_id:'DO2',_project_id:'TST2-CA'}");
 
-  @Mock
-  TarArchiveEntryCallbackFactory callbackFactory;
   @Mock
   TarArchiveEntryCallback callback;
-  @Mock
-  TarArchiveDocumentReaderFactory readerFactory;
-  @Mock
-  TarArchiveDocumentReader donorReader;
-  @Mock
-  TarArchiveDocumentReader mutationCentricReader;
 
-  IndexClientCommand indexCommand;
+  TarArchiveDocumentReader reader;
 
   @Test
-  public void testExecute() throws Exception {
-    when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(288L), any())).thenReturn(donorReader);
-    when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(300L), any())).thenReturn(
-        mutationCentricReader);
-    when(callbackFactory.createCallback(eq("icgc21-0-0"), any(Boolean.class))).thenReturn(callback);
-    indexCommand = new IndexClientCommand(DATA_FILE, Optional.empty(), callbackFactory, readerFactory);
-    indexCommand.execute();
-    verify(donorReader, times(1)).read(DocumentType.DONOR_TYPE, callback);
-    verify(mutationCentricReader, times(1)).read(DocumentType.MUTATION_CENTRIC_TYPE, callback);
+  public void testRead_all() throws Exception {
+    val input = new GZIPInputStream(new FileInputStream(INPUT_FILE));
+    reader = new TarArchiveDocumentReader(input, Optional.empty());
+    reader.read(TYPE, callback);
+    verify(callback).onDocument(new Document(TYPE, "DO1", DO1_NODE));
+    verify(callback).onDocument(new Document(TYPE, "DO2", DO2_NODE));
+  }
+
+  @Test
+  public void testRead_filter() throws Exception {
+    val input = new GZIPInputStream(new FileInputStream(INPUT_FILE));
+    reader = new TarArchiveDocumentReader(input, Optional.of("TST1-CA"));
+    reader.read(TYPE, callback);
+    verify(callback).onDocument(new Document(TYPE, "DO1", DO1_NODE));
+    verify(callback, times(0)).onDocument(new Document(TYPE, "DO2", DO2_NODE));
   }
 
 }

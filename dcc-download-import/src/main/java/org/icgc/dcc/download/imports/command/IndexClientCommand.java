@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import lombok.Cleanup;
@@ -50,6 +51,8 @@ public class IndexClientCommand implements ClientCommand {
 
   @NonNull
   private final File inputFile;
+  @NonNull
+  private final Optional<String> project;
   @NonNull
   private final TarArchiveEntryCallbackFactory callbackFactory;
   @NonNull
@@ -79,7 +82,7 @@ public class IndexClientCommand implements ClientCommand {
     val entrySize = tarEntry.getSize();
 
     log.debug("Creating tar document reader for tar entry {}", entryName);
-    val reader = readerFactory.createReader(tarInput, entrySize);
+    val reader = readerFactory.createReader(tarInput, entrySize, project);
     val documentType = resolveDocumentType(entryName);
     val indexName = resolveIndexName(entryName);
 
