@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.imports.service;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
 import lombok.Getter;
 import lombok.NonNull;
@@ -62,6 +63,7 @@ public class IndexService {
         .actionGet()
         .isAcknowledged(),
         "Index '%s' creation was not acknowledged!", indexName);
+    alias();
   }
 
   public void applyMapping(@NonNull String typeName, @NonNull ObjectNode mapping) {
@@ -86,6 +88,31 @@ public class IndexService {
     if (exists) {
       throw new DownloadImportException("Index '%s' already exists.", indexName);
     }
+  }
+
+  private void alias() {
+    val alias = getAlias();
+    val request = getIndexClient().prepareAliases();
+    request.addAlias(indexName, alias);
+
+    checkState(request
+        .execute()
+        .actionGet()
+        .isAcknowledged(),
+        "Assigning index alias '%s' to index '%s' was not acknowledged!",
+        alias, indexName);
+  }
+
+  private String getAlias() {
+    if (indexName.contains("icgc-repository")) {
+      return "icgc-repository";
+    }
+
+    if (indexName.contains("icgc")) {
+      return "icgc-release";
+    }
+
+    throw new IllegalArgumentException(format("Failed to resolve alias from index name '%s'", indexName));
   }
 
 }
