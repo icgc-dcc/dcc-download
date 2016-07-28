@@ -39,10 +39,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @RunWith(MockitoJUnitRunner.class)
 public class TarArchiveDocumentReaderTest {
 
-  private static final DocumentType TYPE = DocumentType.DONOR_TYPE;
-  private static final String INPUT_FILE = "src/test/resources/fixtures/input/icgc21-0-0_donor.tar.gz";
-  private static final ObjectNode DO1_NODE = (ObjectNode) $("{_donor_id:'DO1',_project_id:'TST1-CA'}");
-  private static final ObjectNode DO2_NODE = (ObjectNode) $("{_donor_id:'DO2',_project_id:'TST2-CA'}");
+  private static final DocumentType TYPE = DocumentType.GENE_CENTRIC_TYPE;
+  private static final String INPUT_FILE = "src/test/resources/fixtures/input/icgc21-0-0_gene-centric.tar.gz";
+  private static final ObjectNode G1_NODE =
+      (ObjectNode) $("{_gene_id:'G1',donor:[{project:{_project_id:'TST1-CA'}},{project:{_project_id:'TST2-CA'}}]}");
+  private static final ObjectNode G2_NODE =
+      (ObjectNode) $("{_gene_id:'G2',donor:[{project:{_project_id:'TST3-CA'}},{project:{_project_id:'TST4-CA'}}]}");
 
   @Mock
   TarArchiveEntryCallback callback;
@@ -54,8 +56,8 @@ public class TarArchiveDocumentReaderTest {
     val input = new GZIPInputStream(new FileInputStream(INPUT_FILE));
     reader = new TarArchiveDocumentReader(input, Optional.empty());
     reader.read(TYPE, callback);
-    verify(callback).onDocument(new Document(TYPE, "DO1", DO1_NODE));
-    verify(callback).onDocument(new Document(TYPE, "DO2", DO2_NODE));
+    verify(callback).onDocument(new Document(TYPE, "G1", G1_NODE));
+    verify(callback).onDocument(new Document(TYPE, "G2", G2_NODE));
   }
 
   @Test
@@ -63,8 +65,8 @@ public class TarArchiveDocumentReaderTest {
     val input = new GZIPInputStream(new FileInputStream(INPUT_FILE));
     reader = new TarArchiveDocumentReader(input, Optional.of("TST1-CA"));
     reader.read(TYPE, callback);
-    verify(callback).onDocument(new Document(TYPE, "DO1", DO1_NODE));
-    verify(callback, times(0)).onDocument(new Document(TYPE, "DO2", DO2_NODE));
+    verify(callback).onDocument(new Document(TYPE, "G1", G1_NODE));
+    verify(callback, times(0)).onDocument(new Document(TYPE, "G2", G2_NODE));
   }
 
 }
