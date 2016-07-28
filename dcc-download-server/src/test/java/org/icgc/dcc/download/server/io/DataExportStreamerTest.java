@@ -22,10 +22,13 @@ import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
 import static org.icgc.dcc.download.server.model.Export.DATA_OPEN;
 
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.Optional;
 
 import lombok.Cleanup;
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,19 +48,37 @@ public class DataExportStreamerTest extends AbstractTest {
 
   DataExportStreamer streamer;
   FileSystem fileSystem;
+  File testFile;
 
   @Override
   @Before
   public void setUp() {
     fileSystem = FileSystems.getDefaultLocalFileSystem();
+    testFile = FileTests.getTempFile();
   }
 
   @Test
-  public void testStream_open() throws Exception {
-    val testFile = FileTests.getTempFile();
-    val outStream = new BufferedOutputStream(new FileOutputStream(testFile));
+  public void testStreamOpen() throws Exception {
+    testStreamOpen(Optional.empty(), 47);
+  }
 
-    streamer = getDataStreamer(outStream, DATA_OPEN);
+  @Test
+  public void testStreamOpenWithProject() throws Exception {
+    testStreamOpen(Optional.of("TST1-CA"), 35);
+  }
+
+  @Test
+  public void testStreamControlled() throws Exception {
+    testControlledStream(Optional.empty(), 50);
+  }
+
+  @Test
+  public void testStreamControlledWithProject() throws Exception {
+    testControlledStream(Optional.of("TST2-CA"), 34);
+  }
+
+  private void testStreamOpen(Optional<String> project, int expectedFilesCount) throws Exception {
+    streamer = getDataStreamer(DATA_OPEN, project);
     streamer.stream();
     streamer.close();
 
@@ -75,15 +96,11 @@ public class DataExportStreamerTest extends AbstractTest {
 
       filesCount++;
     }
-    assertThat(filesCount).isEqualTo(47);
+    assertThat(filesCount).isEqualTo(expectedFilesCount);
   }
 
-  @Test
-  public void testStream_controlled() throws Exception {
-    val testFile = FileTests.getTempFile();
-    val outStream = new BufferedOutputStream(new FileOutputStream(testFile));
-
-    streamer = getDataStreamer(outStream, DATA_CONTROLLED);
+  private void testControlledStream(Optional<String> project, int expectedFilesCount) throws Exception {
+    streamer = getDataStreamer(DATA_CONTROLLED, project);
     streamer.stream();
     streamer.close();
 
@@ -104,16 +121,20 @@ public class DataExportStreamerTest extends AbstractTest {
 
       filesCount++;
     }
-    assertThat(filesCount).isEqualTo(50);
+    assertThat(filesCount).isEqualTo(expectedFilesCount);
     assertThat(hasControlled).isTrue();
   }
 
-  private DataExportStreamer getDataStreamer(BufferedOutputStream outStream, Export export) {
+  @SneakyThrows
+  private DataExportStreamer getDataStreamer(Export export, Optional<String> project) {
+    val outStream = new BufferedOutputStream(new FileOutputStream(testFile));
+
     return new DataExportStreamer(
         new Path(INPUT_TEST_FIXTURES_DIR + "/release_21"),
         export,
         fileSystem,
-        outStream);
+        outStream,
+        project);
   }
 
 }

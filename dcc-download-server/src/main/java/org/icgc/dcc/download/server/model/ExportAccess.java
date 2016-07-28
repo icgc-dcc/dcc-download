@@ -17,27 +17,17 @@
  */
 package org.icgc.dcc.download.server.model;
 
-import lombok.NonNull;
-import lombok.Value;
+import static java.util.Locale.ENGLISH;
 
-@Value
-public class ExportFile {
+import org.icgc.dcc.common.core.model.Identifiable;
 
-  String url;
-  String id;
-  String type;
-  String access;
-  int release_number;
-  long date;
+public enum ExportAccess implements Identifiable {
 
-  public static ExportFile create(@NonNull String url, @NonNull Export export, int releaseNumber, long creationDate) {
-    return new ExportFile(
-        url,
-        export.getId(),
-        export.getType(),
-        export.getAccess().getId(),
-        releaseNumber,
-        creationDate);
+  OPEN, CONTROLLED;
+
+  @Override
+  public String getId() {
+    return name().toLowerCase(ENGLISH);
   }
 
 }

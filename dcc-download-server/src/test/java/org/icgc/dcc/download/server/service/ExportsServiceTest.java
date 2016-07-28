@@ -44,6 +44,7 @@ import org.junit.Test;
 public class ExportsServiceTest extends AbstractTest {
 
   private static final String BASE_URL = "http://localhost";
+  private static final int RELEASE_NUMBER = 21;
 
   ExportsService service;
 
@@ -70,13 +71,13 @@ public class ExportsServiceTest extends AbstractTest {
     val iterator = metaFiles.iterator();
 
     val repoMeta = iterator.next();
-    verifyNonReleaseExportFile(repoMeta, REPOSITORY, creationTime);
+    verifyExportFile(repoMeta, REPOSITORY, creationTime);
 
     val dataMeta = iterator.next();
-    verifyNonReleaseExportFile(dataMeta, DATA_OPEN, creationTime);
+    verifyExportFile(dataMeta, DATA_OPEN, creationTime);
 
     val releaseMeta = iterator.next();
-    verifyRelease(releaseMeta, creationTime);
+    verifyExportFile(releaseMeta, RELEASE, creationTime);
   }
 
   @Test
@@ -93,31 +94,25 @@ public class ExportsServiceTest extends AbstractTest {
     val iterator = metaFiles.iterator();
 
     val repoMeta = iterator.next();
-    verifyNonReleaseExportFile(repoMeta, REPOSITORY, creationTime);
+    verifyExportFile(repoMeta, REPOSITORY, creationTime);
 
     val openDataMeta = iterator.next();
-    verifyNonReleaseExportFile(openDataMeta, DATA_OPEN, creationTime);
+    verifyExportFile(openDataMeta, DATA_OPEN, creationTime);
 
-    val releaseOpenMeta = iterator.next();
-    verifyRelease(releaseOpenMeta, creationTime);
+    val releaseMeta = iterator.next();
+    verifyExportFile(releaseMeta, RELEASE, creationTime);
 
     val controlledDataMeta = iterator.next();
-    verifyNonReleaseExportFile(controlledDataMeta, DATA_CONTROLLED, creationTime);
+    verifyExportFile(controlledDataMeta, DATA_CONTROLLED, creationTime);
   }
 
-  private static void verifyRelease(ExportFile file, long creationTime) {
-    val releaseId = RELEASE.getId(21);
-    assertThat(file.getId()).isEqualTo(releaseId);
-    assertThat(file.getType()).isEqualTo(RELEASE.getType());
-    assertThat(file.getUrl()).isEqualTo(format("%s/exports/%s", BASE_URL, releaseId));
-    assertThat(file.getDate()).isEqualTo(creationTime);
-  }
-
-  private static void verifyNonReleaseExportFile(ExportFile file, Export expectedExport, long creationTime) {
-    assertThat(file.getId()).isEqualTo(expectedExport.getId());
-    assertThat(file.getType()).isEqualTo(expectedExport.getType());
-    assertThat(file.getUrl()).isEqualTo(getIdUrl(expectedExport.getId()));
-    assertThat(file.getDate()).isEqualTo(creationTime);
+  private static void verifyExportFile(ExportFile file, Export expectedExport, long creationTime) {
+    val expectedExportFile = ExportFile.create(
+        getIdUrl(expectedExport.getId()),
+        expectedExport,
+        RELEASE_NUMBER,
+        creationTime);
+    assertThat(file).isEqualTo(expectedExportFile);
   }
 
   private static String getIdUrl(String id) {

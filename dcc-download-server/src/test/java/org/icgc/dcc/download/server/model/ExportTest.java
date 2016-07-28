@@ -29,7 +29,7 @@ public class ExportTest {
 
   @Test
   public void testFromId() throws Exception {
-    assertThat(Export.fromId("release21.tar")).isEqualTo(RELEASE);
+    assertThat(Export.fromId("release.tar")).isEqualTo(RELEASE);
     assertThat(Export.fromId("data.open.tar")).isEqualTo(DATA_OPEN);
     assertThat(Export.fromId("data.controlled.tar")).isEqualTo(DATA_CONTROLLED);
   }
@@ -41,7 +41,7 @@ public class ExportTest {
 
   @Test
   public void testGetIdInt() throws Exception {
-    assertThat(RELEASE.getId(21)).isEqualTo("release21.tar");
+    assertThat(RELEASE.getId()).isEqualTo("release.tar");
   }
 
   @Test
@@ -53,11 +53,6 @@ public class ExportTest {
   @Test
   public void testGetId() throws Exception {
     assertThat(DATA_OPEN.getId()).isEqualTo("data.open.tar");
-  }
-
-  @Test(expected = UnsupportedOperationException.class)
-  public void testGetId_unsupported() throws Exception {
-    RELEASE.getId();
   }
 
   @Test

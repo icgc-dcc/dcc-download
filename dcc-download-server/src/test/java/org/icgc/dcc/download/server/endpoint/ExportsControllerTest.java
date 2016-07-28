@@ -71,11 +71,11 @@ public class ExportsControllerTest {
 
   @Test
   public void testListMetadata_open() throws Exception {
-    val exportFile = new ExportFile("url1", DATA_OPEN.getId(), DATA_OPEN.getType(), 123);
+    val exportFile = ExportFile.create("url1", DATA_OPEN, 21, 123);
     val metadata = new MetadataResponse(exportFile);
     when(exportsService.getOpenMetadata("http://localhost")).thenReturn(metadata);
 
-    val expecedBody = $("[{url:'url1',id:'data.open.tar',type:'data',date:123}]");
+    val expecedBody = $("[{url:'url1',id:'data.open.tar',type:'data',release_number:21,date:123}]");
     mockMvc
         .perform(get(ENDPOINT_PATH))
         .andExpect(status().isOk())
@@ -86,13 +86,13 @@ public class ExportsControllerTest {
 
   @Test
   public void testListMetadata_controlled() throws Exception {
-    val exportFile = new ExportFile("url1", DATA_CONTROLLED.getId(), DATA_CONTROLLED.getType(), 123);
+    val exportFile = ExportFile.create("url1", DATA_CONTROLLED, 21, 123);
     val metadata = new MetadataResponse(exportFile);
     when(exportsService.getControlledMetadata("http://localhost")).thenReturn(metadata);
     when(authService.parseToken(AUTH_HEADER_VALUE)).thenReturn(TOKEN);
     when(authService.isAuthorized(TOKEN)).thenReturn(true);
 
-    val expecedBody = $("[{url:'url1',id:'data.controlled.tar',type:'data',date:123}]");
+    val expecedBody = $("[{url:'url1',id:'data.controlled.tar',type:'data',release_number:21,date:123}]");
     mockMvc
         .perform(get(ENDPOINT_PATH)
             .header("Authorization", AUTH_HEADER_VALUE))
@@ -104,7 +104,7 @@ public class ExportsControllerTest {
   @Test
   public void testDownloadArchive_open() throws Exception {
     val exportId = DATA_OPEN.getId();
-    when(exportsService.getExportStreamer(eq(DATA_OPEN), any())).thenReturn(fileStreamer);
+    when(exportsService.getExportStreamer(eq(DATA_OPEN), any(), any())).thenReturn(fileStreamer);
     when(fileStreamer.getName()).thenReturn(exportId);
 
     mockMvc
@@ -115,7 +115,7 @@ public class ExportsControllerTest {
   @Test
   public void testDownloadArchive_controlled() throws Exception {
     val exportId = DATA_CONTROLLED.getId();
-    when(exportsService.getExportStreamer(eq(DATA_CONTROLLED), any())).thenReturn(fileStreamer);
+    when(exportsService.getExportStreamer(eq(DATA_CONTROLLED), any(), any())).thenReturn(fileStreamer);
     when(fileStreamer.getName()).thenReturn(exportId);
     when(authService.parseToken(AUTH_HEADER_VALUE)).thenReturn(TOKEN);
     when(authService.isAuthorized(TOKEN)).thenReturn(true);

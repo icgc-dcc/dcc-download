@@ -27,6 +27,7 @@ import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 
 import java.io.OutputStream;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import lombok.NonNull;
@@ -71,15 +72,15 @@ public class ExportsService {
         .build();
   }
 
-  public FileStreamer getExportStreamer(@NonNull Export export, @NonNull OutputStream output) {
+  public FileStreamer getExportStreamer(@NonNull Export export, @NonNull OutputStream output, Optional<String> project) {
     log.debug("Getting exports streamer for {}...", export);
     switch (export) {
     case REPOSITORY:
       return new RealFileStreamer(new Path(exportsPath, export.getId()), fileSystem, output);
     case DATA_OPEN:
-      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output);
+      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output, project);
     case DATA_CONTROLLED:
-      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output);
+      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output, project);
     case RELEASE:
       return getReleaseExportStreamer(output);
     default:
@@ -89,8 +90,7 @@ public class ExportsService {
 
   private ReleaseExportStreamer getReleaseExportStreamer(OutputStream output) {
     log.debug("Resolving release streamer for {}", RELEASE);
-    val releaseNumber = resolveReleaseNumber();
-    val exportId = RELEASE.getId(releaseNumber);
+    val exportId = RELEASE.getId();
     val releaseExportsPath = getReleaseExportsPath();
     log.debug("Creating release export streamer with configuration(export ID: {}, exports path: {})...", exportId,
         releaseExportsPath);
@@ -125,14 +125,14 @@ public class ExportsService {
 
   private ExportFile createReleaseMeta(String baseUrl) {
     val releaseNumber = resolveReleaseNumber();
-    val exportId = RELEASE.getId(releaseNumber);
+    val exportId = RELEASE.getId();
     val filePath = getExportFilePath(baseUrl, exportId);
     val creationDate = resolveReleaseCreationDate();
 
-    return new ExportFile(
+    return ExportFile.create(
         filePath,
-        exportId,
-        RELEASE.getType(),
+        RELEASE,
+        releaseNumber,
         creationDate);
   }
 
@@ -177,11 +177,13 @@ public class ExportsService {
     return status.getModificationTime();
   }
 
-  private static ExportFile createFileMetadata(Export export, String baseUrl, long creationDate) {
-    return new ExportFile(
+  private ExportFile createFileMetadata(Export export, String baseUrl, long creationDate) {
+    val releaseNumber = resolveReleaseNumber();
+
+    return ExportFile.create(
         getExportFilePath(baseUrl, export.getId()),
-        export.getId(),
-        export.getType(),
+        export,
+        releaseNumber,
         creationDate);
   }
 
