@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -76,13 +77,12 @@ public class IndexClientCommand implements ClientCommand {
     log.info("Finished processing {} in {} seconds.", inputFile, indexWatches.elapsed(SECONDS));
   }
 
-  private void processTypeTarEntry(TarArchiveInputStream tarInput, TarArchiveEntry tarEntry, boolean applySettings)
+  private void processTypeTarEntry(InputStream inputStream, TarArchiveEntry tarEntry, boolean applySettings)
       throws IOException {
     val entryName = tarEntry.getName();
-    val entrySize = tarEntry.getSize();
 
     log.debug("Creating tar document reader for tar entry {}", entryName);
-    val reader = readerFactory.createReader(tarInput, entrySize, project);
+    val reader = readerFactory.createReader(inputStream, project);
     val documentType = resolveDocumentType(entryName);
     val indexName = resolveIndexName(entryName);
 

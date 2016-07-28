@@ -57,8 +57,8 @@ public class IndexClientCommandTest {
 
   @Test
   public void testExecute() throws Exception {
-    when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(288L), any())).thenReturn(donorReader);
-    when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(300L), any())).thenReturn(
+    when(readerFactory.createReader(any(TarArchiveInputStream.class), any())).thenReturn(donorReader);
+    when(readerFactory.createReader(any(TarArchiveInputStream.class), any())).thenReturn(
         mutationCentricReader);
     when(callbackFactory.createCallback(eq("icgc21-0-0"), any(Boolean.class))).thenReturn(callback);
     indexCommand = new IndexClientCommand(DATA_FILE, Optional.empty(), callbackFactory, readerFactory);
