@@ -27,6 +27,7 @@ import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenExcepti
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,6 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -78,6 +80,7 @@ public class ExportsController {
   @RequestMapping(value = "/{exportId:.+}", method = GET)
   public void downloadArchive(
       @PathVariable("exportId") String exportId,
+      @RequestParam(value = "project", required = false) String project,
       @RequestHeader(value = "Authorization", required = false) String authHeader,
       @NonNull HttpServletResponse response) throws IOException {
     log.info("Received get export archive request for id '{}'", exportId);
@@ -89,7 +92,7 @@ public class ExportsController {
     }
 
     @Cleanup
-    val streamer = exportsService.getExportStreamer(export, output);
+    val streamer = exportsService.getExportStreamer(export, output, Optional.ofNullable(project));
     val fileName = streamer.getName();
 
     response.setContentType(getFileMimeType(fileName));

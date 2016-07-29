@@ -15,52 +15,69 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.server.model;
+package org.icgc.dcc.download.imports.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
-import static org.icgc.dcc.download.server.model.Export.DATA_OPEN;
-import static org.icgc.dcc.download.server.model.Export.RELEASE;
-import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
+import static org.icgc.dcc.common.test.json.JsonNodes.$;
+import static org.icgc.dcc.download.imports.util.JsonNodes.getPathValue;
+
+import java.util.Collection;
+import java.util.stream.Collectors;
+
+import lombok.val;
 
 import org.junit.Test;
 
-public class ExportTest {
+import com.fasterxml.jackson.databind.JsonNode;
+
+public class JsonNodesTest {
 
   @Test
-  public void testFromId() throws Exception {
-    assertThat(Export.fromId("release.tar")).isEqualTo(RELEASE);
-    assertThat(Export.fromId("data.open.tar")).isEqualTo(DATA_OPEN);
-    assertThat(Export.fromId("data.controlled.tar")).isEqualTo(DATA_CONTROLLED);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testFromId_invalid() throws Exception {
-    Export.fromId("invalid_export");
+  public void testGetPathValue_empty() throws Exception {
+    val input = $("{}");
+    val result = getPathValue(input, "path");
+    assertThat(result).isEmpty();
   }
 
   @Test
-  public void testGetIdInt() throws Exception {
-    assertThat(RELEASE.getId()).isEqualTo("release.tar");
+  public void testGetPathValue_one_level() throws Exception {
+    val input = $("{path:'a'}");
+    val result = getPathValue(input, "path");
+    assertThat(toString(result)).containsOnly("a");
   }
 
   @Test
-  public void testGetType() throws Exception {
-    assertThat(RELEASE.getType()).isEqualTo("release");
-    assertThat(DATA_OPEN.getType()).isEqualTo("data");
+  public void testGetPathValue_two_levels() throws Exception {
+    val input = $("{nested:{path:'a'}}");
+    val result = getPathValue(input, "nested.path");
+    assertThat(toString(result)).containsOnly("a");
   }
 
   @Test
-  public void testGetId() throws Exception {
-    assertThat(DATA_OPEN.getId()).isEqualTo("data.open.tar");
+  public void testGetPathValue_one_level_array() throws Exception {
+    val input = $("{path:['a','b']}");
+    val result = getPathValue(input, "path");
+    assertThat(toString(result)).containsOnly("a", "b");
   }
 
   @Test
-  public void testIsControlled() throws Exception {
-    assertThat(DATA_OPEN.isControlled()).isFalse();
-    assertThat(DATA_CONTROLLED.isControlled()).isTrue();
-    assertThat(RELEASE.isControlled()).isFalse();
-    assertThat(REPOSITORY.isControlled()).isFalse();
+  public void testGetPathValue_two_levels_array() throws Exception {
+    val input = $("{nested:{path:['a','b']}}");
+    val result = getPathValue(input, "nested.path");
+    assertThat(toString(result)).containsOnly("a", "b");
+  }
+
+  @Test
+  public void testGetPathValue_array_in_middle() throws Exception {
+    val input = $("{one:{ two:[{three:'a'}, {}, {three:'a'}, {three:'b'}]} }");
+    val result = getPathValue(input, "one.two.three");
+    assertThat(toString(result)).containsOnly("a", "a", "b");
+  }
+
+  private static Collection<String> toString(Collection<JsonNode> jsonNodes) {
+    return jsonNodes.stream()
+        .map(node -> node.textValue())
+        .collect(Collectors.toList());
   }
 
 }

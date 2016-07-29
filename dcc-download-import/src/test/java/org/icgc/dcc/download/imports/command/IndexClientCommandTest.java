@@ -24,9 +24,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.Optional;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReader;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
@@ -37,6 +40,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+@Slf4j
 @RunWith(MockitoJUnitRunner.class)
 public class IndexClientCommandTest {
 
@@ -49,22 +53,22 @@ public class IndexClientCommandTest {
   @Mock
   TarArchiveDocumentReaderFactory readerFactory;
   @Mock
-  TarArchiveDocumentReader donorReader;
-  @Mock
-  TarArchiveDocumentReader mutationCentricReader;
+  TarArchiveDocumentReader reader;
 
   IndexClientCommand indexCommand;
 
   @Test
   public void testExecute() throws Exception {
-    when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(288L), any())).thenReturn(donorReader);
-    when(readerFactory.createReader(any(TarArchiveInputStream.class), eq(300L), any())).thenReturn(
-        mutationCentricReader);
+    val emptyProject = Optional.<String> empty();
+    when(readerFactory.createReader(any(InputStream.class), eq(emptyProject))).thenReturn(reader);
     when(callbackFactory.createCallback(eq("icgc21-0-0"), any(Boolean.class))).thenReturn(callback);
-    indexCommand = new IndexClientCommand(DATA_FILE, Optional.empty(), callbackFactory, readerFactory);
+
+    indexCommand = new IndexClientCommand(DATA_FILE, emptyProject, callbackFactory, readerFactory);
     indexCommand.execute();
-    verify(donorReader, times(1)).read(DocumentType.DONOR_TYPE, callback);
-    verify(mutationCentricReader, times(1)).read(DocumentType.MUTATION_CENTRIC_TYPE, callback);
+
+    log.info("Verifying with reader {} and callback {}", reader.hashCode(), callback.hashCode());
+    verify(reader, times(1)).read(DocumentType.DONOR_TYPE, callback);
+    verify(reader, times(1)).read(DocumentType.MUTATION_CENTRIC_TYPE, callback);
   }
 
 }

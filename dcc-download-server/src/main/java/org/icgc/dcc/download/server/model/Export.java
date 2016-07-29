@@ -21,41 +21,24 @@ import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Locale.ENGLISH;
 import static lombok.AccessLevel.PRIVATE;
-
-import java.util.regex.Pattern;
-
+import static org.icgc.dcc.download.server.model.ExportAccess.CONTROLLED;
+import static org.icgc.dcc.download.server.model.ExportAccess.OPEN;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
+@Getter
 @RequiredArgsConstructor(access = PRIVATE)
 public enum Export {
 
-  REPOSITORY("repository.tar.gz"),
-  DATA_OPEN("data.open.tar"),
-  DATA_CONTROLLED("data.controlled.tar"),
-  RELEASE("release%s.tar");
+  REPOSITORY("repository.tar.gz", OPEN),
+  DATA_OPEN("data.open.tar", OPEN),
+  DATA_CONTROLLED("data.controlled.tar", CONTROLLED),
+  RELEASE("release.tar", OPEN);
 
-  private static final Pattern RELEASE_ID_PATTERN = Pattern.compile("^release.*\\.tar$");
-
-  private final String idTemplate;
-
-  public String getId() {
-    if (this == RELEASE) {
-      throw new UnsupportedOperationException(format("Call to this method is not supported for type %s. "
-          + "Use getId(releaseNumber)", getType()));
-    }
-
-    return idTemplate;
-  }
-
-  public String getId(int releaseNumber) {
-    if (this == RELEASE) {
-      return format(idTemplate, releaseNumber);
-    }
-
-    return idTemplate;
-  }
+  private final String id;
+  private final ExportAccess access;
 
   public String getType() {
     val name = name().toLowerCase(ENGLISH);
@@ -65,20 +48,11 @@ public enum Export {
   }
 
   public boolean isControlled() {
-    if (this == DATA_CONTROLLED) {
-      return true;
-    }
-
-    return false;
+    return CONTROLLED == access;
   }
 
   public static Export fromId(@NonNull String id) {
-    if (RELEASE_ID_PATTERN.matcher(id).matches()) {
-      return RELEASE;
-    }
-
     val export = stream(values())
-        .filter(value -> value != RELEASE)
         .filter(value -> value.getId().equals(id))
         .findFirst();
 

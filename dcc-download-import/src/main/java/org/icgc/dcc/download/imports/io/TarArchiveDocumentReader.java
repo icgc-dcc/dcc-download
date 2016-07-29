@@ -18,12 +18,14 @@
 package org.icgc.dcc.download.imports.io;
 
 import static com.fasterxml.jackson.core.JsonParser.Feature.AUTO_CLOSE_SOURCE;
-import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static org.icgc.dcc.common.core.util.Formats.formatCount;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.download.imports.util.JsonNodes.getPathValue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Optional;
 
 import lombok.NonNull;
@@ -38,7 +40,6 @@ import org.icgc.dcc.release.core.document.Document;
 import org.icgc.dcc.release.core.document.DocumentType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -92,6 +93,7 @@ public class TarArchiveDocumentReader {
         val docId = getEntryNamePart(entry, 2);
         val source = readSource(archiveStream);
         if (isSkipIndexing(source, type)) {
+          log.debug("Skipping '{}' document as it doesn't belong to the project", docId);
           continue;
         }
 
@@ -115,9 +117,9 @@ public class TarArchiveDocumentReader {
         return false;
       }
 
-      val documentProject = getDocumentProject(source, documentProjectPath.get());
+      val documentProject = getDocumentProjects(source, documentProjectPath.get());
 
-      return !projectName.equals(documentProject);
+      return !documentProject.contains(projectName);
     }
 
     return false;
@@ -127,16 +129,14 @@ public class TarArchiveDocumentReader {
     return resolveDocumentProjectPath(type).isPresent();
   }
 
-  private static String getDocumentProject(ObjectNode source, String documentProjectPath) {
-    log.debug("Resolving document project from path '{}'", documentProjectPath);
-    JsonNode projectNode = null;
-    for (val path : documentProjectPath.split("\\.")) {
-      projectNode = projectNode == null ? source.path(path) : projectNode.path(path);
-      checkState(!(projectNode.isMissingNode() || projectNode.isNull()), "Failed to resolve document project. Path: "
-          + "'%s'. Path part: '%s'. Document: %s", documentProjectPath, path, source);
-    }
-
-    return projectNode.textValue();
+  /**
+   * Returns collection because some documents may contain multiple projects.<br>
+   * For example, {@code gene-centric} has multiple donors that contains projects.
+   */
+  private static Collection<String> getDocumentProjects(ObjectNode source, String documentProjectPath) {
+    return getPathValue(source, documentProjectPath).stream()
+        .map(node -> node.textValue())
+        .collect(toImmutableList());
   }
 
   private static Optional<String> resolveDocumentProjectPath(DocumentType type) {

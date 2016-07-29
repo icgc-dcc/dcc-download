@@ -30,7 +30,7 @@ public class TarArchiveDocumentReaderFactory {
   }
 
   @SneakyThrows
-  public TarArchiveDocumentReader createReader(InputStream inputStream, long streamBytes, Optional<String> project) {
+  public TarArchiveDocumentReader createReader(InputStream inputStream, Optional<String> project) {
     return new TarArchiveDocumentReader(new GZIPInputStream(inputStream), project);
   }
 

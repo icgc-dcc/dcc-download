@@ -24,6 +24,7 @@ import static org.icgc.dcc.download.server.utils.OutputStreams.createTarOutputSt
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Optional;
 
 import lombok.Cleanup;
 import lombok.NonNull;
@@ -43,6 +44,9 @@ import com.google.common.io.ByteStreams;
 @RequiredArgsConstructor
 public class DataExportStreamer implements FileStreamer {
 
+  /**
+   * Configuration.
+   */
   @NonNull
   private final Path dataPath;
   @NonNull
@@ -51,6 +55,8 @@ public class DataExportStreamer implements FileStreamer {
   private final FileSystem fileSystem;
   @NonNull
   private final OutputStream output;
+  @NonNull
+  private final Optional<String> project;
 
   @Override
   public void close() throws IOException {
@@ -67,22 +73,34 @@ public class DataExportStreamer implements FileStreamer {
   public void stream() {
     val tarOutputStream = createTarOutputStream(output);
     val dataDirStatus = getFileStatus(fileSystem, dataPath).get();
-    val parentPath = dataPath.toString();
+    // Passing parent path to include release directory into the archive
+    val parentPath = dataPath.getParent().toString();
 
     streamDir(tarOutputStream, dataDirStatus, parentPath);
     tarOutputStream.finish();
     tarOutputStream.flush();
   }
 
-  @SneakyThrows
   private void streamDir(TarArchiveOutputStream tarOutputStream, FileStatus dir, String parentPath) {
-    for (val status : fileSystem.listStatus(dir.getPath())) {
+    for (val status : getFiles(dir.getPath())) {
       if (status.isDirectory()) {
         streamDir(tarOutputStream, status, parentPath);
       } else {
         streamFile(tarOutputStream, status, parentPath);
       }
     }
+  }
+
+  @SneakyThrows
+  private FileStatus[] getFiles(Path path) {
+    return isProjectPath(path) ? getProjectFiles(path) : fileSystem.listStatus(path);
+  }
+
+  @SneakyThrows
+  private FileStatus[] getProjectFiles(Path path) {
+    val projectName = project.get();
+
+    return fileSystem.listStatus(path, p -> p.getName().equals(projectName));
   }
 
   @SneakyThrows
@@ -111,6 +129,10 @@ public class DataExportStreamer implements FileStreamer {
 
   private static boolean isControlled(String fileName) {
     return fileName.contains("controlled");
+  }
+
+  private boolean isProjectPath(Path path) {
+    return project.isPresent() && path.getName().equals("data");
   }
 
 }
