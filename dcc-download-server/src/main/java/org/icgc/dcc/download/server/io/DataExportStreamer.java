@@ -73,7 +73,8 @@ public class DataExportStreamer implements FileStreamer {
   public void stream() {
     val tarOutputStream = createTarOutputStream(output);
     val dataDirStatus = getFileStatus(fileSystem, dataPath).get();
-    val parentPath = dataPath.toString();
+    // Passing parent path to include release directory into the archive
+    val parentPath = dataPath.getParent().toString();
 
     streamDir(tarOutputStream, dataDirStatus, parentPath);
     tarOutputStream.finish();
