@@ -58,12 +58,7 @@ public final class JsonNodes {
   }
 
   private static List<JsonNode> toList(JsonNode elements) {
-    val values = ImmutableList.<JsonNode> builder();
-    for (val element : elements) {
-      values.add(element);
-    }
-
-    return values.build();
+    return ImmutableList.copyOf(elements);
   }
 
   private static Iterable<JsonNode> getArrayValues(JsonNode elements, List<String> fields) {
