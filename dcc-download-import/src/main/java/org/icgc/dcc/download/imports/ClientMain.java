@@ -43,7 +43,7 @@ public class ClientMain {
   /**
    * Constants.
    */
-  private static final String APPLICATION_NAME = "dcc-metadata-client";
+  private static final String APPLICATION_NAME = "dcc-download-import";
   private static final int FAILURE_STATUS_CODE = 1;
 
   public static void main(String... args) {
