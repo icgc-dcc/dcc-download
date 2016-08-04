@@ -82,7 +82,7 @@ spring:
 # Hadoop
 hadoop:
   properties:
-    fs.defaultFS: hdfs://hnn1-dcc.res.oicr.on.ca
+    fs.defaultFS: hdfs://localhost
 
 # Mongo
 spring.data.mongodb:
@@ -94,7 +94,7 @@ job:
   inputDir: /tmp/export-test
 
 download.server:
-  hdfsUri: "hdfs://hnn1-dcc.res.oicr.on.ca"
+  hdfsUri: "hdfs://localhost"
   user: user
   password: pass
   
