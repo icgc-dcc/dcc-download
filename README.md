@@ -1,10 +1,8 @@
-ICGC DCC - Data Download
-===
+# ICGC DCC - Data Download
 
 Data Archive and Download component for DCC
 
-Setup
----
+## Setup
 
 Clone the repository:
 
@@ -16,8 +14,7 @@ Install Maven 3.2.1:
 
 [http://maven.apache.org/download.cgi](http://maven.apache.org/download.cgi)
 
-Build
----
+## Build
 
 To build, test and install _all_ modules in the system:
 
@@ -25,19 +22,17 @@ To build, test and install _all_ modules in the system:
 mvn
 ```
 
-
-Run
----
+## Run
 
 See specific module documentation below.
 
-Modules
----
+## Modules
+
 Top level system modules:
 
 - [Client](dcc-download-client/README.md)
-- [Core libraries](dcc-download-core/README.md)
+- [Core](dcc-download-core/README.md)
 - [Import](dcc-download-import/README.md)
 - [Server](dcc-download-server/README.md)
-- [Test utilities](dcc-download-test/README.md)
+- [Test](dcc-download-test/README.md)
 
