@@ -58,8 +58,12 @@ public final class Responses {
   }
 
   public static void throwPathNotFoundException(@NonNull String warnMessage) {
+    throwNotFoundException("Malformed path", warnMessage);
+  }
+
+  public static void throwNotFoundException(@NonNull String responseMessage, @NonNull String warnMessage) {
     log.warn(warnMessage);
-    throw new NotFoundException("Malformed path");
+    throw new NotFoundException(responseMessage);
   }
 
   public static void throwUnauthorizedException(@NonNull String userMessage, @NonNull String logMessage) {

@@ -75,8 +75,8 @@ public class ServiceConfig {
   }
 
   @Bean
-  public FileSystemService fileSystemService() {
-    return new FileSystemService(downloadFilesReader());
+  public FileSystemService fileSystemService(DownloadFilesReader downloadFilesReader) {
+    return new FileSystemService(downloadFilesReader);
   }
 
   @Bean
@@ -91,7 +91,8 @@ public class ServiceConfig {
     return new ExportsService(fileSystem, exportsPath, dataDir);
   }
 
-  private DownloadFilesReader downloadFilesReader() {
+  @Bean
+  public DownloadFilesReader downloadFilesReader() {
     return new DownloadFilesReader(fileSystem, pathResolver);
   }
 

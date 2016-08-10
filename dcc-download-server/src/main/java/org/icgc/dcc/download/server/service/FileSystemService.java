@@ -50,11 +50,12 @@ import com.google.common.collect.Table;
 
 public class FileSystemService {
 
-  private final Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes;
-  private final Map<String, Multimap<String, String>> releaseProjectDonors;
-  private final Map<String, Long> releaseTimes;
+  private Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes;
+  private Map<String, Multimap<String, String>> releaseProjectDonors;
+  private Map<String, Long> releaseTimes;
+
   @Getter
-  private final String currentRelease;
+  private String currentRelease;
 
   public FileSystemService(@NonNull DownloadFilesReader reader) {
     this.releaseDonorFileTypes = reader.getReleaseDonorFileTypes();
@@ -62,6 +63,18 @@ public class FileSystemService {
     this.releaseTimes = reader.getReleaseTimes();
     validateIntegrity();
 
+    this.currentRelease = resolveCurrentRelease();
+  }
+
+  public void loadRelease(@NonNull String releaseName, @NonNull DownloadFilesReader reader) {
+    val nextReleaseDonorFileTypes = resolveReleaseDonorFileType(releaseDonorFileTypes, reader, releaseName);
+    val nextReleaseProjectDonors = DownloadFilesReader.getReleaseProjectDonors(nextReleaseDonorFileTypes);
+    val nextReleaseTimes = resolveReleaseTimes(releaseTimes, reader, releaseName);
+
+    this.releaseDonorFileTypes = nextReleaseDonorFileTypes;
+    this.releaseProjectDonors = nextReleaseProjectDonors;
+    this.releaseTimes = nextReleaseTimes;
+    validateIntegrity();
     this.currentRelease = resolveCurrentRelease();
   }
 
@@ -214,6 +227,24 @@ public class FileSystemService {
         .filter(entry -> projects.contains(entry.getKey()))
         .flatMap(entry -> entry.getValue().stream())
         .collect(toImmutableList());
+  }
+
+  private static Map<String, Table<String, DownloadDataType, DataTypeFile>> resolveReleaseDonorFileType(
+      Map<String, Table<String, DownloadDataType, DataTypeFile>> oldReleaseDonorFileTypes,
+      DownloadFilesReader reader,
+      String releaseName) {
+    val donorFileTypes = Maps.newHashMap(oldReleaseDonorFileTypes);
+    donorFileTypes.put(releaseName, reader.createReleaseCache(releaseName));
+
+    return ImmutableMap.copyOf(donorFileTypes);
+  }
+
+  private static Map<String, Long> resolveReleaseTimes(Map<String, Long> oldReleaseTimes,
+      DownloadFilesReader reader, String releaseName) {
+    val releaseTimes = Maps.newHashMap(oldReleaseTimes);
+    releaseTimes.put(releaseName, reader.getReleaseTime(releaseName));
+
+    return ImmutableMap.copyOf(releaseTimes);
   }
 
 }

@@ -20,13 +20,15 @@ package org.icgc.dcc.download.server.fs;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
-import static java.util.regex.Pattern.compile;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.checkExistence;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.isDirectory;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
 import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
 import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
 import static org.icgc.dcc.download.server.utils.Responses.throwPathNotFoundException;
+
+import java.util.regex.Pattern;
+
 import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,7 @@ public abstract class AbstractFileSystemView {
 
   public static final String RELEASE_DIR_PREFIX = "release_";
   public static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + ".*";
+  public static final Pattern RELEASE_DIR_PATTERN = Pattern.compile(RELEASE_DIR_REGEX);
 
   protected static final String CURRENT_RELEASE_NAME = "current";
   protected static final String CURRENT_PATH = "/" + CURRENT_RELEASE_NAME;
@@ -167,7 +170,7 @@ public abstract class AbstractFileSystemView {
   }
 
   static String resolveCurrentRelease(Path rootPath, FileSystem fileSystem) {
-    val dirs = lsDir(fileSystem, rootPath, compile(RELEASE_DIR_REGEX));
+    val dirs = lsDir(fileSystem, rootPath, RELEASE_DIR_PATTERN);
     val latestRelease = Ordering.natural().max(dirs);
 
     return latestRelease.getName();
@@ -178,7 +181,7 @@ public abstract class AbstractFileSystemView {
   }
 
   private static void verifyCurrentRelease(String currentLink) {
-    checkArgument(currentLink.matches(RELEASE_DIR_REGEX), "Current release link('%s') is invalid.",
+    checkArgument(RELEASE_DIR_PATTERN.matcher(currentLink).matches(), "Current release link('%s') is invalid.",
         currentLink);
   }
 
