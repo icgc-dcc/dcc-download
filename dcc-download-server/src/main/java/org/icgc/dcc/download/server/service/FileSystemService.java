@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.val;
 
@@ -50,36 +50,40 @@ import com.google.common.collect.Table;
 
 public class FileSystemService {
 
-  private Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes;
-  private Map<String, Multimap<String, String>> releaseProjectDonors;
-  private Map<String, Long> releaseTimes;
-
-  @Getter
-  private String currentRelease;
+  private final AtomicReference<Map<String, Table<String, DownloadDataType, DataTypeFile>>> releaseDonorFileTypes;
+  private final AtomicReference<Map<String, Multimap<String, String>>> releaseProjectDonors;
+  private final AtomicReference<Map<String, Long>> releaseTimes;
+  private final AtomicReference<String> currentRelease;
 
   public FileSystemService(@NonNull DownloadFilesReader reader) {
-    this.releaseDonorFileTypes = reader.getReleaseDonorFileTypes();
-    this.releaseProjectDonors = reader.getReleaseProjectDonors();
-    this.releaseTimes = reader.getReleaseTimes();
+    this.releaseDonorFileTypes = new AtomicReference<Map<String, Table<String, DownloadDataType, DataTypeFile>>>(
+        reader.getReleaseDonorFileTypes());
+    this.releaseProjectDonors =
+        new AtomicReference<Map<String, Multimap<String, String>>>(reader.getReleaseProjectDonors());
+    this.releaseTimes = new AtomicReference<Map<String, Long>>(reader.getReleaseTimes());
     validateIntegrity();
 
-    this.currentRelease = resolveCurrentRelease();
+    this.currentRelease = new AtomicReference<String>(resolveCurrentRelease());
+  }
+
+  public String getCurrentRelease() {
+    return currentRelease.get();
   }
 
   public void loadRelease(@NonNull String releaseName, @NonNull DownloadFilesReader reader) {
-    val nextReleaseDonorFileTypes = resolveReleaseDonorFileType(releaseDonorFileTypes, reader, releaseName);
+    val nextReleaseDonorFileTypes = resolveReleaseDonorFileType(releaseDonorFileTypes.get(), reader, releaseName);
     val nextReleaseProjectDonors = DownloadFilesReader.getReleaseProjectDonors(nextReleaseDonorFileTypes);
-    val nextReleaseTimes = resolveReleaseTimes(releaseTimes, reader, releaseName);
+    val nextReleaseTimes = resolveReleaseTimes(releaseTimes.get(), reader, releaseName);
 
-    this.releaseDonorFileTypes = nextReleaseDonorFileTypes;
-    this.releaseProjectDonors = nextReleaseProjectDonors;
-    this.releaseTimes = nextReleaseTimes;
+    this.releaseDonorFileTypes.set(nextReleaseDonorFileTypes);
+    this.releaseProjectDonors.set(nextReleaseProjectDonors);
+    this.releaseTimes.set(nextReleaseTimes);
     validateIntegrity();
-    this.currentRelease = resolveCurrentRelease();
+    this.currentRelease.set(resolveCurrentRelease());
   }
 
   public Optional<List<String>> getReleaseProjects(@NonNull String release) {
-    val projectDonors = releaseProjectDonors.get(release);
+    val projectDonors = releaseProjectDonors.get().get(release);
     if (projectDonors == null) {
       return Optional.empty();
     }
@@ -89,7 +93,7 @@ public class FileSystemService {
   }
 
   public Optional<Long> getReleaseDate(@NonNull String release) {
-    val releaseTime = releaseTimes.get(getActualReleaseName(release, currentRelease));
+    val releaseTime = releaseTimes.get().get(getActualReleaseName(release, getCurrentRelease()));
     if (releaseTime == null) {
       return Optional.empty();
     }
@@ -98,7 +102,7 @@ public class FileSystemService {
   }
 
   public Map<DownloadDataType, Long> getClinicalSizes(@NonNull String release) {
-    val donorFileTypes = releaseDonorFileTypes.get(release);
+    val donorFileTypes = releaseDonorFileTypes.get().get(release);
     checkNotNull(donorFileTypes);
 
     return DownloadDataType.CLINICAL.stream()
@@ -108,8 +112,8 @@ public class FileSystemService {
   }
 
   public Map<DownloadDataType, Long> getProjectSizes(@NonNull String release, @NonNull String project) {
-    val projectDonors = releaseProjectDonors.get(release);
-    val donorFileTypes = releaseDonorFileTypes.get(release);
+    val projectDonors = releaseProjectDonors.get().get(release);
+    val donorFileTypes = releaseDonorFileTypes.get().get(release);
 
     val projectSizes = Maps.<DownloadDataType, Long> newTreeMap();
     for (val donor : projectDonors.get(project)) {
@@ -130,7 +134,7 @@ public class FileSystemService {
    */
   public List<DataTypeFile> getUnsortedDataTypeFiles(@NonNull String release, @NonNull Collection<String> donors,
       @NonNull Collection<DownloadDataType> dataTypes) {
-    val donorFileTypes = releaseDonorFileTypes.get(release);
+    val donorFileTypes = releaseDonorFileTypes.get().get(release);
 
     val allDataTypes = dataTypes.size() == DownloadDataType.values().length;
     val allDonors = donors.size() == donorFileTypes.rowKeySet().size();
@@ -163,7 +167,7 @@ public class FileSystemService {
    */
   public List<DataTypeFile> getDataTypeFiles(@NonNull String release, @NonNull Collection<String> donors,
       @NonNull Collection<DownloadDataType> dataTypes) {
-    val donorFileTypes = releaseDonorFileTypes.get(release);
+    val donorFileTypes = releaseDonorFileTypes.get().get(release);
 
     return dataTypes.stream()
         .flatMap(dataType -> donorFileTypes.column(dataType).entrySet().stream())
@@ -176,36 +180,36 @@ public class FileSystemService {
       @NonNull String release,
       @NonNull Set<String> project,
       @NonNull DownloadDataType dataType) {
-    val projectDonors = releaseProjectDonors.get(release);
+    val projectDonors = releaseProjectDonors.get().get(release);
     val donors = resolveDonors(projectDonors, project);
 
     return getDataTypeFiles(release, donors, Collections.singleton(dataType));
   }
 
   public boolean isLegacyRelease(@NonNull String release) {
-    return DfsPaths.isLegacyRelease(releaseDonorFileTypes.keySet(), release);
+    return DfsPaths.isLegacyRelease(releaseDonorFileTypes.get().keySet(), release);
   }
 
   public Collection<String> getReleases() {
-    return releaseDonorFileTypes.keySet();
+    return releaseDonorFileTypes.get().keySet();
   }
 
   public boolean existsProject(@NonNull String release, @NonNull String project) {
-    val projects = releaseProjectDonors.get(release);
+    val projects = releaseProjectDonors.get().get(release);
 
     return projects != null && projects.containsKey(project);
   }
 
   private void validateIntegrity() {
-    val releaseTimesSize = releaseTimes.size();
-    val releaseProjectDonorsSize = releaseProjectDonors.size();
-    val releaseDonorFileTypesSize = releaseDonorFileTypes.size();
+    val releaseTimesSize = releaseTimes.get().size();
+    val releaseProjectDonorsSize = releaseProjectDonors.get().size();
+    val releaseDonorFileTypesSize = releaseDonorFileTypes.get().size();
     checkState(releaseTimesSize == releaseProjectDonorsSize);
     checkState(releaseTimesSize == releaseDonorFileTypesSize);
   }
 
   private String resolveCurrentRelease() {
-    val latestRelease = releaseTimes.keySet().stream()
+    val latestRelease = releaseTimes.get().keySet().stream()
         .max(Ordering.natural());
     checkState(latestRelease.isPresent(), "Failed to resolve current release");
 

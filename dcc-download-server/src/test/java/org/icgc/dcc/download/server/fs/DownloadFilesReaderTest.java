@@ -34,6 +34,8 @@ import org.icgc.dcc.download.server.utils.AbstractFsTest;
 import org.icgc.dcc.download.server.utils.DownloadFsTests;
 import org.junit.Test;
 
+import com.google.common.collect.Table;
+
 public class DownloadFilesReaderTest extends AbstractFsTest {
 
   FileSystem fileSystem = getDefaultLocalFileSystem();
@@ -87,8 +89,7 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
     assertRelease21(releaseTable);
   }
 
-  private void assertRelease21(
-      final com.google.common.collect.Table<java.lang.String, org.icgc.dcc.common.core.model.DownloadDataType, org.icgc.dcc.download.server.model.DataTypeFile> releaseTable) {
+  private void assertRelease21(Table<String, DownloadDataType, DataTypeFile> releaseTable) {
     assertThat(releaseTable.size()).isEqualTo(28);
     assertDonor(releaseTable.row("DO001"), (short) 0, 8);
     assertDonor(releaseTable.row("DO002"), (short) 0, 8);
