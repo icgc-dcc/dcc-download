@@ -34,6 +34,8 @@ import org.icgc.dcc.download.server.utils.AbstractFsTest;
 import org.icgc.dcc.download.server.utils.DownloadFsTests;
 import org.junit.Test;
 
+import com.google.common.collect.Table;
+
 public class DownloadFilesReaderTest extends AbstractFsTest {
 
   FileSystem fileSystem = getDefaultLocalFileSystem();
@@ -52,16 +54,12 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
   @Test
   public void testCreateReleaseCache() throws Exception {
     val releaseTable = downloadFilesReader.createReleaseCache(getReleasePath());
-    assertThat(releaseTable.size()).isNotZero();
-    assertDonor(releaseTable.row("DO001"), (short) 0, 8);
-    assertDonor(releaseTable.row("DO002"), (short) 0, 8);
-    assertDonor(releaseTable.row("DO003"), (short) 1, 6);
-    assertDonor(releaseTable.row("DO004"), (short) 1, 6);
+    assertRelease21(releaseTable);
   }
 
   @Test
   public void testCreateProjectDonors() throws Exception {
-    val projectDonors = downloadFilesReader.createProjectDonors(DownloadFsTests.createDonorFileTypesTable());
+    val projectDonors = DownloadFilesReader.createProjectDonors(DownloadFsTests.createDonorFileTypesTable());
     assertThat(projectDonors.size()).isEqualTo(3);
     assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
     assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003");
@@ -83,6 +81,20 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
     assertThat(projectDonors.size()).isEqualTo(4);
     assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
     assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003", "DO004");
+  }
+
+  @Test
+  public void testCreateReleaseCacheString() throws Exception {
+    val releaseTable = downloadFilesReader.createReleaseCache("release_21");
+    assertRelease21(releaseTable);
+  }
+
+  private void assertRelease21(Table<String, DownloadDataType, DataTypeFile> releaseTable) {
+    assertThat(releaseTable.size()).isEqualTo(28);
+    assertDonor(releaseTable.row("DO001"), (short) 0, 8);
+    assertDonor(releaseTable.row("DO002"), (short) 0, 8);
+    assertDonor(releaseTable.row("DO003"), (short) 1, 6);
+    assertDonor(releaseTable.row("DO004"), (short) 1, 6);
   }
 
   private Path getReleasePath() {

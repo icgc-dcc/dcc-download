@@ -25,8 +25,9 @@ server:
 server.compression.enabled: true
 server.compression.mime-types: application/json,application/xml,text/html,text/xml,text/plain
 
-management.security.enabled: false
-management.context-path: /srv-info
+management:
+  security.enabled: false
+  context-path: /srv-info
 
 jwt:
   sharedSecret: "secret678901234567890123456789012"
@@ -36,6 +37,10 @@ jwt:
 exports:
   exportsPath: "/icgc/export"
 
+auth.server:
+  url:
+  clientId:
+  clientsecret:
 ---
 #
 # Production

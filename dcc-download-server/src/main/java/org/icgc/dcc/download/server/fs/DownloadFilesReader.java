@@ -17,7 +17,9 @@
  */
 package org.icgc.dcc.download.server.fs;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.regex.Pattern.compile;
@@ -26,8 +28,8 @@ import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.Splitters.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
+import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PATTERN;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PREFIX;
-import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_REGEX;
 import static org.icgc.dcc.download.server.utils.DfsPaths.toDfsPath;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
@@ -52,6 +54,7 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
+import org.icgc.dcc.download.server.endpoint.NotFoundException;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.utils.DfsPaths;
 
@@ -78,14 +81,7 @@ public class DownloadFilesReader {
       createReleaseFileTypes();
 
   public Map<String, Multimap<String, String>> getReleaseProjectDonors() {
-    val releaseProjectDonors = ImmutableMap.<String, Multimap<String, String>> builder();
-    for (val entry : getReleaseDonorFileTypes().entrySet()) {
-      val release = entry.getKey();
-      val fileTypes = entry.getValue();
-      releaseProjectDonors.put(release, createProjectDonors(fileTypes));
-    }
-
-    return releaseProjectDonors.build();
+    return getReleaseProjectDonors(getReleaseDonorFileTypes());
   }
 
   public Map<String, Long> getReleaseTimes() {
@@ -100,7 +96,38 @@ public class DownloadFilesReader {
     return releaseTimes.build();
   }
 
-  Multimap<String, String> createProjectDonors(Table<String, DownloadDataType, DataTypeFile> donorFileTypes) {
+  public long getReleaseTime(@NonNull String releaseName) {
+    checkArgument(isValidReleaseName(releaseName));
+    val releasePath = getReleasePath(releaseName);
+    val status = getFileStatus(fileSystem, releasePath);
+
+    return status.getModificationTime();
+  }
+
+  public Table<String, DownloadDataType, DataTypeFile> createReleaseCache(@NonNull String releaseName) {
+    checkArgument(isValidReleaseName(releaseName));
+    val releasePath = getReleasePath(releaseName);
+
+    return createReleaseCache(releasePath);
+  }
+
+  public boolean isValidReleaseName(@NonNull String releaseName) {
+    return RELEASE_DIR_PATTERN.matcher(releaseName).matches();
+  }
+
+  public static Map<String, Multimap<String, String>> getReleaseProjectDonors(
+      @NonNull Map<String, Table<String, DownloadDataType, DataTypeFile>> releaseDonorFileTypes) {
+    val releaseProjectDonors = ImmutableMap.<String, Multimap<String, String>> builder();
+    for (val entry : releaseDonorFileTypes.entrySet()) {
+      val release = entry.getKey();
+      val fileTypes = entry.getValue();
+      releaseProjectDonors.put(release, createProjectDonors(fileTypes));
+    }
+
+    return releaseProjectDonors.build();
+  }
+
+  static Multimap<String, String> createProjectDonors(Table<String, DownloadDataType, DataTypeFile> donorFileTypes) {
     val projectDonors = ArrayListMultimap.<String, String> create();
     val donors = donorFileTypes.column(DONOR);
     for (val entry : donors.entrySet()) {
@@ -129,6 +156,16 @@ public class DownloadFilesReader {
     return releaseTable;
   }
 
+  private Path getReleasePath(String releaseName) {
+    val releasePaths = getReleasePaths(Optional.of(Pattern.compile(releaseName)));
+    if (releasePaths.size() != 1) {
+      log.warn("Failed to resolve release path for release {}. Release paths: {}", releaseName, releasePaths);
+      throw new NotFoundException(format("Release '%s' does not exist", releaseName));
+    }
+
+    return releasePaths.get(0);
+  }
+
   private Map<String, Table<String, DownloadDataType, DataTypeFile>> createReleaseFileTypes() {
     log.info("Creating donor - download data type - data type file tables...");
     val releaseFileTypes = ImmutableMap.<String, Table<String, DownloadDataType, DataTypeFile>> builder();
@@ -137,7 +174,7 @@ public class DownloadFilesReader {
 
     for (val release : releases) {
       val timer = Stopwatch.createStarted();
-      checkState(release.getName().matches(RELEASE_DIR_REGEX));
+      checkState(RELEASE_DIR_PATTERN.matcher(release.getName()).matches());
       val releaseName = toDfsPath(release).replace("/", EMPTY_STRING);
       log.info("Creating donor - download data type - data type file table for release '{}'", releaseName);
       releaseFileTypes.put(releaseName, createReleaseCache(release));
