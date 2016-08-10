@@ -57,7 +57,7 @@ public class ReleaseEndpoint implements MvcEndpoint {
     if (!downloadFilesReader.isValidReleaseName(releaseName)) {
       log.warn("Failed to verify release '{}' against the release name regex", releaseName);
 
-      return getNotFoundResponse(format("Invalid release '%s'", releaseName));
+      return getNotFoundResponse("Invalid release '%s'", releaseName);
     }
 
     try {
@@ -90,8 +90,10 @@ public class ReleaseEndpoint implements MvcEndpoint {
     return null;
   }
 
-  private static ResponseEntity<String> getNotFoundResponse(String message) {
-    return ResponseEntity.status(NOT_FOUND).body(message);
+  private static ResponseEntity<String> getNotFoundResponse(String message, Object... args) {
+    val body = format(message, args);
+
+    return ResponseEntity.status(NOT_FOUND).body(body);
   }
 
 }
