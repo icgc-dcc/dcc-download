@@ -17,8 +17,13 @@
  */
 package org.icgc.dcc.download.server.fs;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.of;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+
 import lombok.val;
 
 import org.icgc.dcc.download.server.config.Properties;
@@ -49,6 +54,11 @@ public class RootViewTest extends AbstractFsTest {
 
   @Test
   public void testListReleases() throws Exception {
+    val nextReleaseDir = new File(workingDir, "release_22");
+    checkState(nextReleaseDir.mkdir(), "Failed to create directory");
+
+    when(fsService.getCurrentRelease()).thenReturn("release_21");
+
     val releases = rootView.listReleases();
     verifyDownloadFiles(releases, of(
         newFile("/README.txt", 18L, getModificationTime("README.txt")),

@@ -49,7 +49,7 @@ import com.google.common.collect.Ordering;
 public abstract class AbstractFileSystemView {
 
   public static final String RELEASE_DIR_PREFIX = "release_";
-  public static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + ".*";
+  public static final String RELEASE_DIR_REGEX = RELEASE_DIR_PREFIX + "(.*)";
   public static final Pattern RELEASE_DIR_PATTERN = Pattern.compile(RELEASE_DIR_REGEX);
 
   protected static final String CURRENT_RELEASE_NAME = "current";
