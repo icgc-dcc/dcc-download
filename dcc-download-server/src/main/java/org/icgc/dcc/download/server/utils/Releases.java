@@ -17,7 +17,9 @@
  */
 package org.icgc.dcc.download.server.utils;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.RELEASE_DIR_PATTERN;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.DATA_DIR;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -26,6 +28,8 @@ import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
+
+import com.google.common.primitives.Ints;
 
 @NoArgsConstructor(access = PRIVATE)
 public final class Releases {
@@ -46,6 +50,21 @@ public final class Releases {
     return dirs.stream()
         .map(p -> p.getName())
         .allMatch(dirName -> !dirName.equals(DATA_DIR));
+  }
+
+  public static int getReleaseNumber(@NonNull String releaseName) {
+    val matcher = RELEASE_DIR_PATTERN.matcher(releaseName);
+    checkArgument(matcher.matches(), "'%s' is not a valid release name", releaseName);
+
+    val stringReleaseNumber = matcher.group(1);
+    val releaseNumber = Ints.tryParse(stringReleaseNumber);
+    checkArgument(releaseNumber != null, "Failed to extract release number from '%s'", releaseName);
+
+    return releaseNumber;
+  }
+
+  public static boolean isLegacyReleaseName(@NonNull String releaseName) {
+    return !RELEASE_DIR_PATTERN.matcher(releaseName).matches();
   }
 
 }

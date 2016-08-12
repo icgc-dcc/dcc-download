@@ -19,6 +19,8 @@ package org.icgc.dcc.download.server.fs;
 
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
+import static org.icgc.dcc.download.server.utils.Releases.getReleaseNumber;
+import static org.icgc.dcc.download.server.utils.Releases.isLegacyReleaseName;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ import lombok.NonNull;
 import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.server.service.FileSystemService;
@@ -46,6 +49,10 @@ public class RootView extends AbstractFileSystemView {
     val allFiles = HadoopUtils.lsAll(fileSystem, pathResolver.getRootPath());
     val dfsFiles = Lists.<DownloadFile> newArrayList();
     for (val file : allFiles) {
+      if (isNextReleaseDir(file)) {
+        continue;
+      }
+
       val rootFile = convert2DownloadFile(file, false);
       dfsFiles.add(rootFile);
       if (isCurrentReleaseFile(rootFile)) {
@@ -56,6 +63,19 @@ public class RootView extends AbstractFileSystemView {
     return dfsFiles.stream()
         .sorted()
         .collect(toImmutableList());
+  }
+
+  private boolean isNextReleaseDir(Path file) {
+    val releaseName = file.getName();
+    if (isLegacyReleaseName(releaseName)) {
+      return false;
+    }
+
+    val currentRelease = fsService.getCurrentRelease();
+    val releaseNumber = getReleaseNumber(releaseName);
+    val currentReleaseNumber = getReleaseNumber(currentRelease);
+
+    return releaseNumber > currentReleaseNumber;
   }
 
   private static DownloadFile addCurrentLinkFile(DownloadFile file) {

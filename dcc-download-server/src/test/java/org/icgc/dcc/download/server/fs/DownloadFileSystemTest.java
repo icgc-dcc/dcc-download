@@ -75,6 +75,8 @@ public class DownloadFileSystemTest extends AbstractTest {
 
   @Test
   public void testListFiles_root() throws Exception {
+    when(fsService.getCurrentRelease()).thenReturn("release_21");
+
     verifyDownloadFiles(dfs.listFiles("/"), of(
         newFile("README.txt"),
         newDir("/current"),
