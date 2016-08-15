@@ -19,12 +19,21 @@ package org.icgc.dcc.download.core.jwt;
 
 import org.icgc.dcc.download.core.model.TokenPayload;
 
-public interface JwtService {
+public class NoOpJwtService implements JwtService {
 
-  String createToken(String downloadId, String user);
+  @Override
+  public String createToken(String downloadId, String user) {
+    throw new UnsupportedOperationException();
+  }
 
-  String createToken(String path);
+  @Override
+  public String createToken(String path) {
+    throw new UnsupportedOperationException();
+  }
 
-  TokenPayload parseToken(String token);
+  @Override
+  public TokenPayload parseToken(String token) {
+    throw new UnsupportedOperationException();
+  }
 
 }
