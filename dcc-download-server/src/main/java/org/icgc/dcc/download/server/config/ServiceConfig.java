@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.core.jwt.JwtConfig;
 import org.icgc.dcc.download.core.jwt.JwtService;
+import org.icgc.dcc.download.core.jwt.JwtServiceImpl;
 import org.icgc.dcc.download.server.config.Properties.JobProperties;
 import org.icgc.dcc.download.server.fs.DownloadFileSystem;
 import org.icgc.dcc.download.server.fs.DownloadFilesReader;
@@ -93,7 +94,7 @@ public class ServiceConfig {
 
   @Bean
   public JwtService tokenService(JwtConfig config) {
-    return new JwtService(config);
+    return new JwtServiceImpl(config);
   }
 
   @Bean
