@@ -25,6 +25,7 @@ import static org.icgc.dcc.download.server.utils.DfsPaths.validatePath;
 import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestException;
 
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicReference;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,7 @@ public class DownloadFileSystem {
    * Non-legacy releases.
    */
   @NonNull
-  private final Collection<String> releases;
+  private final AtomicReference<Collection<String>> releases;
 
   public Collection<DownloadFile> listFiles(@NonNull String path) {
     log.info("Listing files for path '{}'...", path);
@@ -108,8 +109,12 @@ public class DownloadFileSystem {
     throw new BadRequestException(message);
   }
 
+  public void setReleases(@NonNull Collection<String> releases) {
+    this.releases.set(releases);
+  }
+
   private boolean isLegacyRelease(String legacyRelease) {
-    return DfsPaths.isLegacyRelease(releases, legacyRelease);
+    return DfsPaths.isLegacyRelease(releases.get(), legacyRelease);
   }
 
 }

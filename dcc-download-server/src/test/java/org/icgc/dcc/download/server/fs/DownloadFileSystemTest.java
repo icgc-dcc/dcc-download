@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import lombok.NonNull;
 import lombok.val;
@@ -65,7 +66,7 @@ public class DownloadFileSystemTest extends AbstractTest {
 
     val rootView = new RootView(fs, fsService, pathResolver);
     val releaseView = new ReleaseView(fs, fsService, pathResolver);
-    this.dfs = new DownloadFileSystem(rootView, releaseView, ImmutableList.of("release_21"));
+    this.dfs = new DownloadFileSystem(rootView, releaseView, new AtomicReference<>(ImmutableList.of("release_21")));
   }
 
   @Test(expected = IllegalArgumentException.class)

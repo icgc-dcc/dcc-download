@@ -17,6 +17,8 @@
  */
 package org.icgc.dcc.download.server.config;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -67,11 +69,21 @@ public class ServiceConfig {
   }
 
   @Bean
-  public DownloadFileSystem downloadFileSystem(FileSystemService fileSystemService) {
-    val rootView = new RootView(fileSystem, fileSystemService, pathResolver);
-    val releaseView = new ReleaseView(fileSystem, fileSystemService, pathResolver);
+  public DownloadFileSystem downloadFileSystem(
+      FileSystemService fileSystemService,
+      RootView rootView,
+      ReleaseView releaseView) {
+    return new DownloadFileSystem(rootView, releaseView, new AtomicReference<>(fileSystemService.getReleases()));
+  }
 
-    return new DownloadFileSystem(rootView, releaseView, fileSystemService.getReleases());
+  @Bean
+  public RootView rootView(FileSystemService fileSystemService) {
+    return new RootView(fileSystem, fileSystemService, pathResolver);
+  }
+
+  @Bean
+  public ReleaseView releaseView(FileSystemService fileSystemService) {
+    return new ReleaseView(fileSystem, fileSystemService, pathResolver);
   }
 
   @Bean
