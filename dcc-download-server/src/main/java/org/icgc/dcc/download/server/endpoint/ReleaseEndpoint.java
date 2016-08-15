@@ -25,7 +25,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.download.server.fs.DownloadFileSystem;
 import org.icgc.dcc.download.server.fs.DownloadFilesReader;
+import org.icgc.dcc.download.server.fs.ReleaseView;
+import org.icgc.dcc.download.server.fs.RootView;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.Endpoint;
@@ -50,6 +53,12 @@ public class ReleaseEndpoint implements MvcEndpoint {
   @NonNull
   private final FileSystemService fileSystemService;
   @NonNull
+  private final DownloadFileSystem downloadFileSystem;
+  @NonNull
+  private final RootView rootView;
+  @NonNull
+  private final ReleaseView releaseView;
+  @NonNull
   private final DownloadFilesReader downloadFilesReader;
 
   @RequestMapping(value = "/{releaseName}", method = PUT)
@@ -63,6 +72,10 @@ public class ReleaseEndpoint implements MvcEndpoint {
     try {
       log.info("Loading release '{}'...", releaseName);
       fileSystemService.loadRelease(releaseName, downloadFilesReader);
+      downloadFileSystem.setReleases(fileSystemService.getReleases());
+      val currentRelease = fileSystemService.getCurrentRelease();
+      rootView.setCurrentRelease(currentRelease);
+      releaseView.setCurrentRelease(currentRelease);
       log.info("Loaded release '{}'", releaseName);
     } catch (NotFoundException e) {
       val message = format("Not found release '%s'", releaseName);

@@ -63,7 +63,7 @@ public class ReleaseView extends AbstractFileSystemView {
 
   public List<DownloadFile> listRelease(@NonNull String releaseName) {
     val current = "current".equals(releaseName);
-    val actualReleaseName = current ? currentRelease : releaseName;
+    val actualReleaseName = current ? currentRelease.get() : releaseName;
     log.debug("Listing release contents for release '{}'", releaseName);
 
     val hdfsPath = pathResolver.toHdfsPath("/" + actualReleaseName);
@@ -84,7 +84,7 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listReleaseProjects(@NonNull String releaseName) {
-    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease.get());
     val projectNames = fsService.getReleaseProjects(actualReleaseName);
     if (!projectNames.isPresent()) {
       throwPathNotFoundException(format("Release '%s' doesn't exist.", actualReleaseName));
@@ -105,7 +105,7 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listReleaseSummary(@NonNull String releaseName) {
-    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease.get());
     val releaseDate = getReleaseDate(actualReleaseName);
     val clinicalSizes = fsService.getClinicalSizes(actualReleaseName);
 
@@ -124,7 +124,7 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   public List<DownloadFile> listProject(@NonNull String releaseName, @NonNull String project) {
-    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease.get());
     val releaseDate = getReleaseDate(actualReleaseName);
     checkRequestPath(fsService.existsProject(actualReleaseName, project), getProjectPath(releaseName, project));
     val projectSizes = fsService.getProjectSizes(actualReleaseName, project);
@@ -149,7 +149,7 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   private List<DownloadFile> getProjectsFiles(String releaseName) {
-    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease.get());
     val projectsFiles = getProjectsFilesPath(actualReleaseName);
     if (!checkExistence(fileSystem, projectsFiles)) {
       return Lists.newArrayList();
@@ -173,7 +173,7 @@ public class ReleaseView extends AbstractFileSystemView {
   }
 
   private List<DownloadFile> getSummaryFiles(String releaseName) {
-    val actualReleaseName = getActualReleaseName(releaseName, currentRelease);
+    val actualReleaseName = getActualReleaseName(releaseName, currentRelease.get());
     val summaryFiles = getSummaryFilesPath(actualReleaseName);
     if (!checkExistence(fileSystem, summaryFiles)) {
       return Lists.newArrayList();

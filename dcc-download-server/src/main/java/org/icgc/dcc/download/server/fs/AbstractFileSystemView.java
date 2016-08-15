@@ -27,6 +27,7 @@ import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
 import static org.icgc.dcc.download.core.model.DownloadFileType.FILE;
 import static org.icgc.dcc.download.server.utils.Responses.throwPathNotFoundException;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import lombok.NonNull;
@@ -55,7 +56,7 @@ public abstract class AbstractFileSystemView {
   protected static final String CURRENT_RELEASE_NAME = "current";
   protected static final String CURRENT_PATH = "/" + CURRENT_RELEASE_NAME;
 
-  protected final String currentRelease;
+  protected final AtomicReference<String> currentRelease;
   protected final FileSystem fileSystem;
   protected final FileSystemService fsService;
   protected final PathResolver pathResolver;
@@ -73,10 +74,14 @@ public abstract class AbstractFileSystemView {
     verifyCurrentRelease(currentRelease);
     log.info("Configuration: Current release - '{}'.", currentRelease);
 
-    this.currentRelease = currentRelease;
+    this.currentRelease = new AtomicReference<>(currentRelease);
     this.fileSystem = fileSystem;
     this.fsService = fsService;
     this.pathResolver = pathResolver;
+  }
+
+  public final void setCurrentRelease(@NonNull String currentRelease) {
+    this.currentRelease.set(currentRelease);
   }
 
   protected DownloadFile convert2DownloadFile(Path file, boolean current) {
