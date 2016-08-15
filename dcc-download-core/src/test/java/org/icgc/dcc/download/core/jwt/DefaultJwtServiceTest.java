@@ -27,7 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 @Slf4j
-public class JwtServiceImplTest {
+public class DefaultJwtServiceTest {
 
   private static final String AES_KEY = "0123456789123456";
   private static final String SECRET = "01234567891234560123456789123456789012345";
@@ -35,12 +35,12 @@ public class JwtServiceImplTest {
   private static final String EXPIRED_TOKEN =
       "eyJjdHkiOiJKV1QiLCJlbmMiOiJBMTI4R0NNIiwiYWxnIjoiZGlyIn0..S0a3DeSfeT2GEAKj.j_YV5Uw7EI--fCgXMsGD3XMaQAxkoOmP61JVSd4KljyamO0QerRxO5sLzndlXcA6vxcwsFG9gxIjDPG4UYJGOB6WlkQnwFK_-2cmqEeQNzMZvNgwUu3_tR-6K6NWUa__xFFUR6DvffLIomgG9Py4ZnE9DZJ73tFEKsKfY6NxFk6kTMncTseTXmJP2cB9cjgersnX6kR9VCcRfE0WlYk3jRK_JYCrYlH0GtfC3KVrhw2h-DT6Wk5DKPn1V5g1QYrb2BxN0QAZHtJm8jOEwtX_WKNYP2ipBNQmD9St-I4-Rw.-FbSEFDOFVbcG-kjkz_faQ";
 
-  JwtServiceImpl service;
+  DefaultJwtService service;
 
   @Before
   public void setUp() {
     val config = createConfig();
-    service = new JwtServiceImpl(config);
+    service = new DefaultJwtService(config);
 
   }
 
@@ -75,7 +75,7 @@ public class JwtServiceImplTest {
     val token = service.createToken("zzz123", "ollie.operator");
 
     val config = createConfig("O4wq75rPWWpm59cFBe90MiZF8iS_fake");
-    service = new JwtServiceImpl(config);
+    service = new DefaultJwtService(config);
     service.parseToken(token);
   }
 
@@ -83,7 +83,7 @@ public class JwtServiceImplTest {
   public void invalidTokenTest_ttl() {
     val token = service.createToken("zzz123", "ollie.operator");
     val config = createConfig(SECRET, 2);
-    service = new JwtServiceImpl(config);
+    service = new DefaultJwtService(config);
 
     service.parseToken(token);
   }

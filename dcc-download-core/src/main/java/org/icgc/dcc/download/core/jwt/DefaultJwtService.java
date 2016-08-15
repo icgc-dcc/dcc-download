@@ -57,7 +57,7 @@ import com.nimbusds.jwt.SignedJWT;
  * http://connect2id.com/products/nimbus-jose-jwt/examples/signed-and-encrypted-jwt
  */
 @Slf4j
-public class JwtServiceImpl implements JwtService {
+public class DefaultJwtService implements JwtService {
 
   /**
    * Constants.
@@ -92,7 +92,7 @@ public class JwtServiceImpl implements JwtService {
   private final int ttlHours;
 
   @SneakyThrows
-  public JwtServiceImpl(@NonNull JwtConfig config) {
+  public DefaultJwtService(@NonNull JwtConfig config) {
     val secret = config.getSharedSecret();
     val aesKey = config.getAesKey();
 
