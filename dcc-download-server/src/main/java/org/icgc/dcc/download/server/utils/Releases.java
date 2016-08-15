@@ -60,7 +60,7 @@ public final class Releases {
     val releaseNumber = Ints.tryParse(stringReleaseNumber);
     checkArgument(releaseNumber != null, "Failed to extract release number from '%s'", releaseName);
 
-    return releaseNumber;
+    return releaseNumber.intValue();
   }
 
   public static boolean isLegacyReleaseName(@NonNull String releaseName) {
