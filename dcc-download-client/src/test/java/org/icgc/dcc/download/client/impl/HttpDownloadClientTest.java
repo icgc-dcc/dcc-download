@@ -39,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.client.DownloadClientConfig;
 import org.icgc.dcc.download.client.util.AbstractHttpTest;
+import org.icgc.dcc.download.core.DownloadServiceUnavailableException;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,11 +56,14 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
   private static final String JOB_ID = "job123";
 
   HttpDownloadClient downloadClient;
+  HttpDownloadClient connectionRefusedDownloadClient;
 
   @Before
   public void setUp() {
     val config = new DownloadClientConfig().baseUrl(getServerUrl()).requestLoggingEnabled(true);
     downloadClient = new HttpDownloadClient(config);
+    config.baseUrl("http://localhost:55555");
+    connectionRefusedDownloadClient = new HttpDownloadClient(config);
   }
 
   @Test
@@ -145,6 +149,35 @@ public class HttpDownloadClientTest extends AbstractHttpTest {
         ));
     val info = downloadClient.getJob(JOB_ID);
     assertThat(info).isNull();
+  }
+
+  @Test
+  public void testIsServiceAvailable() throws Exception {
+    val available = connectionRefusedDownloadClient.isServiceAvailable();
+    assertThat(available).isFalse();
+  }
+
+  @Test(expected = DownloadServiceUnavailableException.class)
+  public void failedSubmitJobTest() {
+    connectionRefusedDownloadClient.submitJob(
+        ImmutableSet.of("DO1"),
+        ImmutableSet.of(DONOR, SSM_CONTROLLED),
+        JobUiInfo.builder().build());
+  }
+
+  @Test(expected = DownloadServiceUnavailableException.class)
+  public void failedGetJobTest() {
+    connectionRefusedDownloadClient.getJob("");
+  }
+
+  @Test(expected = DownloadServiceUnavailableException.class)
+  public void failedGetSizesTest() {
+    connectionRefusedDownloadClient.getSizes(Collections.singleton("DO1"));
+  }
+
+  @Test(expected = DownloadServiceUnavailableException.class)
+  public void failedListFilesTest() {
+    connectionRefusedDownloadClient.listFiles("");
   }
 
 }
