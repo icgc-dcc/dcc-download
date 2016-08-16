@@ -28,6 +28,7 @@ import static org.icgc.dcc.download.core.util.Endpoints.DOWNLOADS_PATH;
 import static org.icgc.dcc.download.core.util.Endpoints.HEALTH_PATH;
 import static org.icgc.dcc.download.core.util.Endpoints.LIST_FILES_PATH;
 
+import java.net.ConnectException;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
@@ -49,6 +50,7 @@ import org.icgc.dcc.common.core.security.DumbX509TrustManager;
 import org.icgc.dcc.download.client.DownloadClient;
 import org.icgc.dcc.download.client.DownloadClientConfig;
 import org.icgc.dcc.download.client.response.HealthResponse;
+import org.icgc.dcc.download.core.DownloadServiceUnavailableException;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.JobUiInfo;
 import org.icgc.dcc.download.core.request.RecordsSizeRequest;
@@ -112,15 +114,19 @@ public class HttpDownloadClient implements DownloadClient {
         .submissionTime(Instant.now().getEpochSecond())
         .build();
 
-    val response = resource.path(DOWNLOADS_PATH)
-        .header(CONTENT_TYPE, JSON_UTF_8)
-        .post(ClientResponse.class, submitJobRequest);
+    try {
+      val response = resource.path(DOWNLOADS_PATH)
+          .header(CONTENT_TYPE, JSON_UTF_8)
+          .post(ClientResponse.class, submitJobRequest);
 
-    if (!isSuccessful(response)) {
-      return null;
+      if (!isSuccessful(response)) {
+        return null;
+      }
+
+      return response.getEntity(String.class);
+    } catch (ClientHandlerException e) {
+      return rethrowConnectionRefused(e);
     }
-
-    return response.getEntity(String.class);
   }
 
   private static boolean isSuccessful(ClientResponse response) {
@@ -129,38 +135,53 @@ public class HttpDownloadClient implements DownloadClient {
 
   @Override
   public JobResponse getJob(@NonNull String jobId) {
-    val request = resource.path(DOWNLOADS_PATH).path(jobId).path("info");
-    val response = request.get(ClientResponse.class);
-    if (!isSuccessful(response)) {
-      return null;
-    }
+    try {
+      val request = resource.path(DOWNLOADS_PATH).path(jobId).path("info");
+      val response = request.get(ClientResponse.class);
 
-    return response.getEntity(JobResponse.class);
+      if (!isSuccessful(response)) {
+        return null;
+      }
+
+      return response.getEntity(JobResponse.class);
+    } catch (ClientHandlerException e) {
+      return rethrowConnectionRefused(e);
+    }
   }
 
   @Override
   public Map<DownloadDataType, Long> getSizes(@NonNull Set<String> donorIds) {
-    val body = new RecordsSizeRequest(donorIds);
-    val response = resource.path(DOWNLOADS_PATH).path("size")
-        .header(CONTENT_TYPE, JSON_UTF_8)
-        .header(CONTENT_ENCODING, GZIP)
-        .post(ClientResponse.class, body);
-    if (!isSuccessful(response)) {
-      return null;
-    }
+    try {
+      val body = new RecordsSizeRequest(donorIds);
+      val response = resource.path(DOWNLOADS_PATH).path("size")
+          .header(CONTENT_TYPE, JSON_UTF_8)
+          .header(CONTENT_ENCODING, GZIP)
+          .post(ClientResponse.class, body);
 
-    return response.getEntity(DataTypeSizesResponse.class).getSizes();
+      if (!isSuccessful(response)) {
+        return null;
+      }
+
+      return response.getEntity(DataTypeSizesResponse.class).getSizes();
+    } catch (ClientHandlerException e) {
+      return rethrowConnectionRefused(e);
+    }
   }
 
   @Override
   public Collection<DownloadFile> listFiles(String path) {
-    val response = resource.path(LIST_FILES_PATH).path(path)
-        .get(ClientResponse.class);
-    if (!isSuccessful(response)) {
-      return null;
-    }
+    try {
+      val response = resource.path(LIST_FILES_PATH).path(path)
+          .get(ClientResponse.class);
 
-    return response.getEntity(new GenericType<Collection<DownloadFile>>() {});
+      if (!isSuccessful(response)) {
+        return null;
+      }
+
+      return response.getEntity(new GenericType<Collection<DownloadFile>>() {});
+    } catch (ClientHandlerException e) {
+      return rethrowConnectionRefused(e);
+    }
   }
 
   private static Set<DownloadDataType> resolveSubmitDataTypes(Set<DownloadDataType> dataTypes) {
@@ -225,6 +246,19 @@ public class HttpDownloadClient implements DownloadClient {
 
   private static boolean isAuthEnabled(DownloadClientConfig config) {
     return !isNullOrEmpty(config.user());
+  }
+
+  private static <T> T rethrowConnectionRefused(ClientHandlerException exception) {
+    val cause = exception.getCause();
+    if (cause instanceof ConnectException && "Connection refused".equals(cause.getMessage())) {
+      return throwServiceUnavailableException();
+    } else {
+      throw exception;
+    }
+  }
+
+  private static <T> T throwServiceUnavailableException() {
+    throw new DownloadServiceUnavailableException();
   }
 
 }
