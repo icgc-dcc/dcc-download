@@ -20,8 +20,10 @@ Secondly, run the utility to upload the index archive to an Elasticsearch cluste
 ```shell
 $ java -jar dcc-download-import-<version>.jar \
   -i </path/to/the/elasticsearch/archive> \
-  -es <elasticsearch_url>
+  -es <elasticsearch_url> \
+  -p <project_code>
 ```
+where the `-p <project_code>` is optional.
 
 For example:
 
