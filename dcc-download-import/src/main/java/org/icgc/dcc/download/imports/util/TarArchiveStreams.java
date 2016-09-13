@@ -15,23 +15,35 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.util;
 
-import java.io.InputStream;
+import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.download.imports.util.Files.checkFileReadability;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.zip.GZIPInputStream;
 
-import lombok.NonNull;
+import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
-public class TarArchiveDocumentReaderFactory {
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
+@NoArgsConstructor(access = PRIVATE)
+public final class TarArchiveStreams {
+
+  @SneakyThrows
+  public static TarArchiveInputStream getTarInputStream(File inputFile) {
+    checkFileReadability(inputFile);
+
+    return new TarArchiveInputStream(new FileInputStream(inputFile));
   }
 
   @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
+  public static TarArchiveInputStream getTarGzInputStream(File inputFile) {
+    checkFileReadability(inputFile);
+
+    return new TarArchiveInputStream(new GZIPInputStream(new FileInputStream(inputFile)));
   }
 
 }

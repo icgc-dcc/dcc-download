@@ -15,39 +15,69 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.command;
+package org.icgc.dcc.download.imports.load;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icgc.dcc.download.imports.core.ArchiveFileType.REPOSITORY;
+import static org.icgc.dcc.download.imports.util.TarEntryNames.getIndexName;
 
 import java.io.File;
+import java.io.FileInputStream;
 
+import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.imports.load.FileLoaderFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackContext;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import org.icgc.dcc.download.imports.util.TarArchiveStreams;
 
 import com.google.common.base.Stopwatch;
 
 @Slf4j
 @RequiredArgsConstructor
-public class IndexClientCommand implements ClientCommand {
+public class RepositoryFileLoader implements FileLoader {
 
   @NonNull
-  private final File inputFile;
+  private final TarArchiveEntryCallbackFactory callbackFactory;
   @NonNull
-  private final FileLoaderFactory fileLoaderFactory;
+  private final TarArchiveDocumentReaderFactory readerFactory;
 
   @Override
   @SneakyThrows
-  public void execute() {
-    log.info("Creating tar reader for file {}", inputFile);
-    val indexWatches = Stopwatch.createStarted();
-    val fileLoader = fileLoaderFactory.getFileLoader(inputFile);
-    fileLoader.loadFile(inputFile);
-    log.info("Finished processing {} in {} seconds.", inputFile, indexWatches.elapsed(SECONDS));
+  public void loadFile(@NonNull File file) {
+    val callbackContext = TarArchiveEntryCallbackContext.builder()
+        .fileType(REPOSITORY)
+        .applySettings(true)
+        .indexName(resolveIndexName(file))
+        .build();
+    val callback = callbackFactory.createCallback(callbackContext);
+
+    log.debug("Creating tar document reader for file {}", file);
+    val reader = readerFactory.createReader(new FileInputStream(file));
+    val watches = Stopwatch.createStarted();
+    try {
+      reader.read(callback);
+    } finally {
+      callback.close();
+    }
+    log.info("Finished indexing file {} in {} seconds.", file, watches.elapsed(SECONDS));
+  }
+
+  @SneakyThrows
+  private String resolveIndexName(File file) {
+    @Cleanup
+    val archiveStream = TarArchiveStreams.getTarGzInputStream(file);
+    val entry = archiveStream.getNextTarEntry();
+    checkNotNull(entry, "Failed to resolve index name from file '%s'", file);
+    val entryName = entry.getName();
+
+    return getIndexName(entryName);
   }
 
 }

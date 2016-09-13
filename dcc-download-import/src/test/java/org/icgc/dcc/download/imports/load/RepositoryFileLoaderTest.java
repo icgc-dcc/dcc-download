@@ -15,60 +15,51 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.command;
+package org.icgc.dcc.download.imports.load;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.io.InputStream;
-import java.util.Optional;
 
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
-import org.icgc.dcc.download.imports.io.TarArchiveDocumentReader;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackContext;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
-import org.icgc.dcc.release.core.document.DocumentType;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-@Slf4j
 @RunWith(MockitoJUnitRunner.class)
-public class IndexClientCommandTest {
+public class RepositoryFileLoaderTest {
 
-  private static final File DATA_FILE = new File("src/test/resources/fixtures/input/data.tar");
+  private static final File REPOSITORY_FILE = new File("src/test/resources/fixtures/input/icgc-repository.tar.gz");
+
+  RepositoryFileLoader loader;
 
   @Mock
   TarArchiveEntryCallbackFactory callbackFactory;
   @Mock
   TarArchiveEntryCallback callback;
-  @Mock
-  TarArchiveDocumentReaderFactory readerFactory;
-  @Mock
-  TarArchiveDocumentReader reader;
 
-  IndexClientCommand indexCommand;
-
-  @Test
-  public void testExecute() throws Exception {
-    val emptyProject = Optional.<String> empty();
-    when(readerFactory.createReader(any(InputStream.class), eq(emptyProject))).thenReturn(reader);
-    when(callbackFactory.createCallback(eq("icgc21-0-0"), any(Boolean.class))).thenReturn(callback);
-
-    indexCommand = new IndexClientCommand(DATA_FILE, emptyProject, callbackFactory, readerFactory);
-    indexCommand.execute();
-
-    log.info("Verifying with reader {} and callback {}", reader.hashCode(), callback.hashCode());
-    verify(reader, times(1)).read(DocumentType.DONOR_TYPE, callback);
-    verify(reader, times(1)).read(DocumentType.MUTATION_CENTRIC_TYPE, callback);
+  @Before
+  public void setUp() {
+    when(callbackFactory.createCallback(any(TarArchiveEntryCallbackContext.class))).thenReturn(callback);
+    loader = new RepositoryFileLoader(callbackFactory, TarArchiveDocumentReaderFactory.create());
   }
 
+  @Test
+  public void testLoadFile() throws Exception {
+    loader.loadFile(REPOSITORY_FILE);
+
+    verify(callback).onSettings(any());
+    verify(callback).onMapping(eq("file-centric"), any());
+    verify(callback).onMapping(eq("file-text"), any());
+    verify(callback).onDocument(any());
+    verify(callback).close();
+  }
 }

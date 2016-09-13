@@ -15,23 +15,40 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.core;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
-
+import static java.lang.String.format;
+import static lombok.AccessLevel.PRIVATE;
+import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
+import static org.icgc.dcc.common.core.util.stream.Streams.stream;
 import lombok.NonNull;
-import lombok.SneakyThrows;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
 
-public class TarArchiveDocumentReaderFactory {
+@RequiredArgsConstructor(access = PRIVATE)
+public enum ArchiveFileType {
 
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
+  RELEASE("release.tar"),
+  REPOSITORY("repository.tar.gz");
+
+  @NonNull
+  private final String fileName;
+
+  public static ArchiveFileType from(@NonNull String fileName) {
+    for (val value : values()) {
+      if (value.fileName.equals(fileName)) {
+        return value;
+      }
+    }
+
+    throw new IllegalArgumentException(format("Failed to resolve %s from file name '%s'",
+        ArchiveFileType.class.getSimpleName(), fileName));
   }
 
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
+  public static Iterable<String> getFileNames() {
+    return stream(values())
+        .map(fileType -> fileType.fileName)
+        .collect(toImmutableList());
   }
 
 }

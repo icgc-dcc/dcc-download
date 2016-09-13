@@ -15,39 +15,55 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.command;
+package org.icgc.dcc.download.imports.load;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackContext;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-import org.icgc.dcc.download.imports.load.FileLoaderFactory;
+@RunWith(MockitoJUnitRunner.class)
+public class ReleaseFileLoaderTest {
 
-import com.google.common.base.Stopwatch;
+  private static final String PROJECT = "TEST-CA";
+  private static final File RELEASE_FILE = new File("src/test/resources/fixtures/input/release.tar");
 
-@Slf4j
-@RequiredArgsConstructor
-public class IndexClientCommand implements ClientCommand {
+  @Mock
+  TarArchiveEntryCallbackFactory callbackFactory;
+  TarArchiveDocumentReaderFactory readerFactory = TarArchiveDocumentReaderFactory.create();
+  @Mock
+  TarArchiveEntryCallback callback;
 
-  @NonNull
-  private final File inputFile;
-  @NonNull
-  private final FileLoaderFactory fileLoaderFactory;
+  ReleaseFileLoader loader;
 
-  @Override
-  @SneakyThrows
-  public void execute() {
-    log.info("Creating tar reader for file {}", inputFile);
-    val indexWatches = Stopwatch.createStarted();
-    val fileLoader = fileLoaderFactory.getFileLoader(inputFile);
-    fileLoader.loadFile(inputFile);
-    log.info("Finished processing {} in {} seconds.", inputFile, indexWatches.elapsed(SECONDS));
+  @Before
+  public void setUp() {
+    loader = new ReleaseFileLoader(PROJECT, callbackFactory, readerFactory);
+    when(callbackFactory.createCallback(any(TarArchiveEntryCallbackContext.class))).thenReturn(callback);
+  }
+
+  @Test
+  public void testLoadFile() throws Exception {
+    loader.loadFile(RELEASE_FILE);
+
+    verify(callback, times(2)).onSettings(any());
+    verify(callback).onMapping(eq("donor"), any());
+    verify(callback).onMapping(eq("mutation-centric"), any());
+    verify(callback, times(2)).onDocument(any());
+    verify(callback, times(2)).close();
   }
 
 }
