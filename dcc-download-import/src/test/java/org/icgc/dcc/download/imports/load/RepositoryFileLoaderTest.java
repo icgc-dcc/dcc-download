@@ -37,7 +37,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RepositoryFileLoaderTest {
 
-  private static final File REPOSITORY_FILE = new File("src/test/resources/fixtures/input/icgc-repository.tar.gz");
+  private static final File REPOSITORY_FILE = new File("src/test/resources/fixtures/input/repository.tar.gz");
 
   RepositoryFileLoader loader;
 
