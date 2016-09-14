@@ -20,13 +20,14 @@ package org.icgc.dcc.download.imports.load;
 import static org.icgc.dcc.download.imports.util.Tests.REPOSITORY_FILE;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,7 +57,7 @@ public class RepositoryFileLoaderTest {
     verify(callback).onSettings(any());
     verify(callback).onMapping(eq("file-centric"), any());
     verify(callback).onMapping(eq("file-text"), any());
-    verify(callback).onDocument(any());
+    verify(callback, times(2)).onDocument(any());
     verify(callback).close();
   }
 }

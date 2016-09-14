@@ -64,7 +64,6 @@ public class TarArchiveDocumentReader {
   @SneakyThrows
   public void read(TarArchiveEntryCallback callback) {
     val archiveStream = readArchiveStream(inputStream);
-    DocumentType documentType = null;
 
     TarArchiveEntry entry;
     while ((entry = archiveStream.getNextTarEntry()) != null) { // NOPMD
@@ -87,12 +86,9 @@ public class TarArchiveDocumentReader {
 
         callback.onMapping(mappingTypeName, mapping);
       } else {
-        if (documentType == null) {
-          documentType = resolveDocumentType(entryName);
-        }
-
         val docId = getDocumentId(entryName);
         val source = readSource(archiveStream);
+        val documentType = resolveDocumentType(entryName);
         val document = new Document(docId, source, documentType); // NOPMD
 
         // Dispatch

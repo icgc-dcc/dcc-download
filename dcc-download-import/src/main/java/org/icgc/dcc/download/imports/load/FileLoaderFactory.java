@@ -26,12 +26,14 @@ import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.imports.core.ArchiveFileType;
 import org.icgc.dcc.download.imports.core.DownloadImportException;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
 
+@Slf4j
 @RequiredArgsConstructor
 public class FileLoaderFactory {
 
@@ -44,6 +46,8 @@ public class FileLoaderFactory {
 
   public FileLoader getFileLoader(@NonNull File file) {
     val fileType = resolveArchiveFileType(file);
+    log.debug("Resolved file type {} from file '{}'", fileType, file.getAbsolutePath());
+
     switch (fileType) {
     case RELEASE:
       return new ReleaseFileLoader(project, callbackFactory, readerFactory);
