@@ -15,23 +15,14 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.util;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
+import java.io.File;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
+public class Tests {
 
-public class TarArchiveDocumentReaderFactory {
-
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
-  }
-
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
-  }
+  public static final String REPOSITORY_INPUT_FILE = "src/test/resources/fixtures/input/repository.tar.gz";
+  public static final File RELEASE_FILE = new File("src/test/resources/fixtures/input/release.tar");
+  public static final File REPOSITORY_FILE = new File("src/test/resources/fixtures/input/repository.tar.gz");
 
 }

@@ -15,23 +15,52 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.load;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
+import static org.icgc.dcc.download.imports.core.ArchiveFileType.getFileNames;
+
+import java.io.File;
+
+import javax.annotation.Nullable;
 
 import lombok.NonNull;
-import lombok.SneakyThrows;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
 
-public class TarArchiveDocumentReaderFactory {
+import org.icgc.dcc.download.imports.core.ArchiveFileType;
+import org.icgc.dcc.download.imports.core.DownloadImportException;
+import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
 
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
+@RequiredArgsConstructor
+public class FileLoaderFactory {
+
+  @Nullable
+  private final String project;
+  @NonNull
+  private final TarArchiveEntryCallbackFactory callbackFactory;
+  @NonNull
+  private final TarArchiveDocumentReaderFactory readerFactory;
+
+  public FileLoader getFileLoader(@NonNull File file) {
+    val fileType = resolveArchiveFileType(file);
+    switch (fileType) {
+    case RELEASE:
+      return new ReleaseFileLoader(project, callbackFactory, readerFactory);
+    case REPOSITORY:
+      return new RepositoryFileLoader(callbackFactory, readerFactory);
+    default:
+      // Won't get here
+      throw new IllegalArgumentException();
+    }
   }
 
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
+  private static ArchiveFileType resolveArchiveFileType(File file) {
+    try {
+      return ArchiveFileType.from(file.getName());
+    } catch (IllegalArgumentException e) {
+      throw new DownloadImportException("Unsupported file '%s'. Valid files: %s", file, getFileNames());
+    }
   }
 
 }

@@ -15,23 +15,52 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.load;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
+import static org.icgc.dcc.download.imports.util.Tests.RELEASE_FILE;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
+import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-public class TarArchiveDocumentReaderFactory {
+@RunWith(MockitoJUnitRunner.class)
+public class ReleaseFileLoaderTest {
 
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
+  private static final String PROJECT = "TEST-CA";
+  @Mock
+  TarArchiveEntryCallbackFactory callbackFactory;
+  TarArchiveDocumentReaderFactory readerFactory = TarArchiveDocumentReaderFactory.create();
+  @Mock
+  TarArchiveEntryCallback callback;
+
+  ReleaseFileLoader loader;
+
+  @Before
+  public void setUp() {
+    loader = new ReleaseFileLoader(PROJECT, callbackFactory, readerFactory);
+    when(callbackFactory.createCallback(any(TarArchiveEntryContext.class))).thenReturn(callback);
   }
 
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
+  @Test
+  public void testLoadFile() throws Exception {
+    loader.loadFile(RELEASE_FILE);
+
+    verify(callback, times(2)).onSettings(any());
+    verify(callback).onMapping(eq("donor"), any());
+    verify(callback).onMapping(eq("mutation-centric"), any());
+    verify(callback, times(2)).onDocument(any());
+    verify(callback, times(2)).close();
   }
 
 }

@@ -15,23 +15,39 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.load;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.download.imports.util.Tests.RELEASE_FILE;
+import static org.icgc.dcc.download.imports.util.Tests.REPOSITORY_FILE;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
+import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-public class TarArchiveDocumentReaderFactory {
+@RunWith(MockitoJUnitRunner.class)
+public class FileLoaderFactoryTest {
 
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
+  @Mock
+  TarArchiveEntryCallbackFactory callbackFactory;
+  @Mock
+  TarArchiveDocumentReaderFactory readerFactory;
+
+  FileLoaderFactory factory;
+
+  @Before
+  public void setUp() {
+    factory = new FileLoaderFactory(null, callbackFactory, readerFactory);
   }
 
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
+  @Test
+  public void testGetFileLoader() throws Exception {
+    assertThat(factory.getFileLoader(RELEASE_FILE)).isInstanceOf(ReleaseFileLoader.class);
+    assertThat(factory.getFileLoader(REPOSITORY_FILE)).isInstanceOf(RepositoryFileLoader.class);
   }
 
 }

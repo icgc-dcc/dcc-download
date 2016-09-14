@@ -18,15 +18,11 @@
 package org.icgc.dcc.download.imports.io;
 
 import static com.fasterxml.jackson.core.JsonParser.Feature.AUTO_CLOSE_SOURCE;
-import static java.lang.String.format;
-import static org.icgc.dcc.common.core.util.Formats.formatCount;
-import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
-import static org.icgc.dcc.download.imports.util.JsonNodes.getPathValue;
+import static org.icgc.dcc.download.imports.util.TarEntryNames.getDocumentId;
+import static org.icgc.dcc.download.imports.util.TarEntryNames.getDocumentType;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
-import java.util.Optional;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +32,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.icgc.dcc.release.core.document.Document;
-import org.icgc.dcc.release.core.document.DocumentType;
+import org.icgc.dcc.dcc.common.es.impl.DocumentType;
+import org.icgc.dcc.dcc.common.es.model.Document;
+import org.icgc.dcc.download.imports.core.DefaultDocumentType;
+import org.icgc.dcc.download.imports.util.TarEntryNames;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,18 +60,17 @@ public class TarArchiveDocumentReader {
    */
   @NonNull
   private final InputStream inputStream;
-  @NonNull
-  private final Optional<String> project;
 
   @SneakyThrows
-  public void read(@NonNull DocumentType type, @NonNull TarArchiveEntryCallback callback) {
+  public void read(TarArchiveEntryCallback callback) {
     val archiveStream = readArchiveStream(inputStream);
+    DocumentType documentType = null;
 
-    int count = 0;
     TarArchiveEntry entry;
     while ((entry = archiveStream.getNextTarEntry()) != null) { // NOPMD
       val entryName = entry.getName();
       log.debug("Processing entry: {}", entryName);
+
       // An archive contains directories when it's manually created with the tar utility
       if (entry.isDirectory()) {
         log.debug("{} is a directory. Skipping...", entryName);
@@ -86,94 +83,29 @@ public class TarArchiveDocumentReader {
         callback.onSettings(settings);
       } else if (isMappingEntry(entry)) {
         val mapping = readSource(archiveStream);
-        val mappingTypeName = getEntryNamePart(entry, 1);
+        val mappingTypeName = getDocumentType(entryName);
 
         callback.onMapping(mappingTypeName, mapping);
       } else {
-        val docId = getEntryNamePart(entry, 2);
-        val source = readSource(archiveStream);
-        if (isSkipIndexing(source, type)) {
-          log.debug("Skipping '{}' document as it doesn't belong to the project", docId);
-          continue;
+        if (documentType == null) {
+          documentType = resolveDocumentType(entryName);
         }
 
-        val document = new Document(type, docId, source); // NOPMD
+        val docId = getDocumentId(entryName);
+        val source = readSource(archiveStream);
+        val document = new Document(docId, source, documentType); // NOPMD
 
         // Dispatch
         callback.onDocument(document);
-
-        if (++count % 1000 == 0) {
-          log.info("Document count: {}", formatCount(count));
-        }
       }
     }
   }
 
-  private boolean isSkipIndexing(ObjectNode source, DocumentType type) {
-    if (project.isPresent() && hasProject(type)) {
-      val projectName = project.get();
-      val documentProjectPath = resolveDocumentProjectPath(type);
-      if (!documentProjectPath.isPresent()) {
-        return false;
-      }
+  private DocumentType resolveDocumentType(String entryName) {
+    val documentType = TarEntryNames.getDocumentType(entryName);
+    log.debug("Resolved document type {} from entry name {}", documentType, entryName);
 
-      val documentProject = getDocumentProjects(source, documentProjectPath.get());
-
-      return !documentProject.contains(projectName);
-    }
-
-    return false;
-  }
-
-  private static boolean hasProject(DocumentType type) {
-    return resolveDocumentProjectPath(type).isPresent();
-  }
-
-  /**
-   * Returns collection because some documents may contain multiple projects.<br>
-   * For example, {@code gene-centric} has multiple donors that contains projects.
-   */
-  private static Collection<String> getDocumentProjects(ObjectNode source, String documentProjectPath) {
-    return getPathValue(source, documentProjectPath).stream()
-        .map(node -> node.textValue())
-        .collect(toImmutableList());
-  }
-
-  private static Optional<String> resolveDocumentProjectPath(DocumentType type) {
-    switch (type) {
-    case DIAGRAM_TYPE:
-    case DRUG_TEXT_TYPE:
-    case DRUG_CENTRIC_TYPE:
-    case RELEASE_TYPE:
-    case GENE_SET_TYPE:
-    case GENE_SET_TEXT_TYPE:
-    case GENE_TYPE:
-    case GENE_TEXT_TYPE:
-    case MUTATION_TEXT_TYPE:
-      return Optional.empty();
-    case PROJECT_TYPE:
-      return Optional.of("_project_id");
-    case PROJECT_TEXT_TYPE:
-      return Optional.of("id");
-    case DONOR_TYPE:
-      return Optional.of("_project_id");
-    case DONOR_TEXT_TYPE:
-      return Optional.of("projectId");
-    case DONOR_CENTRIC_TYPE:
-      return Optional.of("_project_id");
-    case GENE_CENTRIC_TYPE:
-      return Optional.of("donor.project._project_id");
-    case OBSERVATION_CENTRIC_TYPE:
-      return Optional.of("project._project_id");
-    case MUTATION_CENTRIC_TYPE:
-      return Optional.of("ssm_occurrence.project._project_id");
-    default:
-      throw new IllegalArgumentException(format("Failed to resolve project path for type '%s'", type));
-    }
-  }
-
-  private static String getEntryNamePart(TarArchiveEntry entry, int part) {
-    return entry.getName().split("/")[part];
+    return new DefaultDocumentType(documentType);
   }
 
   private static boolean isSettingsEntry(TarArchiveEntry entry) {

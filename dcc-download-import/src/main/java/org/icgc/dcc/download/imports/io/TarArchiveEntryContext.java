@@ -17,21 +17,27 @@
  */
 package org.icgc.dcc.download.imports.io;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
+import javax.annotation.Nullable;
 
+import lombok.Builder;
 import lombok.NonNull;
-import lombok.SneakyThrows;
+import lombok.Value;
 
-public class TarArchiveDocumentReaderFactory {
+import org.icgc.dcc.download.imports.core.ArchiveFileType;
+import org.icgc.dcc.release.core.document.DocumentType;
 
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
-  }
+@Value
+@Builder
+public class TarArchiveEntryContext {
 
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
-  }
+  @NonNull
+  String indexName;
+  @NonNull
+  ArchiveFileType fileType;
+  boolean applySettings;
+  @Nullable
+  DocumentType documentType;
+  @Nullable
+  String project;
 
 }

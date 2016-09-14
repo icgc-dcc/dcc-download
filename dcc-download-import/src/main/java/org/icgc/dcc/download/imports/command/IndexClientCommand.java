@@ -17,30 +17,17 @@
  */
 package org.icgc.dcc.download.imports.command;
 
-import static com.google.common.base.Preconditions.checkState;
-import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Optional;
-import java.util.regex.Pattern;
 
-import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.icgc.dcc.download.imports.core.DownloadImportException;
-import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
-import org.icgc.dcc.release.core.document.DocumentType;
+import org.icgc.dcc.download.imports.load.FileLoaderFactory;
 
 import com.google.common.base.Stopwatch;
 
@@ -48,94 +35,19 @@ import com.google.common.base.Stopwatch;
 @RequiredArgsConstructor
 public class IndexClientCommand implements ClientCommand {
 
-  private static final Pattern TYPE_TAR_NAME_PATTERN = Pattern.compile("^(.*)_(.*)\\.tar\\.gz$");
-
   @NonNull
   private final File inputFile;
   @NonNull
-  private final Optional<String> project;
-  @NonNull
-  private final TarArchiveEntryCallbackFactory callbackFactory;
-  @NonNull
-  private final TarArchiveDocumentReaderFactory readerFactory;
+  private final FileLoaderFactory fileLoaderFactory;
 
   @Override
   @SneakyThrows
   public void execute() {
     log.info("Creating tar reader for file {}", inputFile);
-    @Cleanup
-    val tarInput = getTarInputStream(inputFile);
-
-    TarArchiveEntry tarEntry;
-    boolean applySettings = true;
     val indexWatches = Stopwatch.createStarted();
-    while ((tarEntry = tarInput.getNextTarEntry()) != null) { // NOPMD
-      processTypeTarEntry(tarInput, tarEntry, applySettings);
-      applySettings = false;
-    }
-
+    val fileLoader = fileLoaderFactory.getFileLoader(inputFile);
+    fileLoader.loadFile(inputFile);
     log.info("Finished processing {} in {} seconds.", inputFile, indexWatches.elapsed(SECONDS));
-  }
-
-  private void processTypeTarEntry(InputStream inputStream, TarArchiveEntry tarEntry, boolean applySettings)
-      throws IOException {
-    val entryName = tarEntry.getName();
-
-    log.debug("Creating tar document reader for tar entry {}", entryName);
-    val reader = readerFactory.createReader(inputStream, project);
-    val documentType = resolveDocumentType(entryName);
-    val indexName = resolveIndexName(entryName);
-
-    log.info("Indexing file '{}' into index '{}'", entryName, indexName);
-    // Don't use @Cleanup as the callback will be closed after the log message "Finished indexing file" has been
-    // written.
-    val typeWatches = Stopwatch.createStarted();
-    val callback = callbackFactory.createCallback(indexName, applySettings);
-
-    try {
-      reader.read(documentType, callback);
-    } finally {
-      callback.close();
-    }
-
-    // Apply index settings only once, but each tar entry contains own settings copy
-    log.info("Finished indexing file {} in {} seconds.", entryName, typeWatches.elapsed(SECONDS));
-  }
-
-  private static String resolveIndexName(String entryName) {
-    log.debug("Resolving indexName from tar name {}", entryName);
-    val matcher = TYPE_TAR_NAME_PATTERN.matcher(entryName);
-    checkState(matcher.matches(), "Failed to resolve index name from tar name %s", entryName);
-
-    return matcher.group(1);
-  }
-
-  private static DocumentType resolveDocumentType(String entryName) {
-    log.debug("Resolving document type from tar name {}", entryName);
-    val matcher = TYPE_TAR_NAME_PATTERN.matcher(entryName);
-    checkState(matcher.matches(), "Failed to resolve document type from tar name %s", entryName);
-
-    val documentTypeName = matcher.group(2);
-    log.debug("Getting document from document type name '{}'", documentTypeName);
-
-    return DocumentType.byName(documentTypeName);
-  }
-
-  @SneakyThrows
-  private static TarArchiveInputStream getTarInputStream(File inputFile) {
-    checkFileReadability(inputFile);
-
-    return new TarArchiveInputStream(new FileInputStream(inputFile));
-  }
-
-  private static void checkFileReadability(File inputFile) {
-    if (!inputFile.exists()) {
-      throw new DownloadImportException(format("Input file '%s' doesn't exist.", inputFile));
-    }
-
-    if (!inputFile.canRead()) {
-      throw new DownloadImportException(format("Input file '%s' is not readable.", inputFile));
-    }
   }
 
 }

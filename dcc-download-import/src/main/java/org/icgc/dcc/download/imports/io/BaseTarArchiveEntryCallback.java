@@ -17,20 +17,24 @@
  */
 package org.icgc.dcc.download.imports.io;
 
+import static org.icgc.dcc.common.core.util.Formats.formatCount;
+
 import java.io.IOException;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
+import org.icgc.dcc.dcc.common.es.core.DocumentWriter;
+import org.icgc.dcc.dcc.common.es.model.Document;
 import org.icgc.dcc.download.imports.service.IndexService;
-import org.icgc.dcc.release.core.document.Document;
-import org.icgc.dcc.release.core.document.DocumentWriter;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+@Slf4j
 @RequiredArgsConstructor
-public class TarArchiveEntryCallbackImpl implements TarArchiveEntryCallback {
+public class BaseTarArchiveEntryCallback implements TarArchiveEntryCallback {
 
   /**
    * Configuration.
@@ -44,6 +48,11 @@ public class TarArchiveEntryCallbackImpl implements TarArchiveEntryCallback {
   private final DocumentWriter documentWriter;
   @NonNull
   private final IndexService indexService;
+
+  /**
+   * State.
+   */
+  private int count = 0;
 
   @Override
   public void onSettings(ObjectNode settings) {
@@ -61,6 +70,10 @@ public class TarArchiveEntryCallbackImpl implements TarArchiveEntryCallback {
   @SneakyThrows
   public void onDocument(Document document) {
     documentWriter.write(document);
+
+    if (++count % 1000 == 0) {
+      log.info("Document count: {}", formatCount(count));
+    }
   }
 
   @Override

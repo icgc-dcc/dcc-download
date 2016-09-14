@@ -15,60 +15,66 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.command;
+package org.icgc.dcc.download.imports.load;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icgc.dcc.download.imports.core.ArchiveFileType.REPOSITORY;
+import static org.icgc.dcc.download.imports.util.TarEntryNames.getIndexName;
 
 import java.io.File;
-import java.io.InputStream;
-import java.util.Optional;
+import java.io.FileInputStream;
 
+import lombok.Cleanup;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-import org.icgc.dcc.download.imports.io.TarArchiveDocumentReader;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
-import org.icgc.dcc.release.core.document.DocumentType;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.icgc.dcc.download.imports.util.TarArchiveStreams;
+
+import com.google.common.base.Stopwatch;
 
 @Slf4j
-@RunWith(MockitoJUnitRunner.class)
-public class IndexClientCommandTest {
+@RequiredArgsConstructor
+public class RepositoryFileLoader implements FileLoader {
 
-  private static final File DATA_FILE = new File("src/test/resources/fixtures/input/data.tar");
+  @NonNull
+  private final TarArchiveEntryCallbackFactory callbackFactory;
+  @NonNull
+  private final TarArchiveDocumentReaderFactory readerFactory;
 
-  @Mock
-  TarArchiveEntryCallbackFactory callbackFactory;
-  @Mock
-  TarArchiveEntryCallback callback;
-  @Mock
-  TarArchiveDocumentReaderFactory readerFactory;
-  @Mock
-  TarArchiveDocumentReader reader;
+  @Override
+  @SneakyThrows
+  public void loadFile(@NonNull File file) {
+    val callbackContext = TarArchiveEntryContext.builder()
+        .fileType(REPOSITORY)
+        .applySettings(true)
+        .indexName(resolveIndexName(file))
+        .build();
+    @Cleanup
+    val callback = callbackFactory.createCallback(callbackContext);
 
-  IndexClientCommand indexCommand;
+    log.debug("Creating tar document reader for file {}", file);
+    val reader = readerFactory.createReader(new FileInputStream(file));
+    val watch = Stopwatch.createStarted();
+    reader.read(callback);
+    log.info("Finished indexing file {} in {} seconds.", file, watch.elapsed(SECONDS));
+  }
 
-  @Test
-  public void testExecute() throws Exception {
-    val emptyProject = Optional.<String> empty();
-    when(readerFactory.createReader(any(InputStream.class), eq(emptyProject))).thenReturn(reader);
-    when(callbackFactory.createCallback(eq("icgc21-0-0"), any(Boolean.class))).thenReturn(callback);
+  @SneakyThrows
+  private String resolveIndexName(File file) {
+    @Cleanup
+    val archiveStream = TarArchiveStreams.getTarGzInputStream(file);
+    val entry = archiveStream.getNextTarEntry();
+    checkNotNull(entry, "Failed to resolve index name from file '%s'", file);
+    val entryName = entry.getName();
 
-    indexCommand = new IndexClientCommand(DATA_FILE, emptyProject, callbackFactory, readerFactory);
-    indexCommand.execute();
-
-    log.info("Verifying with reader {} and callback {}", reader.hashCode(), callback.hashCode());
-    verify(reader, times(1)).read(DocumentType.DONOR_TYPE, callback);
-    verify(reader, times(1)).read(DocumentType.MUTATION_CENTRIC_TYPE, callback);
+    return getIndexName(entryName);
   }
 
 }

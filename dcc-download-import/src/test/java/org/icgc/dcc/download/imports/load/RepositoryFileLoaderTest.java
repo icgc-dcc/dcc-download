@@ -15,23 +15,48 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.load;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
+import static org.icgc.dcc.download.imports.util.Tests.REPOSITORY_FILE;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
+import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
-public class TarArchiveDocumentReaderFactory {
+@RunWith(MockitoJUnitRunner.class)
+public class RepositoryFileLoaderTest {
 
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
+  RepositoryFileLoader loader;
+
+  @Mock
+  TarArchiveEntryCallbackFactory callbackFactory;
+  @Mock
+  TarArchiveEntryCallback callback;
+
+  @Before
+  public void setUp() {
+    when(callbackFactory.createCallback(any(TarArchiveEntryContext.class))).thenReturn(callback);
+    loader = new RepositoryFileLoader(callbackFactory, TarArchiveDocumentReaderFactory.create());
   }
 
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
-  }
+  @Test
+  public void testLoadFile() throws Exception {
+    loader.loadFile(REPOSITORY_FILE);
 
+    verify(callback).onSettings(any());
+    verify(callback).onMapping(eq("file-centric"), any());
+    verify(callback).onMapping(eq("file-text"), any());
+    verify(callback).onDocument(any());
+    verify(callback).close();
+  }
 }

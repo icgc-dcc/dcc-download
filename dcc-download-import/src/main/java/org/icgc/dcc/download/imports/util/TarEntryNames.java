@@ -15,23 +15,28 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.util;
 
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
+import static lombok.AccessLevel.PRIVATE;
+import lombok.NoArgsConstructor;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
+@NoArgsConstructor(access = PRIVATE)
+public final class TarEntryNames {
 
-public class TarArchiveDocumentReaderFactory {
-
-  public static TarArchiveDocumentReaderFactory create() {
-    return new TarArchiveDocumentReaderFactory();
+  public static String getIndexName(String entryName) {
+    return getNamePart(entryName, 0);
   }
 
-  @SneakyThrows
-  public TarArchiveDocumentReader createReader(@NonNull InputStream inputStream) {
-    return new TarArchiveDocumentReader(new GZIPInputStream(inputStream));
+  public static String getDocumentType(String entryName) {
+    return getNamePart(entryName, 1);
+  }
+
+  public static String getDocumentId(String entryName) {
+    return getNamePart(entryName, 2);
+  }
+
+  private static String getNamePart(String name, int part) {
+    return name.split("/")[part];
   }
 
 }

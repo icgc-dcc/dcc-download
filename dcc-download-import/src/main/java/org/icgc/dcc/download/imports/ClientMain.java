@@ -22,9 +22,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Strings.repeat;
 import static java.lang.System.err;
 import static java.lang.System.out;
-
-import java.util.Optional;
-
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,6 +30,7 @@ import org.icgc.dcc.download.imports.command.IndexClientCommand;
 import org.icgc.dcc.download.imports.conf.ClientOptions;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
+import org.icgc.dcc.download.imports.load.FileLoaderFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
@@ -93,11 +91,12 @@ public class ClientMain {
   }
 
   private static ClientCommand resolveCommand(ClientOptions options) {
-    return new IndexClientCommand(
-        options.inputFile,
-        Optional.ofNullable(options.project),
+    val fileLoaderFactory = new FileLoaderFactory(
+        options.project,
         TarArchiveEntryCallbackFactory.create(options.esUrl),
         TarArchiveDocumentReaderFactory.create());
+
+    return new IndexClientCommand(options.inputFile, fileLoaderFactory);
   }
 
   private static void banner(String message, Object... args) {
