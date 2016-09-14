@@ -15,52 +15,29 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.load;
+package org.icgc.dcc.download.imports.io;
 
-import static org.icgc.dcc.download.imports.util.Tests.RELEASE_FILE;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import javax.annotation.Nullable;
 
-import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import lombok.Builder;
+import lombok.NonNull;
+import lombok.Value;
 
-@RunWith(MockitoJUnitRunner.class)
-public class ReleaseFileLoaderTest {
+import org.icgc.dcc.download.imports.core.ArchiveFileType;
+import org.icgc.dcc.release.core.document.DocumentType;
 
-  private static final String PROJECT = "TEST-CA";
-  @Mock
-  TarArchiveEntryCallbackFactory callbackFactory;
-  TarArchiveDocumentReaderFactory readerFactory = TarArchiveDocumentReaderFactory.create();
-  @Mock
-  TarArchiveEntryCallback callback;
+@Value
+@Builder
+public class TarArchiveEntryContext {
 
-  ReleaseFileLoader loader;
-
-  @Before
-  public void setUp() {
-    loader = new ReleaseFileLoader(PROJECT, callbackFactory, readerFactory);
-    when(callbackFactory.createCallback(any(TarArchiveEntryContext.class))).thenReturn(callback);
-  }
-
-  @Test
-  public void testLoadFile() throws Exception {
-    loader.loadFile(RELEASE_FILE);
-
-    verify(callback, times(2)).onSettings(any());
-    verify(callback).onMapping(eq("donor"), any());
-    verify(callback).onMapping(eq("mutation-centric"), any());
-    verify(callback, times(2)).onDocument(any());
-    verify(callback, times(2)).close();
-  }
+  @NonNull
+  String indexName;
+  @NonNull
+  ArchiveFileType fileType;
+  boolean applySettings;
+  @Nullable
+  DocumentType documentType;
+  @Nullable
+  String project;
 
 }

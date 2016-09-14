@@ -33,7 +33,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackContext;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
 import org.icgc.dcc.download.imports.util.TarArchiveStreams;
 
@@ -51,22 +51,19 @@ public class RepositoryFileLoader implements FileLoader {
   @Override
   @SneakyThrows
   public void loadFile(@NonNull File file) {
-    val callbackContext = TarArchiveEntryCallbackContext.builder()
+    val callbackContext = TarArchiveEntryContext.builder()
         .fileType(REPOSITORY)
         .applySettings(true)
         .indexName(resolveIndexName(file))
         .build();
+    @Cleanup
     val callback = callbackFactory.createCallback(callbackContext);
 
     log.debug("Creating tar document reader for file {}", file);
     val reader = readerFactory.createReader(new FileInputStream(file));
-    val watches = Stopwatch.createStarted();
-    try {
-      reader.read(callback);
-    } finally {
-      callback.close();
-    }
-    log.info("Finished indexing file {} in {} seconds.", file, watches.elapsed(SECONDS));
+    val watch = Stopwatch.createStarted();
+    reader.read(callback);
+    log.info("Finished indexing file {} in {} seconds.", file, watch.elapsed(SECONDS));
   }
 
   @SneakyThrows

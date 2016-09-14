@@ -17,16 +17,15 @@
  */
 package org.icgc.dcc.download.imports.load;
 
+import static org.icgc.dcc.download.imports.util.Tests.REPOSITORY_FILE;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
-
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallback;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackContext;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,8 +36,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RepositoryFileLoaderTest {
 
-  private static final File REPOSITORY_FILE = new File("src/test/resources/fixtures/input/repository.tar.gz");
-
   RepositoryFileLoader loader;
 
   @Mock
@@ -48,7 +45,7 @@ public class RepositoryFileLoaderTest {
 
   @Before
   public void setUp() {
-    when(callbackFactory.createCallback(any(TarArchiveEntryCallbackContext.class))).thenReturn(callback);
+    when(callbackFactory.createCallback(any(TarArchiveEntryContext.class))).thenReturn(callback);
     loader = new RepositoryFileLoader(callbackFactory, TarArchiveDocumentReaderFactory.create());
   }
 

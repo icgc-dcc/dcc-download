@@ -15,29 +15,14 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN                         
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.icgc.dcc.download.imports.io;
+package org.icgc.dcc.download.imports.util;
 
-import javax.annotation.Nullable;
+import java.io.File;
 
-import lombok.Builder;
-import lombok.NonNull;
-import lombok.Value;
+public class Tests {
 
-import org.icgc.dcc.download.imports.core.ArchiveFileType;
-import org.icgc.dcc.release.core.document.DocumentType;
-
-@Value
-@Builder
-public class TarArchiveEntryCallbackContext {
-
-  @NonNull
-  String indexName;
-  @NonNull
-  ArchiveFileType fileType;
-  boolean applySettings;
-  @Nullable
-  DocumentType documentType;
-  @Nullable
-  String project;
+  public static final String REPOSITORY_INPUT_FILE = "src/test/resources/fixtures/input/repository.tar.gz";
+  public static final File RELEASE_FILE = new File("src/test/resources/fixtures/input/release.tar");
+  public static final File REPOSITORY_FILE = new File("src/test/resources/fixtures/input/repository.tar.gz");
 
 }

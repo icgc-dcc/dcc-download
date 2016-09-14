@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
-import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackContext;
+import org.icgc.dcc.download.imports.io.TarArchiveEntryContext;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
 import org.icgc.dcc.release.core.document.DocumentType;
 
@@ -81,26 +81,21 @@ public class ReleaseFileLoader implements FileLoader {
     val indexName = resolveIndexName(entryName);
 
     log.info("Indexing file '{}' into index '{}'", entryName, indexName);
-    // Don't use @Cleanup as the callback will be closed after the log message "Finished indexing file" has been
-    // written.
-    val callbackContext = TarArchiveEntryCallbackContext.builder()
+    val callbackContext = TarArchiveEntryContext.builder()
         .indexName(indexName)
         .fileType(RELEASE)
         .applySettings(applySettings)
         .documentType(documentType)
         .project(project)
         .build();
+    @Cleanup
     val callback = callbackFactory.createCallback(callbackContext);
 
-    val typeWatches = Stopwatch.createStarted();
-    try {
-      reader.read(callback);
-    } finally {
-      callback.close();
-    }
+    val watch = Stopwatch.createStarted();
+    reader.read(callback);
 
     // Apply index settings only once, but each tar entry contains own settings copy
-    log.info("Finished indexing file {} in {} seconds.", entryName, typeWatches.elapsed(SECONDS));
+    log.info("Finished indexing file {} in {} seconds.", entryName, watch.elapsed(SECONDS));
   }
 
   private static String resolveIndexName(String entryName) {

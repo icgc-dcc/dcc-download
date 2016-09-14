@@ -41,7 +41,7 @@ public class TarArchiveEntryCallbackFactory {
     return new TarArchiveEntryCallbackFactory(esUri);
   }
 
-  public TarArchiveEntryCallback createCallback(@NonNull TarArchiveEntryCallbackContext context) {
+  public TarArchiveEntryCallback createCallback(@NonNull TarArchiveEntryContext context) {
     val fileType = context.getFileType();
     switch (fileType) {
     case RELEASE:
@@ -54,7 +54,7 @@ public class TarArchiveEntryCallbackFactory {
     }
   }
 
-  private TarArchiveEntryCallback createRepositoryCallback(TarArchiveEntryCallbackContext context) {
+  private TarArchiveEntryCallback createRepositoryCallback(TarArchiveEntryContext context) {
     val indexName = context.getIndexName();
     initializeIndexService(indexName);
 
@@ -68,7 +68,7 @@ public class TarArchiveEntryCallbackFactory {
     return new BaseTarArchiveEntryCallback(context.isApplySettings(), esDocumentWriter, indexService);
   }
 
-  private TarArchiveEntryCallback createReleaseCallback(TarArchiveEntryCallbackContext context) {
+  private TarArchiveEntryCallback createReleaseCallback(TarArchiveEntryContext context) {
     val indexName = context.getIndexName();
     initializeIndexService(indexName);
 

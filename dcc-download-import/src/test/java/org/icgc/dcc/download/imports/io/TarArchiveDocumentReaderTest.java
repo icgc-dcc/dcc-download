@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.imports.io;
 
 import static org.icgc.dcc.common.test.json.JsonNodes.$;
+import static org.icgc.dcc.download.imports.util.Tests.REPOSITORY_INPUT_FILE;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
@@ -43,7 +44,6 @@ public class TarArchiveDocumentReaderTest {
 
   private static final DocumentType TYPE = DocumentType.GENE_CENTRIC_TYPE;
   private static final String RELEASE_INPUT_FILE = "src/test/resources/fixtures/input/icgc21-0-0_gene-centric.tar.gz";
-  private static final String REPOSITORY_INPUT_FILE = "src/test/resources/fixtures/input/repository.tar.gz";
   private static final ObjectNode G1_NODE =
       (ObjectNode) $("{_gene_id:'G1',donor:[{project:{_project_id:'TST1-CA'}},{project:{_project_id:'TST2-CA'}}]}");
   private static final ObjectNode G2_NODE =

@@ -18,8 +18,8 @@
 package org.icgc.dcc.download.imports.load;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.File;
+import static org.icgc.dcc.download.imports.util.Tests.RELEASE_FILE;
+import static org.icgc.dcc.download.imports.util.Tests.REPOSITORY_FILE;
 
 import org.icgc.dcc.download.imports.io.TarArchiveDocumentReaderFactory;
 import org.icgc.dcc.download.imports.io.TarArchiveEntryCallbackFactory;
@@ -31,9 +31,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FileLoaderFactoryTest {
-
-  private static final File RELEASE_FILE = new File("src/test/resources/fixtures/input/release.tar");
-  private static final File REPOSITORY_FILE = new File("src/test/resources/fixtures/input/repository.tar.gz");
 
   @Mock
   TarArchiveEntryCallbackFactory callbackFactory;
