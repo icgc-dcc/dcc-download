@@ -78,8 +78,8 @@ public class TarArchiveDocumentReaderTest {
     verify(callback).onMapping(eq("file-text"), any());
     verify(callback).onMapping(eq("file-centric"), any());
 
-    val docType = new DefaultDocumentType("file-centric");
-    verify(callback).onDocument(new Document("FI94", FI94_NODE, docType));
+    verify(callback).onDocument(new Document("FI94", FI94_NODE, new DefaultDocumentType("file-centric")));
+    verify(callback).onDocument(new Document("FI94", FI94_NODE, new DefaultDocumentType("file-text")));
   }
 
 }
