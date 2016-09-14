@@ -26,7 +26,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 
   <artifactId>dcc-download</artifactId>
   <packaging>pom</packaging>
-  <version>4.2.19-SNAPSHOT</version>
+  <version>4.3.0</version>
 
   <name>${project.artifactId}</name>
   <description>${project.name}</description>
