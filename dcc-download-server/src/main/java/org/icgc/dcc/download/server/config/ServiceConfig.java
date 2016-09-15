@@ -101,7 +101,7 @@ public class ServiceConfig {
   public ExportsService exportsService(FileSystemService fileSystemService) {
     val dataDir = jobProperties.getInputDir() + "/" + fileSystemService.getCurrentRelease();
 
-    return new ExportsService(fileSystem, exportsPath, dataDir);
+    return new ExportsService(fileSystem, exportsPath, new AtomicReference<>(dataDir));
   }
 
   @Bean

@@ -28,6 +28,7 @@ import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 import static org.icgc.dcc.download.test.io.TestFiles.copyDirectory;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicReference;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +55,10 @@ public class ExportsServiceTest extends AbstractTest {
   @Before
   public void setUp() {
     super.setUp();
-    service = new ExportsService(fileSystem, workingDir.getAbsolutePath(), workingDir.getAbsolutePath());
+    service = new ExportsService(
+        fileSystem,
+        workingDir.getAbsolutePath(),
+        new AtomicReference<>(workingDir.getAbsolutePath()));
   }
 
   @Test

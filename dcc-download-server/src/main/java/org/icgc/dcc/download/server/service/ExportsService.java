@@ -28,6 +28,7 @@ import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 
 import java.io.OutputStream;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import lombok.NonNull;
@@ -59,8 +60,12 @@ public class ExportsService {
   private final FileSystem fileSystem;
   @NonNull
   private final String exportsPath;
+  /**
+   * Path to the current release directory. E.g. {@code .../release_21}<br>
+   * Must be updated when a next release is loaded.
+   */
   @NonNull
-  private final String dataDir;
+  private final AtomicReference<String> dataDir;
 
   public MetadataResponse getOpenMetadata(@NonNull String baseUrl) {
     return getOpenMetadataResponseBuilder(baseUrl).build();
@@ -72,15 +77,23 @@ public class ExportsService {
         .build();
   }
 
+  public String getDataDirectory() {
+    return dataDir.get();
+  }
+
+  public void setDataDirectory(@NonNull String dataDirectory) {
+    dataDir.set(dataDirectory);
+  }
+
   public FileStreamer getExportStreamer(@NonNull Export export, @NonNull OutputStream output, Optional<String> project) {
     log.debug("Getting exports streamer for {}...", export);
     switch (export) {
     case REPOSITORY:
       return new RealFileStreamer(new Path(exportsPath, export.getId()), fileSystem, output);
     case DATA_OPEN:
-      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output, project);
+      return new DataExportStreamer(new Path(dataDir.get()), export, fileSystem, output, project);
     case DATA_CONTROLLED:
-      return new DataExportStreamer(new Path(dataDir), export, fileSystem, output, project);
+      return new DataExportStreamer(new Path(dataDir.get()), export, fileSystem, output, project);
     case RELEASE:
       return getReleaseExportStreamer(output);
     default:
@@ -112,13 +125,13 @@ public class ExportsService {
   }
 
   private ExportFile createOpenDataMeta(String baseUrl) {
-    val creationDate = getFileModificationDate(dataDir);
+    val creationDate = getFileModificationDate(dataDir.get());
 
     return createFileMetadata(DATA_OPEN, baseUrl, creationDate);
   }
 
   private ExportFile createControlledDataMeta(String baseUrl) {
-    val creationDate = getFileModificationDate(dataDir);
+    val creationDate = getFileModificationDate(dataDir.get());
 
     return createFileMetadata(DATA_CONTROLLED, baseUrl, creationDate);
   }
