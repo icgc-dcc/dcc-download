@@ -20,6 +20,9 @@ package org.icgc.dcc.download.server.endpoint;
 import static java.lang.String.format;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
+
+import java.io.File;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -29,6 +32,7 @@ import org.icgc.dcc.download.server.fs.DownloadFileSystem;
 import org.icgc.dcc.download.server.fs.DownloadFilesReader;
 import org.icgc.dcc.download.server.fs.ReleaseView;
 import org.icgc.dcc.download.server.fs.RootView;
+import org.icgc.dcc.download.server.service.ExportsService;
 import org.icgc.dcc.download.server.service.FileSystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.Endpoint;
@@ -60,6 +64,8 @@ public class ReleaseEndpoint implements MvcEndpoint {
   private final ReleaseView releaseView;
   @NonNull
   private final DownloadFilesReader downloadFilesReader;
+  @NonNull
+  private final ExportsService exportsService;
 
   @RequestMapping(value = "/{releaseName}", method = PUT)
   public ResponseEntity<String> addRelease(@PathVariable("releaseName") String releaseName) {
@@ -76,6 +82,7 @@ public class ReleaseEndpoint implements MvcEndpoint {
       val currentRelease = fileSystemService.getCurrentRelease();
       rootView.setCurrentRelease(currentRelease);
       releaseView.setCurrentRelease(currentRelease);
+      updateExportsService(currentRelease);
       log.info("Loaded release '{}'", releaseName);
     } catch (NotFoundException e) {
       val message = format("Not found release '%s'", releaseName);
@@ -101,6 +108,14 @@ public class ReleaseEndpoint implements MvcEndpoint {
   @SuppressWarnings("rawtypes")
   public Class<? extends Endpoint> getEndpointType() {
     return null;
+  }
+
+  private void updateExportsService(String currentRelease) {
+    val currentDataDir = new File(exportsService.getDataDirectory());
+    val parentDir = currentDataDir.getParent();
+    val nextDataDir = parentDir + "/" + currentRelease;
+    log.info("Setting current export service data directory to '{}'...", nextDataDir);
+    exportsService.setDataDirectory(nextDataDir);
   }
 
   private static ResponseEntity<String> getNotFoundResponse(String message, Object... args) {

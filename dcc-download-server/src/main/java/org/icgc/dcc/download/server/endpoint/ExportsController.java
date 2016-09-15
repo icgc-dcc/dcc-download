@@ -85,14 +85,13 @@ public class ExportsController {
       @NonNull HttpServletResponse response) throws IOException {
     log.info("Received get export archive request for id '{}'", exportId);
     val export = resolveExport(exportId);
-    val output = response.getOutputStream();
     if (export == DATA_CONTROLLED && !isAuthorized(authHeader)) {
       log.warn("Client requested controlled archive without authorization. Authorization header: '{}'", authHeader);
       throwForbiddenException();
     }
 
     @Cleanup
-    val streamer = exportsService.getExportStreamer(export, output, Optional.ofNullable(project));
+    val streamer = exportsService.getExportStreamer(export, response.getOutputStream(), Optional.ofNullable(project));
     val fileName = streamer.getName();
 
     response.setContentType(getFileMimeType(fileName));
