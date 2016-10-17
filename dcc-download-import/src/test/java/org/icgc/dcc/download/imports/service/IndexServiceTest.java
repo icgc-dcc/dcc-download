@@ -17,6 +17,7 @@
  */
 package org.icgc.dcc.download.imports.service;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.json.Jackson.asObjectNode;
 import static org.icgc.dcc.common.test.json.JsonNodes.$;
@@ -26,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 
 import lombok.val;
 
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
@@ -42,6 +44,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tlrx.elasticsearch.test.annotations.ElasticsearchClient;
 import com.github.tlrx.elasticsearch.test.annotations.ElasticsearchNode;
 import com.github.tlrx.elasticsearch.test.support.junit.runners.ElasticsearchRunner;
+import com.google.common.collect.Lists;
 
 @RunWith(ElasticsearchRunner.class)
 public class IndexServiceTest {
@@ -61,6 +64,7 @@ public class IndexServiceTest {
   @Before
   public void before() {
     service = new IndexService(INDEX_NAME, client);
+    service.applySettings(SETTINGS);
   }
 
   @After
@@ -73,17 +77,44 @@ public class IndexServiceTest {
   @Test(expected = DownloadImportException.class)
   public void indexServiceTest_duplicateSettings() {
     service.applySettings(SETTINGS);
-    service.applySettings(SETTINGS);
   }
 
   @Test
   public void indexServiceTest() throws Exception {
-    service.applySettings(SETTINGS);
     service.applyMapping(INDEX_TYPE, DONOR_MAPPING);
 
     val indexClient = client.admin().indices();
     verifySettings(indexClient);
     verifyMapping(indexClient);
+  }
+
+  @Test
+  public void aliasIndexTest() {
+    val aliasName = "icgc-release";
+    val nextIndexName = "icgc22-test";
+
+    // Create alias
+    val indexClient = client.admin().indices();
+    checkState(indexClient.prepareAliases()
+        .addAlias(INDEX_NAME, aliasName)
+        .execute()
+        .actionGet()
+        .isAcknowledged(), "Failed to create alias");
+
+    // Create new index
+    service = new IndexService(nextIndexName, client);
+    service.applySettings(SETTINGS);
+
+    // Create alias to new index
+    service.aliasIndex();
+
+    // Verify
+    val indicesToAliases = indexClient.getAliases(new GetAliasesRequest(aliasName)).actionGet().getAliases();
+    val indicesContainer = indicesToAliases.keysIt();
+
+    val indexNames = Lists.<String> newArrayList();
+    indicesContainer.forEachRemaining(indexNames::add);
+    assertThat(indexNames).containsOnly(nextIndexName);
   }
 
   private void verifyMapping(IndicesAdminClient indexClient) throws Exception {

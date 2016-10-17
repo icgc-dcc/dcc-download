@@ -58,6 +58,7 @@ public class BaseTarArchiveEntryCallback implements TarArchiveEntryCallback {
   public void onSettings(ObjectNode settings) {
     if (applySettings) {
       indexService.applySettings(settings);
+      indexService.aliasIndex();
     }
   }
 

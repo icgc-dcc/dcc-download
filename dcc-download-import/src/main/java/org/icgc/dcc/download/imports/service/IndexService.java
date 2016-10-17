@@ -20,17 +20,22 @@ package org.icgc.dcc.download.imports.service;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
+
+import java.util.Collection;
+
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.icgc.dcc.download.imports.core.DownloadImportException;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -63,7 +68,6 @@ public class IndexService {
         .actionGet()
         .isAcknowledged(),
         "Index '%s' creation was not acknowledged!", indexName);
-    alias();
   }
 
   public void applyMapping(@NonNull String typeName, @NonNull ObjectNode mapping) {
@@ -79,6 +83,42 @@ public class IndexService {
         typeName, indexName);
   }
 
+  public void aliasIndex() {
+    val aliasName = getAlias();
+    val existingAliasIndices = getAliasIndices(aliasName);
+    val request = getIndexClient().prepareAliases();
+
+    if (!existingAliasIndices.isEmpty()) {
+      log.info("Alias '{}' already exists for indices {}. Removing current one before creating a new one...",
+          aliasName, existingAliasIndices);
+      for (val indexName : existingAliasIndices) {
+        request.removeAlias(indexName, aliasName);
+      }
+    }
+
+    request.addAlias(indexName, aliasName);
+
+    checkState(request
+        .execute()
+        .actionGet()
+        .isAcknowledged(),
+        "Assigning index alias '%s' to index '%s' was not acknowledged!",
+        aliasName, indexName);
+  }
+
+  private Collection<String> getAliasIndices(String aliasName) {
+    val indicesToAliases = getIndexClient()
+        .getAliases(new GetAliasesRequest(aliasName))
+        .actionGet()
+        .getAliases();
+
+    val indicesContainer = indicesToAliases.keysIt();
+    val indexNames = ImmutableList.<String> builder();
+    indicesContainer.forEachRemaining(indexNames::add);
+
+    return indexNames.build();
+  }
+
   private void ensureIndexNotExists(IndicesAdminClient client) {
     log.info("Checking index '{}' for existence...", indexName);
     val exists = client.prepareExists(indexName)
@@ -88,19 +128,6 @@ public class IndexService {
     if (exists) {
       throw new DownloadImportException("Index '%s' already exists.", indexName);
     }
-  }
-
-  private void alias() {
-    val alias = getAlias();
-    val request = getIndexClient().prepareAliases();
-    request.addAlias(indexName, alias);
-
-    checkState(request
-        .execute()
-        .actionGet()
-        .isAcknowledged(),
-        "Assigning index alias '%s' to index '%s' was not acknowledged!",
-        alias, indexName);
   }
 
   private String getAlias() {
