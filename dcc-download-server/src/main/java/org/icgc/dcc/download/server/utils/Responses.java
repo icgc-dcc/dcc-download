@@ -79,11 +79,9 @@ public final class Responses {
     case "tar":
       return MediaType.TAR.toString();
     case "txt":
-      MediaType.PLAIN_TEXT_UTF_8.toString();
-      return null;
+      return MediaType.PLAIN_TEXT_UTF_8.toString();
     default:
-      log.error("Failed to resolve Mime-Type from file name '{}'", fileName);
-      throw new BadRequestException("Invalid request");
+      return MediaType.OCTET_STREAM.toString();
     }
   }
 
