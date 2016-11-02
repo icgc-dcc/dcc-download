@@ -24,6 +24,7 @@ import java.io.OutputStream;
 
 import lombok.val;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.server.fs.PathResolver;
@@ -52,6 +53,8 @@ public class ArchiveDownloadServiceTest {
 
   @Mock
   OutputStream output;
+  @Mock
+  FileStatus fileStatus;
 
   ArchiveDownloadService service;
 
@@ -66,12 +69,16 @@ public class ArchiveDownloadServiceTest {
   public void testGetStaticArchiveStreamer() throws Exception {
     when(fileSystemService.isLegacyRelease("release_21")).thenReturn(false);
     when(fileSystemService.getCurrentRelease()).thenReturn("release_21");
-    when(fileSystem.exists(new Path("/tmp/release_21/projects_files/README.txt"))).thenReturn(true);
+    val filePath = new Path("/tmp/release_21/projects_files/README.txt");
+    when(fileSystem.exists(filePath)).thenReturn(true);
+    when(fileSystem.getFileStatus(filePath)).thenReturn(fileStatus);
+    when(fileStatus.getLen()).thenReturn(2L);
 
     val streamerOpt = service.getStaticArchiveStreamer("/release_21/Projects/README.txt", output);
     assertThat(streamerOpt.isPresent()).isTrue();
     val streamer = streamerOpt.get();
     assertThat(streamer.getName()).isEqualTo("README.txt");
+    assertThat(streamer.getSize()).isEqualTo(2L);
   }
 
 }
