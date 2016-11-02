@@ -31,11 +31,13 @@ import static org.icgc.dcc.common.core.util.Separators.DASH;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableMap;
+import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.exists;
 import static org.icgc.dcc.download.server.utils.DataTypeFiles.getDownloadDataType;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.HEADERS_DIR;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.PROJECTS_FILES;
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
+import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileSize;
 
 import java.io.OutputStream;
 import java.util.Collection;
@@ -54,7 +56,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
-import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 import org.icgc.dcc.download.core.request.SubmitJobRequest;
 import org.icgc.dcc.download.core.response.JobResponse;
 import org.icgc.dcc.download.server.fs.PathResolver;
@@ -232,15 +233,16 @@ public class ArchiveDownloadService {
   private Optional<FileStreamer> getRealFileStreamer(String path, OutputStream output) {
     val filePath = getRealFilePath(path, isLegacyFile(path));
     log.info("Resolved download path '{}' to actual path '{}'", path, filePath);
-    if (!HadoopUtils.exists(fileSystem, filePath)) {
+    if (!exists(fileSystem, filePath)) {
       log.warn("Download path '{}' doesn't exist", filePath);
 
       return Optional.empty();
     }
 
     log.info("Creating file streamer for '{}'", filePath);
+    val fileSize = getFileSize(fileSystem, filePath);
 
-    return Optional.of(new RealFileStreamer(filePath, fileSystem, output));
+    return Optional.of(new RealFileStreamer(filePath, fileSystem, output, fileSize));
   }
 
   private Path getRealFilePath(String path, boolean legacy) {

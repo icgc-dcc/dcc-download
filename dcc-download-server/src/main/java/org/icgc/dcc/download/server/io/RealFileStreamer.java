@@ -40,6 +40,7 @@ public class RealFileStreamer implements FileStreamer {
   private final FileSystem fileSystem;
   @NonNull
   private final OutputStream output;
+  private final long fileSize;
 
   @Override
   public void close() throws IOException {
@@ -57,6 +58,11 @@ public class RealFileStreamer implements FileStreamer {
   @Override
   public String getName() {
     return file.getName();
+  }
+
+  @Override
+  public long getSize() {
+    return fileSize;
   }
 
 }
