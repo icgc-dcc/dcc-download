@@ -21,8 +21,14 @@ import java.io.Closeable;
 
 public interface FileStreamer extends Closeable {
 
+  public static final int UNKNOWN_SIZE = -1;
+
   void stream();
 
   String getName();
+
+  default long getSize() {
+    return UNKNOWN_SIZE;
+  }
 
 }

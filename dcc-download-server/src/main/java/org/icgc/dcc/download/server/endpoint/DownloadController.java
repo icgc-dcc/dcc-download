@@ -215,6 +215,11 @@ public class DownloadController {
     response.setContentType(getFileMimeType(filename));
     response.addHeader(CONTENT_DISPOSITION, "attachment; filename=" + filename);
 
+    val fileSize = streamer.getSize();
+    if (fileSize != FileStreamer.UNKNOWN_SIZE) {
+      response.setContentLengthLong(fileSize);
+    }
+
     streamer.stream();
     streamer.close();
   }

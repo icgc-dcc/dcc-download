@@ -24,6 +24,7 @@ import static org.icgc.dcc.download.server.model.Export.DATA_CONTROLLED;
 import static org.icgc.dcc.download.server.model.Export.DATA_OPEN;
 import static org.icgc.dcc.download.server.model.Export.RELEASE;
 import static org.icgc.dcc.download.server.model.Export.REPOSITORY;
+import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileSize;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileStatus;
 
 import java.io.OutputStream;
@@ -89,7 +90,10 @@ public class ExportsService {
     log.debug("Getting exports streamer for {}...", export);
     switch (export) {
     case REPOSITORY:
-      return new RealFileStreamer(new Path(exportsPath, export.getId()), fileSystem, output);
+      val filePath = new Path(exportsPath, export.getId());
+      val fileSize = getFileSize(fileSystem, filePath);
+
+      return new RealFileStreamer(filePath, fileSystem, output, fileSize);
     case DATA_OPEN:
       return new DataExportStreamer(new Path(dataDir.get()), export, fileSystem, output, project);
     case DATA_CONTROLLED:

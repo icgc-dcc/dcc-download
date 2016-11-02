@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static lombok.AccessLevel.PRIVATE;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.val;
 
 import org.apache.hadoop.fs.FileStatus;
@@ -32,23 +33,26 @@ import org.icgc.dcc.common.hadoop.fs.HadoopUtils;
 @NoArgsConstructor(access = PRIVATE)
 public final class HadoopUtils2 {
 
-  public static FileStatus getFileStatus(FileSystem fileSystem, Path path) {
+  public static FileStatus getFileStatus(@NonNull FileSystem fileSystem, @NonNull Path path) {
     val statusOpt = HadoopUtils.getFileStatus(fileSystem, path);
     checkArgument(statusOpt.isPresent(), "Path '%s' not found", path);
 
     return statusOpt.get();
   }
 
-  public static String relativize(String parentPath, Path path) {
+  public static long getFileSize(@NonNull FileSystem fileSystem, @NonNull Path path) {
+    return getFileStatus(fileSystem, path).getLen();
+  }
+
+  public static String relativize(@NonNull String parentPath, @NonNull Path path) {
     return relativize(parentPath, path.toString());
   }
 
-  public static String relativize(String parentPath, String file) {
+  public static String relativize(@NonNull String parentPath, @NonNull String file) {
     val startOfParent = file.indexOf(parentPath);
     val schema = file.substring(0, startOfParent);
 
-    return file
-        .replaceFirst(schema + parentPath, EMPTY_STRING);
+    return file.replaceFirst(schema + parentPath, EMPTY_STRING);
   }
 
 }
