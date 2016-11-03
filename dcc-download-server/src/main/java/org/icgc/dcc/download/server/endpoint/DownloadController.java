@@ -104,8 +104,8 @@ public class DownloadController {
 
     val downloadDataType = getDownloadDataType(dataType);
     val fileStreamer = downloadDataType.isPresent() ?
-        downloadService.getNotStreamingDynamicFileStreamer(jobId, downloadDataType.get()) :
-        downloadService.getNotStreamingDynamicFileStreamer(jobId);
+        downloadService.getNoDataDynamicFileStreamer(jobId, downloadDataType.get()) :
+        downloadService.getNoDataDynamicFileStreamer(jobId);
 
     // Will not stream anything as the fileStreamer is a non-streaming one.
     streamArchive(Optional.of(jobId), fileStreamer, response);
@@ -127,7 +127,7 @@ public class DownloadController {
   @RequestMapping(value = "/static", method = HEAD)
   public void staticDownloadInfo(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
     val filePath = getStaticDownloadFilePath(token);
-    val fileStreamer = downloadService.getNotStreamingStaticFileStreamer(filePath);
+    val fileStreamer = downloadService.getNoDataStaticFileStreamer(filePath);
     // Will not stream anything as the fileStreamer is a non-streaming one.
     streamArchive(Optional.empty(), fileStreamer, response);
   }

@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
  * Useful only to process {@code HEAD HTTP} requests.
  */
 @RequiredArgsConstructor
-public class NonStreamingFileStreamer implements FileStreamer {
+public class NoDataFileStreamer implements FileStreamer {
 
   @NonNull
   private final String fileName;

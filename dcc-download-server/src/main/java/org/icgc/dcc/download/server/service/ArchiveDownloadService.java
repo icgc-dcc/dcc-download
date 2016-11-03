@@ -62,7 +62,7 @@ import org.icgc.dcc.download.core.response.JobResponse;
 import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.io.GzipStreamer;
-import org.icgc.dcc.download.server.io.NonStreamingFileStreamer;
+import org.icgc.dcc.download.server.io.NoDataFileStreamer;
 import org.icgc.dcc.download.server.io.RealFileStreamer;
 import org.icgc.dcc.download.server.io.TarStreamer;
 import org.icgc.dcc.download.server.model.DataFiles;
@@ -198,14 +198,14 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, singleton(downloadDataType), output, fileNames));
   }
 
-  public Optional<FileStreamer> getNotStreamingStaticFileStreamer(@NonNull String path) {
+  public Optional<FileStreamer> getNoDataStaticFileStreamer(@NonNull String path) {
     // The outputStream is not used until the FileStreamer.stream() method is used.
     val fileStreamer = getStaticArchiveStreamer(path, new ByteArrayOutputStream());
 
     return convertFileStreamer(fileStreamer);
   }
 
-  public Optional<FileStreamer> getNotStreamingDynamicFileStreamer(@NonNull String jobId,
+  public Optional<FileStreamer> getNoDataDynamicFileStreamer(@NonNull String jobId,
       @NonNull DownloadDataType dataType) {
     // The outputStream is not used until the FileStreamer.stream() method is used.
     val fileStreamer = getArchiveStreamer(jobId, new ByteArrayOutputStream(), dataType);
@@ -213,7 +213,7 @@ public class ArchiveDownloadService {
     return convertFileStreamer(fileStreamer);
   }
 
-  public Optional<FileStreamer> getNotStreamingDynamicFileStreamer(@NonNull String jobId) {
+  public Optional<FileStreamer> getNoDataDynamicFileStreamer(@NonNull String jobId) {
     // The outputStream is not used until the FileStreamer.stream() method is used.
     val fileStreamer = getArchiveStreamer(jobId, new ByteArrayOutputStream());
 
@@ -233,7 +233,7 @@ public class ArchiveDownloadService {
 
   private Optional<FileStreamer> convertFileStreamer(Optional<FileStreamer> fileStreamer) {
     return fileStreamer.isPresent() ?
-        Optional.of(convertToNonStreamingFileStreamer(fileStreamer.get())) :
+        Optional.of(convertToNoDataFileStreamer(fileStreamer.get())) :
         Optional.empty();
   }
 
@@ -435,8 +435,8 @@ public class ArchiveDownloadService {
     return singletonMap(downloadDataType, fileName);
   }
 
-  private static NonStreamingFileStreamer convertToNonStreamingFileStreamer(FileStreamer fileStreamer) {
-    return new NonStreamingFileStreamer(fileStreamer.getName(), fileStreamer.getSize());
+  private static NoDataFileStreamer convertToNoDataFileStreamer(FileStreamer fileStreamer) {
+    return new NoDataFileStreamer(fileStreamer.getName(), fileStreamer.getSize());
   }
 
 }
