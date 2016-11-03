@@ -27,6 +27,7 @@ import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestExcept
 import static org.icgc.dcc.download.server.utils.Responses.throwForbiddenException;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 import java.io.IOException;
@@ -85,16 +86,7 @@ public class DownloadController {
       @RequestParam(value = "type", required = false) String dataType,
       @NonNull HttpServletResponse response) throws IOException {
     log.debug("Received download request. Token: '{}'. Type: '{}'", token, dataType);
-    val tokenPayload = getTokenPayload(token);
-
-    val jobId = tokenPayload.getId();
-    checkArgument("jobId", jobId);
-    val user = tokenPayload.getUser();
-    checkArgument("user", jobId);
-    if (!downloadService.isUserDownload(jobId, user)) {
-      log.warn("Access forbidden. User: '{}'. Download ID: '{}'", user, jobId);
-      throwForbiddenException();
-    }
+    val jobId = processDynamicDownloadToken(token);
 
     val output = response.getOutputStream();
     val downloadDataType = getDownloadDataType(dataType);
@@ -105,22 +97,39 @@ public class DownloadController {
     streamArchive(Optional.of(jobId), streamerOpt, response);
   }
 
+  public void downloadArchiveInfo(@RequestParam("token") String token,
+      @RequestParam(value = "type", required = false) String dataType,
+      @NonNull HttpServletResponse response) throws IOException {
+    val jobId = processDynamicDownloadToken(token);
+
+    val downloadDataType = getDownloadDataType(dataType);
+    val fileStreamer = downloadDataType.isPresent() ?
+        downloadService.getNotStreamingDynamicFileStreamer(jobId, downloadDataType.get()) :
+        downloadService.getNotStreamingDynamicFileStreamer(jobId);
+
+    // Will not stream anything as the fileStreamer is a non-streaming one.
+    streamArchive(Optional.of(jobId), fileStreamer, response);
+  }
+
   @CrossOrigin(origins = "*")
   @RequestMapping(value = "/static", method = GET)
   public void staticDownload(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
     log.debug("Received download request. Token: '{}'", token);
-    val tokenPayload = getTokenPayload(token);
-
-    val requestPath = tokenPayload.getPath();
-    checkArgument("path", requestPath);
-    log.debug("Static path: '{}'", requestPath);
-
-    val filePath = getFsPath(requestPath);
+    val filePath = getStaticDownloadFilePath(token);
     log.info("Getting download archive for path '{}'", filePath);
 
     val output = response.getOutputStream();
     val streamerOpt = downloadService.getStaticArchiveStreamer(filePath, output);
     streamArchive(Optional.empty(), streamerOpt, response);
+  }
+
+  @CrossOrigin(origins = "*")
+  @RequestMapping(value = "/static", method = HEAD)
+  public void staticDownloadInfo(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
+    val filePath = getStaticDownloadFilePath(token);
+    val fileStreamer = downloadService.getNotStreamingStaticFileStreamer(filePath);
+    // Will not stream anything as the fileStreamer is a non-streaming one.
+    streamArchive(Optional.empty(), fileStreamer, response);
   }
 
   @RequestMapping(value = "/{jobId:.+}/info", method = GET)
@@ -143,6 +152,33 @@ public class DownloadController {
     log.debug("Resolved file sizes to: {}", filesSize);
 
     return new DataTypeSizesResponse(filesSize);
+  }
+
+  private String processDynamicDownloadToken(String token) {
+    val tokenPayload = getTokenPayload(token);
+
+    val jobId = tokenPayload.getId();
+    checkArgument("jobId", jobId);
+    val user = tokenPayload.getUser();
+    checkArgument("user", jobId);
+    if (!downloadService.isUserDownload(jobId, user)) {
+      log.warn("Access forbidden. User: '{}'. Download ID: '{}'", user, jobId);
+      throwForbiddenException();
+    }
+
+    return jobId;
+  }
+
+  private String getStaticDownloadFilePath(String token) {
+    val tokenPayload = getTokenPayload(token);
+
+    val requestPath = tokenPayload.getPath();
+    checkArgument("path", requestPath);
+    log.debug("Static path: '{}'", requestPath);
+
+    val filePath = getFsPath(requestPath);
+
+    return filePath;
   }
 
   private TokenPayload getTokenPayload(@NonNull String token) {

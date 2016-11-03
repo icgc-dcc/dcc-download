@@ -39,6 +39,7 @@ import static org.icgc.dcc.download.server.utils.DownloadDirectories.PROJECTS_FI
 import static org.icgc.dcc.download.server.utils.DownloadDirectories.SUMMARY_FILES;
 import static org.icgc.dcc.download.server.utils.HadoopUtils2.getFileSize;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Collections;
@@ -61,6 +62,7 @@ import org.icgc.dcc.download.core.response.JobResponse;
 import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.io.FileStreamer;
 import org.icgc.dcc.download.server.io.GzipStreamer;
+import org.icgc.dcc.download.server.io.NonStreamingFileStreamer;
 import org.icgc.dcc.download.server.io.RealFileStreamer;
 import org.icgc.dcc.download.server.io.TarStreamer;
 import org.icgc.dcc.download.server.model.DataFiles;
@@ -196,6 +198,28 @@ public class ArchiveDownloadService {
     return Optional.of(getArchiveStreamer(release, downloadFiles, singleton(downloadDataType), output, fileNames));
   }
 
+  public Optional<FileStreamer> getNotStreamingStaticFileStreamer(@NonNull String path) {
+    // The outputStream is not used until the FileStreamer.stream() method is used.
+    val fileStreamer = getStaticArchiveStreamer(path, new ByteArrayOutputStream());
+
+    return convertFileStreamer(fileStreamer);
+  }
+
+  public Optional<FileStreamer> getNotStreamingDynamicFileStreamer(@NonNull String jobId,
+      @NonNull DownloadDataType dataType) {
+    // The outputStream is not used until the FileStreamer.stream() method is used.
+    val fileStreamer = getArchiveStreamer(jobId, new ByteArrayOutputStream(), dataType);
+
+    return convertFileStreamer(fileStreamer);
+  }
+
+  public Optional<FileStreamer> getNotStreamingDynamicFileStreamer(@NonNull String jobId) {
+    // The outputStream is not used until the FileStreamer.stream() method is used.
+    val fileStreamer = getArchiveStreamer(jobId, new ByteArrayOutputStream());
+
+    return convertFileStreamer(fileStreamer);
+  }
+
   public boolean isUserDownload(@NonNull String id, @NonNull String user) {
     val job = jobRepository.findById(id);
     if (job == null) {
@@ -205,6 +229,12 @@ public class ArchiveDownloadService {
     val allowedUser = job.getJobInfo().getUser();
 
     return allowedUser.equals(user);
+  }
+
+  private Optional<FileStreamer> convertFileStreamer(Optional<FileStreamer> fileStreamer) {
+    return fileStreamer.isPresent() ?
+        Optional.of(convertToNonStreamingFileStreamer(fileStreamer.get())) :
+        Optional.empty();
   }
 
   /**
@@ -403,6 +433,10 @@ public class ArchiveDownloadService {
     val fileName = getFileName(downloadDataType, Optional.of(fileSuffix)) + ".tsv.gz";
 
     return singletonMap(downloadDataType, fileName);
+  }
+
+  private static NonStreamingFileStreamer convertToNonStreamingFileStreamer(FileStreamer fileStreamer) {
+    return new NonStreamingFileStreamer(fileStreamer.getName(), fileStreamer.getSize());
   }
 
 }
