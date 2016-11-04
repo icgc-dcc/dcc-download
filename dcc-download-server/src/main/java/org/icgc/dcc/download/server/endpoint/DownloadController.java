@@ -60,6 +60,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/downloads")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class DownloadController {
@@ -111,7 +112,6 @@ public class DownloadController {
     streamArchive(Optional.of(jobId), fileStreamer, response);
   }
 
-  @CrossOrigin(origins = "*")
   @RequestMapping(value = "/static", method = GET)
   public void staticDownload(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
     log.debug("Received download request. Token: '{}'", token);
@@ -123,7 +123,6 @@ public class DownloadController {
     streamArchive(Optional.empty(), streamerOpt, response);
   }
 
-  @CrossOrigin(origins = "*")
   @RequestMapping(value = "/static", method = HEAD)
   public void staticDownloadInfo(@RequestParam("token") String token, HttpServletResponse response) throws IOException {
     val filePath = getStaticDownloadFilePath(token);

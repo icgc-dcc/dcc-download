@@ -232,9 +232,7 @@ public class ArchiveDownloadService {
   }
 
   private Optional<FileStreamer> convertFileStreamer(Optional<FileStreamer> fileStreamer) {
-    return fileStreamer.isPresent() ?
-        Optional.of(convertToNoDataFileStreamer(fileStreamer.get())) :
-        Optional.empty();
+    return fileStreamer.map(ArchiveDownloadService::convertToNoDataFileStreamer);
   }
 
   /**
