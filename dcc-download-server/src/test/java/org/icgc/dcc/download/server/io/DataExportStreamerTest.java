@@ -27,11 +27,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.Optional;
 
-import lombok.Cleanup;
-import lombok.SneakyThrows;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -42,6 +37,11 @@ import org.icgc.dcc.download.server.model.Export;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
 import org.junit.Test;
+
+import lombok.Cleanup;
+import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DataExportStreamerTest extends AbstractTest {
@@ -59,22 +59,22 @@ public class DataExportStreamerTest extends AbstractTest {
 
   @Test
   public void testStreamOpen() throws Exception {
-    testStreamOpen(Optional.empty(), 47);
+    testStreamOpen(Optional.empty(), 55);
   }
 
   @Test
   public void testStreamOpenWithProject() throws Exception {
-    testStreamOpen(Optional.of("TST1-CA"), 35);
+    testStreamOpen(Optional.of("TST1-CA"), 39);
   }
 
   @Test
   public void testStreamControlled() throws Exception {
-    testControlledStream(Optional.empty(), 50);
+    testControlledStream(Optional.empty(), 58);
   }
 
   @Test
   public void testStreamControlledWithProject() throws Exception {
-    testControlledStream(Optional.of("TST2-CA"), 34);
+    testControlledStream(Optional.of("TST2-CA"), 38);
   }
 
   private void testStreamOpen(Optional<String> project, int expectedFilesCount) throws Exception {
