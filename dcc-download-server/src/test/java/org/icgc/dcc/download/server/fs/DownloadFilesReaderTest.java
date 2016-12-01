@@ -23,8 +23,6 @@ import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSyste
 import java.io.File;
 import java.util.Map;
 
-import lombok.val;
-
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
@@ -35,6 +33,8 @@ import org.icgc.dcc.download.server.utils.DownloadFsTests;
 import org.junit.Test;
 
 import com.google.common.collect.Table;
+
+import lombok.val;
 
 public class DownloadFilesReaderTest extends AbstractFsTest {
 
@@ -90,11 +90,11 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
   }
 
   private void assertRelease21(Table<String, DownloadDataType, DataTypeFile> releaseTable) {
-    assertThat(releaseTable.size()).isEqualTo(28);
-    assertDonor(releaseTable.row("DO001"), (short) 0, 8);
-    assertDonor(releaseTable.row("DO002"), (short) 0, 8);
-    assertDonor(releaseTable.row("DO003"), (short) 1, 6);
-    assertDonor(releaseTable.row("DO004"), (short) 1, 6);
+    assertThat(releaseTable.size()).isEqualTo(36);
+    assertDonor(releaseTable.row("DO001"), (short) 0, 10);
+    assertDonor(releaseTable.row("DO002"), (short) 0, 10);
+    assertDonor(releaseTable.row("DO003"), (short) 1, 8);
+    assertDonor(releaseTable.row("DO004"), (short) 1, 8);
   }
 
   private Path getReleasePath() {
