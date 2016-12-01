@@ -17,13 +17,13 @@
  */
 package org.icgc.dcc.download.imports.core;
 
+import org.icgc.dcc.dcc.common.es.impl.IndexDocumentType;
+
 import lombok.NonNull;
 import lombok.Value;
 
-import org.icgc.dcc.dcc.common.es.impl.DocumentType;
-
 @Value
-public class DefaultDocumentType implements DocumentType {
+public class DefaultDocumentType implements IndexDocumentType {
 
   @NonNull
   String indexType;

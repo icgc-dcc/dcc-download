@@ -113,8 +113,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     
     <!-- Test - Elasticsearch -->
     <dependency>
-      <groupId>com.github.tlrx</groupId>
-      <artifactId>elasticsearch-test</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>elasticsearch-test-shaded</artifactId>
     </dependency>
   </dependencies>
 

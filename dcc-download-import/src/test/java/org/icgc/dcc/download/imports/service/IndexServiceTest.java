@@ -18,57 +18,57 @@
 package org.icgc.dcc.download.imports.service;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.core.json.Jackson.asObjectNode;
 import static org.icgc.dcc.common.test.json.JsonNodes.$;
 
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import lombok.val;
-
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
-import org.elasticsearch.node.Node;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
+import org.elasticsearch.test.ESIntegTestCase.Scope;
+import org.icgc.dcc.common.es.security.SecurityManagerWorkaroundSeedDecorator;
 import org.icgc.dcc.download.imports.core.DownloadImportException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
+import com.carrotsearch.randomizedtesting.annotations.SeedDecorators;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.tlrx.elasticsearch.test.annotations.ElasticsearchClient;
-import com.github.tlrx.elasticsearch.test.annotations.ElasticsearchNode;
-import com.github.tlrx.elasticsearch.test.support.junit.runners.ElasticsearchRunner;
 import com.google.common.collect.Lists;
 
-@RunWith(ElasticsearchRunner.class)
-public class IndexServiceTest {
+import lombok.val;
 
-  private static final ObjectNode DONOR_MAPPING = asObjectNode($("{donor:{_source:{compress:true}}}"));
-  private static final ObjectNode SETTINGS = asObjectNode($("{'index.store.compress.stored':true}"));
+@SeedDecorators(value = SecurityManagerWorkaroundSeedDecorator.class)
+@ClusterScope(scope = Scope.TEST, numDataNodes = 1, maxNumDataNodes = 1, supportsDedicatedMasters = false, transportClientRatio = 0.0)
+public class IndexServiceTest extends ESIntegTestCase {
+
+  private static final ObjectNode DONOR_MAPPING = asObjectNode($("{donor:{_all:{enabled:false}}}"));
+  private static final ObjectNode SETTINGS =
+      asObjectNode($("{'index.number_of_shards':1,'index.number_of_replicas':0}"));
   private static final String INDEX_NAME = "icgc21-test";
   private static final String INDEX_TYPE = "donor";
 
-  @ElasticsearchNode
-  Node node;
-  @ElasticsearchClient
   private Client client;
 
   private IndexService service;
 
   @Before
-  public void before() {
+  public void setUpIndexServiceTest() {
+    client = client();
     service = new IndexService(INDEX_NAME, client);
     service.applySettings(SETTINGS);
   }
 
   @After
-  public void tearDown() throws Exception {
+  public void tearDownIndexServiceTest() throws Exception {
     client.admin().indices()
         .delete(new DeleteIndexRequest(INDEX_NAME))
         .actionGet();
@@ -114,7 +114,7 @@ public class IndexServiceTest {
 
     val indexNames = Lists.<String> newArrayList();
     indicesContainer.forEachRemaining(indexNames::add);
-    assertThat(indexNames).containsOnly(nextIndexName);
+    Assertions.assertThat(indexNames).containsOnly(nextIndexName);
   }
 
   private void verifyMapping(IndicesAdminClient indexClient) throws Exception {
@@ -123,14 +123,14 @@ public class IndexServiceTest {
     val indexMeta = mappings.get(INDEX_NAME);
     val typeMeta = indexMeta.get("donor").sourceAsMap();
     @SuppressWarnings("unchecked")
-    val sourceMeta = (Map<String, Object>) typeMeta.get("_source");
-    assertThat((boolean) sourceMeta.get("compress")).isTrue();
+    val sourceMeta = (Map<String, Object>) typeMeta.get("_all");
+    Assertions.assertThat((boolean) sourceMeta.get("enabled")).isFalse();
   }
 
   private void verifySettings(IndicesAdminClient indexClient) throws InterruptedException, ExecutionException {
     val settingsResponse = indexClient.getSettings(new GetSettingsRequest().indices(INDEX_NAME)).get();
-    val setting = settingsResponse.getSetting(INDEX_NAME, "index.store.compress.stored");
-    assertThat(setting).isEqualTo("true");
+    Assertions.assertThat(settingsResponse.getSetting(INDEX_NAME, "index.number_of_shards")).isEqualTo("1");
+    Assertions.assertThat(settingsResponse.getSetting(INDEX_NAME, "index.number_of_replicas")).isEqualTo("0");
   }
 
 }

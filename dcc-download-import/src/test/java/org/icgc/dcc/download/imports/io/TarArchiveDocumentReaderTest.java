@@ -26,10 +26,7 @@ import static org.mockito.Mockito.verify;
 import java.io.FileInputStream;
 import java.util.zip.GZIPInputStream;
 
-import lombok.Cleanup;
-import lombok.val;
-
-import org.icgc.dcc.dcc.common.es.model.Document;
+import org.icgc.dcc.dcc.common.es.model.IndexDocument;
 import org.icgc.dcc.download.imports.core.DefaultDocumentType;
 import org.icgc.dcc.release.core.document.DocumentType;
 import org.junit.Test;
@@ -38,6 +35,9 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import lombok.Cleanup;
+import lombok.val;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TarArchiveDocumentReaderTest {
@@ -63,8 +63,8 @@ public class TarArchiveDocumentReaderTest {
     reader.read(callback);
 
     val docType = new DefaultDocumentType(TYPE.getName());
-    verify(callback).onDocument(new Document("G1", G1_NODE, docType));
-    verify(callback).onDocument(new Document("G2", G2_NODE, docType));
+    verify(callback).onDocument(new IndexDocument("G1", G1_NODE, docType));
+    verify(callback).onDocument(new IndexDocument("G2", G2_NODE, docType));
   }
 
   @Test
@@ -78,8 +78,8 @@ public class TarArchiveDocumentReaderTest {
     verify(callback).onMapping(eq("file-text"), any());
     verify(callback).onMapping(eq("file-centric"), any());
 
-    verify(callback).onDocument(new Document("FI94", FI94_NODE, new DefaultDocumentType("file-centric")));
-    verify(callback).onDocument(new Document("FI94", FI94_NODE, new DefaultDocumentType("file-text")));
+    verify(callback).onDocument(new IndexDocument("FI94", FI94_NODE, new DefaultDocumentType("file-centric")));
+    verify(callback).onDocument(new IndexDocument("FI94", FI94_NODE, new DefaultDocumentType("file-text")));
   }
 
 }

@@ -20,10 +20,9 @@ package org.icgc.dcc.download.imports.io;
 import static org.icgc.dcc.common.test.json.JsonNodes.$;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import lombok.val;
 
 import org.icgc.dcc.dcc.common.es.core.DocumentWriter;
-import org.icgc.dcc.dcc.common.es.model.Document;
+import org.icgc.dcc.dcc.common.es.model.IndexDocument;
 import org.icgc.dcc.download.imports.core.DefaultDocumentType;
 import org.icgc.dcc.download.imports.service.IndexService;
 import org.icgc.dcc.release.core.document.DocumentType;
@@ -33,6 +32,8 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import lombok.val;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ReleaseTarArchiveEntryCallbackTest {
@@ -85,8 +86,8 @@ public class ReleaseTarArchiveEntryCallbackTest {
         DocumentType.DONOR_TYPE);
   }
 
-  private static Document createEsDocument() {
-    return new Document("DO1", DO1_SOURCE, new DefaultDocumentType(DocumentType.DONOR_TYPE.getName()));
+  private static IndexDocument createEsDocument() {
+    return new IndexDocument("DO1", DO1_SOURCE, new DefaultDocumentType(DocumentType.DONOR_TYPE.getName()));
   }
 
 }
