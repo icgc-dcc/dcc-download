@@ -137,8 +137,7 @@ public class ArchiveDownloadService {
         job.getJobInfo(),
         job.getDataTypes(),
         job.getFileSizeBytes(),
-        job.getSubmissionDate())
-        );
+        job.getSubmissionDate()));
   }
 
   public Optional<FileStreamer> getArchiveStreamer(@NonNull String jobId, @NonNull OutputStream output) {
@@ -308,7 +307,7 @@ public class ArchiveDownloadService {
 
     if (isSingleEntry(headers)) {
       log.info("Creating gzip streamer for data types {}", dataTypes);
-      return getGzipStreamer(downloadFiles, fileSizes, headers, output, release, fileNames);
+      return getGzipStreamer(downloadFiles, fileSizes, headers, output, release, fileNames, true);
     } else {
       log.info("Creating tar streamer for data types {}", dataTypes);
       return getTarStreamer(downloadFiles, fileSizes, headers, output, release);
@@ -322,7 +321,7 @@ public class ArchiveDownloadService {
   private FileStreamer getTarStreamer(List<DataTypeFile> downloadFiles, Map<DownloadDataType, Long> fileSizes,
       Map<DownloadDataType, String> headers, OutputStream output, String release) {
     val tarOut = OutputStreams.createTarOutputStream(output);
-    val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut, release, emptyMap());
+    val gzipStreamer = getGzipStreamer(downloadFiles, fileSizes, headers, tarOut, release, emptyMap(), false);
     return new TarStreamer(tarOut, gzipStreamer);
   }
 
@@ -332,8 +331,10 @@ public class ArchiveDownloadService {
       Map<DownloadDataType, String> headers,
       OutputStream output,
       String release,
-      Map<DownloadDataType, String> fileNames) {
-    return new GzipStreamer(fileSystem, downloadFiles, fileSizes, headers, output, pathResolver, release, fileNames);
+      Map<DownloadDataType, String> fileNames,
+      boolean recompress) {
+    return new GzipStreamer(fileSystem, downloadFiles, fileSizes, headers, output, pathResolver, release, fileNames,
+        recompress);
   }
 
   private Map<DownloadDataType, String> resolveHeaders(String release, Collection<DownloadDataType> dataTypes) {

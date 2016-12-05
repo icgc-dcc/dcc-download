@@ -26,11 +26,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
-
-import lombok.Cleanup;
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.catalina.connector.ClientAbortException;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,6 +40,12 @@ import org.icgc.dcc.download.server.utils.DataTypeFiles;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.io.ByteStreams;
+
+import lombok.Cleanup;
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GzipStreamer implements FileStreamer {
@@ -58,6 +61,7 @@ public class GzipStreamer implements FileStreamer {
   private final PathResolver pathResolver;
   private final String release;
   private final Map<DownloadDataType, String> fileNames;
+  private final boolean recompress;
 
   /**
    * State.
@@ -72,7 +76,8 @@ public class GzipStreamer implements FileStreamer {
       @NonNull OutputStream output,
       @NonNull PathResolver pathResolver,
       @NonNull String release,
-      @NonNull Map<DownloadDataType, String> fileNames) {
+      @NonNull Map<DownloadDataType, String> fileNames,
+      boolean recompress) {
     this.fileSystem = fileSystem;
     this.downloadFiles = downloadFiles;
     this.fileSizes = fileSizes;
@@ -81,6 +86,7 @@ public class GzipStreamer implements FileStreamer {
     this.pathResolver = pathResolver;
     this.release = release;
     this.fileNames = fileNames;
+    this.recompress = recompress;
     checkArguments();
   }
 
@@ -126,15 +132,21 @@ public class GzipStreamer implements FileStreamer {
     return nextEntryLength;
   }
 
+  @SneakyThrows
   public void streamEntry() {
+    val outputStream = recompress ? new GZIPOutputStream(output) : output;
     try {
       val currentDownloadDataType = getCurrentDownloadDataType();
       log.debug("Streaming '{}' entry...", currentDownloadDataType.getCanonicalName());
-      streamHeader();
+      streamHeader(outputStream);
 
       while (hasNext() && isSameDownloadDataType(currentDownloadDataType)) {
-        streamCurrentDataType();
+        streamCurrentDataType(outputStream);
         currentDataFileIndex++;
+      }
+
+      if (recompress) {
+        ((GZIPOutputStream) outputStream).finish();
       }
       log.debug("Finished Streaming '{}' entry.", currentDownloadDataType.getCanonicalName());
     } catch (ClientAbortException e) {
@@ -149,15 +161,15 @@ public class GzipStreamer implements FileStreamer {
     return getCurrentDownloadDataType() == currentDownloadDataType;
   }
 
-  private void streamCurrentDataType() throws IOException {
+  private void streamCurrentDataType(OutputStream outputStream) throws IOException {
     log.debug("Streaming data file '{}'", getCurrentDataFile().getPath());
     for (val partFile : getPartFiles()) {
       val path = new Path(partFile); // NOPMD
       log.debug("Streaming path '{}'", path);
 
       @Cleanup
-      val input = fileSystem.open(path);
-      ByteStreams.copy(input, output);
+      val input = recompress ? new GZIPInputStream(fileSystem.open(path)) : fileSystem.open(path);
+      ByteStreams.copy(input, outputStream);
     }
   }
 
@@ -167,13 +179,13 @@ public class GzipStreamer implements FileStreamer {
     return pathResolver.getPartFilePaths(release, dataFile);
   }
 
-  private void streamHeader() throws IOException {
+  private void streamHeader(OutputStream outputStream) throws IOException {
     val header = getCurrentHeader();
     log.debug("Streaming header '{}'", header);
 
     @Cleanup
-    val headerInput = fileSystem.open(header);
-    ByteStreams.copy(headerInput, output);
+    val headerInput = recompress ? new GZIPInputStream(fileSystem.open(header)) : fileSystem.open(header);
+    ByteStreams.copy(headerInput, outputStream);
   }
 
   private long getCurrentHeaderLength() {
