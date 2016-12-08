@@ -64,6 +64,36 @@ A static file download token has following payload:
 }
 ```
 
+### Virtual file system
+
+The download server relies on a particular file system layout. In case some directories are missing it will not start.
+
+###### Release name
+
+The download server assumes that directory name, which contains release data, starts with the `release_` prefix followed by a release number. For example, `release_23`.
+
+###### Directories layout
+
+The download server data input directory (`job.inputDir` option in the [configuration file](https://github.com/icgc-dcc/dcc-download/blob/develop/dcc-download-server/src/main/resources/application.yml)) has the following structure:
+
+```shell
+.
+├── README.txt
+└── release_23
+    ├── data
+    ├── headers
+    ├── projects_files
+    ├── README.txt
+    └── summary_files
+```
+
+where
+
+ - `data` directory contains compressed clinical files. 
+ - `headers` directory contains header files for the clinical files.
+ - `project_files` static files in a release [Projects](https://dcc.icgc.org/releases/current/Projects) directory. E.g. a `README.txt` file.
+ - `summary_files` static files in a release [Summary](https://dcc.icgc.org/releases/current/Summary) directory. E.g. `simple_somatic_mutation.aggregated.vcf.gz` file.
+
 ## Building
 
 ```shell
