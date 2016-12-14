@@ -52,7 +52,7 @@ public class StaticFilesController {
     val requestPath = getRequestPath(request);
     checkArgument("path", requestPath);
 
-    return downloadFileSystem.listFiles(getFsPath(requestPath));
+    return downloadFileSystem.listFiles(getFsPath(requestPath), recursive);
   }
 
   private static String getFsPath(String requestUrl) {
