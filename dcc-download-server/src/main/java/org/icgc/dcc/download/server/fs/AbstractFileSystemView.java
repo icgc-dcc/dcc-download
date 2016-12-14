@@ -30,10 +30,6 @@ import static org.icgc.dcc.download.server.utils.Responses.throwPathNotFoundExce
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -45,6 +41,10 @@ import org.icgc.dcc.download.server.utils.DfsPaths;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.collect.Ordering;
+
+import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractFileSystemView {
@@ -90,7 +90,7 @@ public abstract class AbstractFileSystemView {
     val size = type == DIRECTORY ? 0L : getFileSize(file);
     val date = getFileDate(file);
 
-    val downloadFile = new DownloadFile(fileName, type, size, date);
+    val downloadFile = new DownloadFile(fileName, type, size, date, null);
     log.debug("Converted '{}' to {}", file, downloadFile);
 
     return downloadFile;

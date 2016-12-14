@@ -25,14 +25,14 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
-import lombok.val;
-
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.core.model.DownloadFileType;
 import org.icgc.dcc.download.test.AbstractTest;
 import org.junit.Before;
+
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import lombok.val;
 
 public abstract class AbstractFsTest extends AbstractTest {
 
@@ -51,7 +51,7 @@ public abstract class AbstractFsTest extends AbstractTest {
   }
 
   public static DownloadFile newDir(String name) {
-    return new DownloadFile(name, DownloadFileType.DIRECTORY, 0, 0);
+    return new DownloadFile(name, DownloadFileType.DIRECTORY, 0, 0, null);
   }
 
   public static DownloadFile newDir(String name, long creationDate) {
@@ -59,11 +59,11 @@ public abstract class AbstractFsTest extends AbstractTest {
   }
 
   public static DownloadFile newDir(String name, long size, long creationDate) {
-    return new DownloadFile(name, DownloadFileType.DIRECTORY, size, creationDate);
+    return new DownloadFile(name, DownloadFileType.DIRECTORY, size, creationDate, null);
   }
 
   public static DownloadFile newFile(String name, long size, long creationDate) {
-    return new DownloadFile(name, DownloadFileType.FILE, size, creationDate);
+    return new DownloadFile(name, DownloadFileType.FILE, size, creationDate, null);
   }
 
   protected static void verifyDownloadFiles(@NonNull List<DownloadFile> actual,
