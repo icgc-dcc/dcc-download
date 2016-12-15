@@ -40,6 +40,10 @@ public class DownloadFile implements Comparable<DownloadFile> {
   @JsonInclude(Include.NON_NULL)
   private Collection<DownloadFile> contents;
 
+  public DownloadFile(String name, DownloadFileType type, long size, long date) {
+    this(name, type, size, date, null);
+  }
+
   @Override
   public int compareTo(DownloadFile other) {
     val typesCompared = type.compareTo(other.type);
