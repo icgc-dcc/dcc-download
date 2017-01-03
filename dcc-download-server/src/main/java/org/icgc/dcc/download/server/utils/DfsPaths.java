@@ -22,11 +22,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
-import static org.icgc.dcc.common.core.model.DownloadDataType.BIOMARKER;
 import static org.icgc.dcc.common.core.model.DownloadDataType.CNSM;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR_BIOMARKER;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR_EXPOSURE;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR_FAMILY;
+import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR_SURGERY;
 import static org.icgc.dcc.common.core.model.DownloadDataType.DONOR_THERAPY;
 import static org.icgc.dcc.common.core.model.DownloadDataType.EXP_ARRAY;
 import static org.icgc.dcc.common.core.model.DownloadDataType.EXP_SEQ;
@@ -41,7 +42,6 @@ import static org.icgc.dcc.common.core.model.DownloadDataType.SPECIMEN;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_CONTROLLED;
 import static org.icgc.dcc.common.core.model.DownloadDataType.SSM_OPEN;
 import static org.icgc.dcc.common.core.model.DownloadDataType.STSM;
-import static org.icgc.dcc.common.core.model.DownloadDataType.SURGERY;
 import static org.icgc.dcc.common.core.util.Separators.EMPTY_STRING;
 import static org.icgc.dcc.common.core.util.Splitters.PATH;
 import static org.icgc.dcc.common.core.util.stream.Collectors.toImmutableList;
@@ -55,17 +55,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.download.server.endpoint.NotFoundException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @NoArgsConstructor(access = PRIVATE)
@@ -318,8 +318,8 @@ public final class DfsPaths {
     fileNames.put(DONOR_EXPOSURE, DONOR_EXPOSURE.getId());
     fileNames.put(DONOR_FAMILY, DONOR_FAMILY.getId());
     fileNames.put(DONOR_THERAPY, DONOR_THERAPY.getId());
-    fileNames.put(BIOMARKER, BIOMARKER.getId());
-    fileNames.put(SURGERY, SURGERY.getId());
+    fileNames.put(DONOR_BIOMARKER, DONOR_BIOMARKER.getId());
+    fileNames.put(DONOR_SURGERY, DONOR_SURGERY.getId());
     fileNames.put(CNSM, "copy_number_somatic_mutation");
     fileNames.put(EXP_ARRAY, EXP_ARRAY.getId());
     fileNames.put(EXP_SEQ, EXP_SEQ.getId());
