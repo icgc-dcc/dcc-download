@@ -99,7 +99,7 @@ public class TarStreamerTest extends AbstractTest {
 
   private GzipStreamer createGzipStreamer(OutputStream output) {
     return new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output,
-        pathResolver, "release_21", emptyMap());
+        pathResolver, "release_21", emptyMap(), false);
   }
 
   @SneakyThrows

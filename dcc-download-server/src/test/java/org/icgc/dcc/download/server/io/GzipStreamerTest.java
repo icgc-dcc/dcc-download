@@ -86,7 +86,7 @@ public class GzipStreamerTest extends AbstractTest {
 
     gzipStreamer =
         new GzipStreamer(getDefaultLocalFileSystem(), getDownloadFiles(), getDownloadSizes(), getHeaders(), output,
-            pathResolver, "release_21", emptyMap());
+            pathResolver, "release_21", emptyMap(), false);
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
@@ -107,7 +107,7 @@ public class GzipStreamerTest extends AbstractTest {
     val output = new BufferedOutputStream(new FileOutputStream(testFile));
 
     gzipStreamer = new GzipStreamer(getDefaultLocalFileSystem(), getMultipleDownloadFiles(),
-        getMultipleDownloadSizes(), getMultipleHeaders(), output, pathResolver, "release_21", emptyMap());
+        getMultipleDownloadSizes(), getMultipleHeaders(), output, pathResolver, "release_21", emptyMap(), false);
 
     try {
       assertThat(gzipStreamer.hasNext()).isTrue();
@@ -140,7 +140,8 @@ public class GzipStreamerTest extends AbstractTest {
         mock(OutputStream.class),
         pathResolver,
         "release_21",
-        emptyMap());
+        emptyMap(),
+        false);
     assertThat(gzipStreamer.getName()).isEqualTo("simple_somatic_mutation.open.tsv.gz");
   }
 
@@ -154,7 +155,8 @@ public class GzipStreamerTest extends AbstractTest {
         mock(OutputStream.class),
         pathResolver,
         "release_21",
-        singletonMap(SSM_OPEN, "custom_name"));
+        singletonMap(SSM_OPEN, "custom_name"),
+        false);
     assertThat(gzipStreamer.getName()).isEqualTo("custom_name");
   }
 
