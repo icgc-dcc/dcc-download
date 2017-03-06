@@ -17,6 +17,11 @@
  */
 package org.icgc.dcc.download.core.model;
 
+import java.util.Collection;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,6 +36,13 @@ public class DownloadFile implements Comparable<DownloadFile> {
   private DownloadFileType type;
   private long size;
   private long date;
+
+  @JsonInclude(Include.NON_NULL)
+  private Collection<DownloadFile> contents;
+
+  public DownloadFile(String name, DownloadFileType type, long size, long date) {
+    this(name, type, size, date, null);
+  }
 
   @Override
   public int compareTo(DownloadFile other) {

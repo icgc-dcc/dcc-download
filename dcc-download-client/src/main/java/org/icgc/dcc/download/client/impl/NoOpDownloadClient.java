@@ -54,4 +54,9 @@ public class NoOpDownloadClient implements DownloadClient {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public Collection<DownloadFile> listFiles(String path, boolean recursive) {
+    throw new UnsupportedOperationException();
+  }
+
 }

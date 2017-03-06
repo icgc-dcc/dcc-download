@@ -64,6 +64,71 @@ A static file download token has following payload:
 }
 ```
 
+### Virtual file system
+
+The download server relies on a particular file system layout. In case some directories are missing it will not start.
+
+###### Release name
+
+The download server assumes that directory name, which contains release data, starts with the `release_` prefix followed by a release number. For example, `release_23`.
+
+###### Directories layout
+
+The download server data input directory (`job.inputDir` option in the [configuration file](https://github.com/icgc-dcc/dcc-download/blob/develop/dcc-download-server/src/main/resources/application.yml)) has the following structure:
+
+```shell
+.
+├── README.txt
+└── release_23
+    ├── data
+    ├── headers
+    ├── projects_files
+    ├── README.txt
+    └── summary_files
+```
+
+where
+
+ - `data` directory contains compressed clinical files. 
+ - `headers` directory contains header files for the clinical files.
+ - `project_files` static files in a release [Projects](https://dcc.icgc.org/releases/current/Projects) directory. E.g. a `README.txt` file.
+ - `summary_files` static files in a release [Summary](https://dcc.icgc.org/releases/current/Summary) directory. E.g. `simple_somatic_mutation.aggregated.vcf.gz` file.
+
+###### Export directory layout
+
+Export directory contains archive files which can be used to populate an Elasticsearch indecies used by the [DCC Portal](https://github.com/icgc-dcc/dcc-portal) and the download server itself.
+
+Location of the directory which contains export archives is defined by the `exports.exportsPath` [configuration property](https://github.com/icgc-dcc/dcc-download/blob/develop/dcc-download-server/src/main/resources/application.yml#L38).
+
+The directory contains an `es_export` directory, which is used to create `icgc-release` Elasticsearch index, and `repository.tar.gz` file, which is used to create `icgc-repository` Elasticsearch index.
+
+For example:
+
+```shell
+.
+├── es_export
+│   ├── icgc23-9_diagram.tar.gz
+│   ├── icgc23-9_donor-centric.tar.gz
+│   ├── icgc23-9_donor.tar.gz
+│   ├── icgc23-9_donor-text.tar.gz
+│   ├── icgc23-9_drug-centric.tar.gz
+│   ├── icgc23-9_drug-text.tar.gz
+│   ├── icgc23-9_gene-centric.tar.gz
+│   ├── icgc23-9_gene-set.tar.gz
+│   ├── icgc23-9_gene-set-text.tar.gz
+│   ├── icgc23-9_gene.tar.gz
+│   ├── icgc23-9_gene-text.tar.gz
+│   ├── icgc23-9_mutation-centric.tar.gz
+│   ├── icgc23-9_mutation-text.tar.gz
+│   ├── icgc23-9_observation-centric.tar.gz
+│   ├── icgc23-9_project.tar.gz
+│   ├── icgc23-9_project-text.tar.gz
+│   └── icgc23-9_release.tar.gz
+└── repository.tar.gz
+
+1 directory, 18 files
+```
+
 ## Building
 
 ```shell

@@ -28,7 +28,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 
   <artifactId>dcc-download</artifactId>
   <packaging>pom</packaging>
-  <version>4.3.7-SNAPSHOT</version>
+  <version>4.3.12-SNAPSHOT</version>
 
   <name>${project.artifactId}</name>
   <description>${project.name}</description>
@@ -242,8 +242,8 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 
   <properties>
     <!-- Versions - DCC -->
-    <dcc-common.version>4.3.9-20161201.154809-1</dcc-common.version>
-    <dcc-release.version>4.3.5-20161201.155659-1</dcc-release.version>
+    <dcc-common.version>4.3.11</dcc-common.version>
+    <dcc-release.version>5.0.0</dcc-release.version>
     
     <!-- Spring -->
     <spring-boot.version>1.3.3.RELEASE</spring-boot.version>
@@ -256,7 +256,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
     <!-- SCM -->
     <github.url>scm:git:git@github.com:icgc-dcc/dcc-download.git</github.url>
     
-    <elasticsearch.version>5.0.2</elasticsearch.version>
+    <elasticsearch.version>5.1.2</elasticsearch.version>
     
     <!-- REST -->
     <jersey.version>1.17.1</jersey.version>

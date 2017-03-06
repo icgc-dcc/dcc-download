@@ -27,15 +27,16 @@ import java.util.Collection;
 
 import javax.servlet.http.HttpServletRequest;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.val;
-
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.server.fs.DownloadFileSystem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
 
 @RestController
 @RequestMapping("/list/**")
@@ -46,11 +47,12 @@ public class StaticFilesController {
   private final DownloadFileSystem downloadFileSystem;
 
   @RequestMapping(method = GET)
-  public Collection<DownloadFile> list(HttpServletRequest request) throws IOException {
+  public Collection<DownloadFile> list(HttpServletRequest request,
+      @RequestParam(name = "recursive", required = false) boolean recursive) throws IOException {
     val requestPath = getRequestPath(request);
     checkArgument("path", requestPath);
 
-    return downloadFileSystem.listFiles(getFsPath(requestPath));
+    return downloadFileSystem.listFiles(getFsPath(requestPath), recursive);
   }
 
   private static String getFsPath(String requestUrl) {

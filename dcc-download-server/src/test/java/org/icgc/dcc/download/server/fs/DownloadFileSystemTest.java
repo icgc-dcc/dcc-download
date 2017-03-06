@@ -19,16 +19,15 @@ package org.icgc.dcc.download.server.fs;
 
 import static com.google.common.collect.ImmutableList.of;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.common.core.json.Jackson.DEFAULT;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-
-import lombok.NonNull;
-import lombok.val;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.icgc.dcc.download.core.model.DownloadFile;
@@ -44,6 +43,11 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableList;
 
+import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RunWith(MockitoJUnitRunner.class)
 public class DownloadFileSystemTest extends AbstractTest {
 
@@ -87,6 +91,24 @@ public class DownloadFileSystemTest extends AbstractTest {
   }
 
   @Test
+  public void testListFiles_root_recursive() throws Exception {
+    when(fsService.getCurrentRelease()).thenReturn("release_21");
+    when(fsService.existsProject(anyString(), anyString())).thenReturn(true);
+    when(fsService.getReleaseDate(anyString())).thenReturn(Optional.of(0L));
+    when(fsService.getReleaseProjects("release_21")).thenReturn(Optional.of(ImmutableList.of("TST1-CA", "TST2-CA")));
+
+    val listing = dfs.listFiles("/", true);
+    val result = DEFAULT.writeValueAsString(listing);
+    log.info("{}", result);
+    verifyDownloadFiles(dfs.listFiles("/"), of(
+        newFile("README.txt"),
+        newDir("/current"),
+        newDir("/legacy_releases"),
+        newDir("/release_20"),
+        newDir("/release_21")));
+  }
+
+  @Test
   public void testListFiles_legacy() throws Exception {
     verifyDownloadFiles(dfs.listFiles("/legacy_releases"), of(newFile("/legacy_releases/README_file.txt")));
   }
@@ -106,11 +128,11 @@ public class DownloadFileSystemTest extends AbstractTest {
   }
 
   private DownloadFile newDir(String name) {
-    return new DownloadFile(name, DownloadFileType.DIRECTORY, 0, 0);
+    return new DownloadFile(name, DownloadFileType.DIRECTORY, 0, 0, null);
   }
 
   private DownloadFile newFile(String name) {
-    return new DownloadFile(name, DownloadFileType.FILE, 0, 0);
+    return new DownloadFile(name, DownloadFileType.FILE, 0, 0, null);
   }
 
 }

@@ -18,6 +18,7 @@
 package org.icgc.dcc.download.server.fs;
 
 import static java.lang.String.format;
+import static org.icgc.dcc.download.core.model.DownloadFileType.DIRECTORY;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getLegacyRelease;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getProjectsPath;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getSummaryPath;
@@ -27,15 +28,17 @@ import static org.icgc.dcc.download.server.utils.Responses.throwBadRequestExcept
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 import org.icgc.dcc.common.core.util.Splitters;
 import org.icgc.dcc.download.core.model.DownloadFile;
 import org.icgc.dcc.download.server.endpoint.BadRequestException;
 import org.icgc.dcc.download.server.utils.DfsPaths;
+
+import com.google.common.collect.ImmutableList;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -57,6 +60,41 @@ public class DownloadFileSystem {
   private final AtomicReference<Collection<String>> releases;
 
   public Collection<DownloadFile> listFiles(@NonNull String path) {
+    return listFiles(path, false);
+  }
+
+  public Collection<DownloadFile> listFiles(@NonNull String path, boolean recusive) {
+    if (!recusive) {
+      return getFiles(path);
+    }
+
+    val listing = ImmutableList.<DownloadFile> builder();
+    for (val file : getFiles(path)) {
+      if (file.getType() == DIRECTORY) {
+        // Recurse
+        val children = listFiles(file.getName(), true);
+
+        val directory = new DownloadFile(
+            file.getName(),
+            file.getType(),
+            file.getSize(),
+            file.getDate(),
+            children);
+
+        listing.add(directory);
+      } else {
+        listing.add(file);
+      }
+    }
+
+    return listing.build();
+  }
+
+  public void setReleases(@NonNull Collection<String> releases) {
+    this.releases.set(releases);
+  }
+
+  private Collection<DownloadFile> getFiles(@NonNull String path) {
     log.info("Listing files for path '{}'...", path);
 
     // "/"
@@ -107,10 +145,6 @@ public class DownloadFileSystem {
     val message = format("Malformed path '%s'", path);
     log.warn(message);
     throw new BadRequestException(message);
-  }
-
-  public void setReleases(@NonNull Collection<String> releases) {
-    this.releases.set(releases);
   }
 
   private boolean isLegacyRelease(String legacyRelease) {

@@ -38,4 +38,6 @@ public interface DownloadClient {
 
   Collection<DownloadFile> listFiles(String path);
 
+  Collection<DownloadFile> listFiles(String path, boolean recursive);
+
 }

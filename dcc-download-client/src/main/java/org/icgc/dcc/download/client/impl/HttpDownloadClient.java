@@ -39,11 +39,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.icgc.dcc.common.core.security.DumbX509TrustManager;
@@ -72,6 +67,11 @@ import com.sun.jersey.api.client.filter.LoggingFilter;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
+
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HttpDownloadClient implements DownloadClient {
@@ -170,8 +170,14 @@ public class HttpDownloadClient implements DownloadClient {
 
   @Override
   public Collection<DownloadFile> listFiles(String path) {
+    return listFiles(path, false);
+  }
+
+  @Override
+  public Collection<DownloadFile> listFiles(String path, boolean recursive) {
     try {
       val response = resource.path(LIST_FILES_PATH).path(path)
+          .queryParam("recursive", Boolean.toString(recursive))
           .get(ClientResponse.class);
 
       if (!isSuccessful(response)) {
@@ -185,12 +191,10 @@ public class HttpDownloadClient implements DownloadClient {
   }
 
   private static Set<DownloadDataType> resolveSubmitDataTypes(Set<DownloadDataType> dataTypes) {
-    return dataTypes.contains(DONOR) ?
-        ImmutableSet.<DownloadDataType> builder()
-            .addAll(dataTypes)
-            .addAll(CLINICAL)
-            .build() :
-        dataTypes;
+    return dataTypes.contains(DONOR) ? ImmutableSet.<DownloadDataType> builder()
+        .addAll(dataTypes)
+        .addAll(CLINICAL)
+        .build() : dataTypes;
   }
 
   // HttpClient configuration
@@ -238,8 +242,7 @@ public class HttpDownloadClient implements DownloadClient {
             return true;
           }
 
-        }, context
-        ));
+        }, context));
 
     return config;
   }
