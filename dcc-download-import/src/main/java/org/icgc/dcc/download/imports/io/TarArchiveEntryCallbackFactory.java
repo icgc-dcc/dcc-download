@@ -18,14 +18,15 @@
 package org.icgc.dcc.download.imports.io;
 
 import static java.lang.String.format;
-import static org.icgc.dcc.release.job.index.factory.TransportClientFactory.newTransportClient;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.val;
+import static org.icgc.dcc.dcc.common.es.TransportClientFactory.createClient;
 
 import org.icgc.dcc.dcc.common.es.DocumentWriterConfiguration;
 import org.icgc.dcc.dcc.common.es.DocumentWriterFactory;
 import org.icgc.dcc.download.imports.service.IndexService;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
 
 @RequiredArgsConstructor
 public class TarArchiveEntryCallbackFactory {
@@ -87,9 +88,9 @@ public class TarArchiveEntryCallbackFactory {
         context.getDocumentType());
   }
 
-  private void initializeIndexService(final java.lang.String indexName) {
+  private void initializeIndexService(String indexName) {
     if (indexService == null) {
-      indexService = new IndexService(indexName, newTransportClient(esUri, true));
+      indexService = new IndexService(indexName, createClient(esUri));
     }
   }
 

@@ -24,22 +24,22 @@ import static org.icgc.dcc.download.imports.util.TarEntryNames.getDocumentType;
 import java.io.IOException;
 import java.io.InputStream;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.icgc.dcc.dcc.common.es.impl.DocumentType;
-import org.icgc.dcc.dcc.common.es.model.Document;
+import org.icgc.dcc.dcc.common.es.impl.IndexDocumentType;
+import org.icgc.dcc.dcc.common.es.model.IndexDocument;
 import org.icgc.dcc.download.imports.core.DefaultDocumentType;
 import org.icgc.dcc.download.imports.util.TarEntryNames;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Reverse engineers the schema from Elasticsearch.
@@ -89,7 +89,7 @@ public class TarArchiveDocumentReader {
         val docId = getDocumentId(entryName);
         val source = readSource(archiveStream);
         val documentType = resolveDocumentType(entryName);
-        val document = new Document(docId, source, documentType); // NOPMD
+        val document = new IndexDocument(docId, source, documentType); // NOPMD
 
         // Dispatch
         callback.onDocument(document);
@@ -97,7 +97,7 @@ public class TarArchiveDocumentReader {
     }
   }
 
-  private DocumentType resolveDocumentType(String entryName) {
+  private IndexDocumentType resolveDocumentType(String entryName) {
     val documentType = TarEntryNames.getDocumentType(entryName);
     log.debug("Resolved document type {} from entry name {}", documentType, entryName);
 

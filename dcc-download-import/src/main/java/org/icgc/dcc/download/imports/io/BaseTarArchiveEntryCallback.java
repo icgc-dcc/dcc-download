@@ -21,16 +21,16 @@ import static org.icgc.dcc.common.core.util.Formats.formatCount;
 
 import java.io.IOException;
 
+import org.icgc.dcc.dcc.common.es.core.DocumentWriter;
+import org.icgc.dcc.dcc.common.es.model.IndexDocument;
+import org.icgc.dcc.download.imports.service.IndexService;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import org.icgc.dcc.dcc.common.es.core.DocumentWriter;
-import org.icgc.dcc.dcc.common.es.model.Document;
-import org.icgc.dcc.download.imports.service.IndexService;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -69,7 +69,7 @@ public class BaseTarArchiveEntryCallback implements TarArchiveEntryCallback {
 
   @Override
   @SneakyThrows
-  public void onDocument(Document document) {
+  public void onDocument(IndexDocument document) {
     documentWriter.write(document);
 
     if (++count % 1000 == 0) {

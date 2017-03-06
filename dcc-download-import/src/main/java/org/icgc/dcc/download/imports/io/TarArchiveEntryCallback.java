@@ -19,7 +19,7 @@ package org.icgc.dcc.download.imports.io;
 
 import java.io.Closeable;
 
-import org.icgc.dcc.dcc.common.es.model.Document;
+import org.icgc.dcc.dcc.common.es.model.IndexDocument;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -29,6 +29,6 @@ public interface TarArchiveEntryCallback extends Closeable {
 
   void onMapping(String mappingTypeName, ObjectNode mapping);
 
-  void onDocument(Document document);
+  void onDocument(IndexDocument document);
 
 }

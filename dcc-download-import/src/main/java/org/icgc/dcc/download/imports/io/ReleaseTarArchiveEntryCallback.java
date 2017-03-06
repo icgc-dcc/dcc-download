@@ -26,16 +26,16 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import lombok.NonNull;
-import lombok.SneakyThrows;
-import lombok.val;
-
 import org.icgc.dcc.dcc.common.es.core.DocumentWriter;
-import org.icgc.dcc.dcc.common.es.model.Document;
+import org.icgc.dcc.dcc.common.es.model.IndexDocument;
 import org.icgc.dcc.download.imports.service.IndexService;
 import org.icgc.dcc.release.core.document.DocumentType;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import lombok.val;
 
 public class ReleaseTarArchiveEntryCallback extends BaseTarArchiveEntryCallback {
 
@@ -55,7 +55,7 @@ public class ReleaseTarArchiveEntryCallback extends BaseTarArchiveEntryCallback 
 
   @Override
   @SneakyThrows
-  public void onDocument(Document document) {
+  public void onDocument(IndexDocument document) {
     val source = document.getSource();
     if (!isSkipIndexing(source)) {
       super.onDocument(document);
