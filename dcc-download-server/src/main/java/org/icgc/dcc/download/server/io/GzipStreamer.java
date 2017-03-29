@@ -27,11 +27,6 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 
-import lombok.Cleanup;
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.catalina.connector.ClientAbortException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,8 +36,14 @@ import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.utils.DataTypeFiles;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
+import org.icgc.dcc.download.server.utils.Responses;
 
 import com.google.common.io.ByteStreams;
+
+import lombok.Cleanup;
+import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GzipStreamer implements FileStreamer {
@@ -105,9 +106,8 @@ public class GzipStreamer implements FileStreamer {
 
   public String getNextEntryName() {
     val downloadDataType = getCurrentDownloadDataType();
-    val nextEntryName = fileNames.containsKey(downloadDataType) ?
-        fileNames.get(downloadDataType) :
-        getFileName(downloadDataType, empty()) + ".tsv.gz";
+    val nextEntryName = fileNames.containsKey(downloadDataType) ? fileNames
+        .get(downloadDataType) : getFileName(downloadDataType, empty()) + ".tsv.gz";
 
     log.debug("Next entry name: {}", nextEntryName);
 
@@ -184,7 +184,10 @@ public class GzipStreamer implements FileStreamer {
   }
 
   private void checkArguments() {
-    checkArgument(!downloadFiles.isEmpty());
+    if (downloadFiles.isEmpty()) {
+      Responses.throwNotFoundException("Job has no files to download",
+          "In GzipStreamer.checkArguments(), job has no files to download");
+    }
     checkArgument(!downloadFiles.get(0).getPartFileIndices().isEmpty());
     checkArgument(!headers.isEmpty());
   }
