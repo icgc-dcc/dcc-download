@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Optional.empty;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
+import static org.icgc.dcc.download.server.utils.Responses.throwNotFoundException;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,7 +37,6 @@ import org.icgc.dcc.download.server.fs.PathResolver;
 import org.icgc.dcc.download.server.model.DataTypeFile;
 import org.icgc.dcc.download.server.utils.DataTypeFiles;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
-import org.icgc.dcc.download.server.utils.Responses;
 
 import com.google.common.io.ByteStreams;
 
@@ -185,7 +185,7 @@ public class GzipStreamer implements FileStreamer {
 
   private void checkArguments() {
     if (downloadFiles.isEmpty()) {
-      Responses.throwNotFoundException("Job has no files to download",
+      throwNotFoundException("Job has no files to download",
           "In GzipStreamer.checkArguments(), job has no files to download");
     }
     checkArgument(!downloadFiles.get(0).getPartFileIndices().isEmpty());
