@@ -21,16 +21,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Optional.empty;
 import static org.icgc.dcc.download.server.utils.DfsPaths.getFileName;
+import static org.icgc.dcc.download.server.utils.Responses.throwNotFoundException;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
-
-import lombok.Cleanup;
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.catalina.connector.ClientAbortException;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,6 +39,11 @@ import org.icgc.dcc.download.server.utils.DataTypeFiles;
 import org.icgc.dcc.download.server.utils.HadoopUtils2;
 
 import com.google.common.io.ByteStreams;
+
+import lombok.Cleanup;
+import lombok.NonNull;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GzipStreamer implements FileStreamer {
@@ -184,7 +185,10 @@ public class GzipStreamer implements FileStreamer {
   }
 
   private void checkArguments() {
-    checkArgument(!downloadFiles.isEmpty());
+    if (downloadFiles.isEmpty()) {
+      throwNotFoundException("Job has no files to download",
+          "In GzipStreamer.checkArguments(), job has no files to download");
+    }
     checkArgument(!downloadFiles.get(0).getPartFileIndices().isEmpty());
     checkArgument(!headers.isEmpty());
   }
