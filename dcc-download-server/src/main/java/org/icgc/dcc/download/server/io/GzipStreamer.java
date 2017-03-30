@@ -106,8 +106,9 @@ public class GzipStreamer implements FileStreamer {
 
   public String getNextEntryName() {
     val downloadDataType = getCurrentDownloadDataType();
-    val nextEntryName = fileNames.containsKey(downloadDataType) ? fileNames
-        .get(downloadDataType) : getFileName(downloadDataType, empty()) + ".tsv.gz";
+    val nextEntryName = fileNames.containsKey(downloadDataType) ?
+        fileNames.get(downloadDataType) :
+        getFileName(downloadDataType, empty()) + ".tsv.gz";
 
     log.debug("Next entry name: {}", nextEntryName);
 
