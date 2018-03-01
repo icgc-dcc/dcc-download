@@ -74,8 +74,8 @@ public final class DfsPaths {
   private static final Pattern RELEASE_PATTERN = Pattern.compile(RELEASE_DIR_REGEX + "|current|README.txt");
   private static final Pattern RELEASE_DIR_PATTERN = Pattern.compile("Projects|Summary|README.txt");
   private static final Pattern PROJECT_NAME_PATTERN = Pattern.compile("\\w{2,4}-\\w{2}");
-  private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.(vcf|tsv)\\.gz)$");
-  private static final Pattern REAL_FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.vcf\\.gz)$");
+  private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.(vcf|tsv|xlsx)\\.gz)$");
+  private static final Pattern REAL_FILE_NAME_PATTERN = Pattern.compile("(README.txt|.*\\.(vcf|xlsx)\\.gz)$");
 
   private static final int VALID_PATH_MIN_PARTS_COUNT = 1;
   private static final int VALID_PATH_MAX_PARTS_COUNT = 6;

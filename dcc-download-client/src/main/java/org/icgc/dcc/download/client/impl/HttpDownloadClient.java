@@ -253,7 +253,7 @@ public class HttpDownloadClient implements DownloadClient {
 
   private static <T> T rethrowConnectionRefused(ClientHandlerException exception) {
     val cause = exception.getCause();
-    if (cause instanceof ConnectException && "Connection refused".equals(cause.getMessage())) {
+    if (cause instanceof ConnectException) {
       return throwServiceUnavailableException();
     } else {
       throw exception;
