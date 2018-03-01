@@ -18,10 +18,7 @@
 package org.icgc.dcc.download.server.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.icgc.dcc.download.server.utils.DfsPaths.getDownloadDataType;
-import static org.icgc.dcc.download.server.utils.DfsPaths.getLegacyRelease;
-import static org.icgc.dcc.download.server.utils.DfsPaths.getProject;
-import static org.icgc.dcc.download.server.utils.DfsPaths.isRealEntity;
+import static org.icgc.dcc.download.server.utils.DfsPaths.*;
 
 import org.icgc.dcc.common.core.model.DownloadDataType;
 import org.junit.Test;
@@ -32,23 +29,24 @@ public class DfsPathsTest {
 
   @Test
   public void testValidatePath() throws Exception {
-    DfsPaths.validatePath("/");
-    DfsPaths.validatePath("/README.txt");
-    DfsPaths.validatePath("/release_21");
-    DfsPaths.validatePath("/release_21/README.txt");
-    DfsPaths.validatePath("/current");
-    DfsPaths.validatePath("/current/README.txt");
-    DfsPaths.validatePath("/release_21/Projects");
-    DfsPaths.validatePath("/release_21/Projects/README.txt");
-    DfsPaths.validatePath("/release_21/Summary");
-    DfsPaths.validatePath("/release_21/Summary/README.txt");
-    DfsPaths.validatePath("/current/Projects/README.txt");
-    DfsPaths.validatePath("/current/Summary");
-    DfsPaths.validatePath("/current/Summary/README.txt");
-    DfsPaths.validatePath("/release_21/Projects/TST-CA");
-    DfsPaths.validatePath("/release_21/Projects/TST-CA/simple_somatic_mutation.open.ALL-US.tsv.gz");
-    DfsPaths.validatePath("/release_21/Summary/simple_somatic_mutation.aggregated.vcf.gz");
-    DfsPaths.validatePath("/current/Summary/sample.all_projects.tsv.gz");
+    validatePath("/");
+    validatePath("/README.txt");
+    validatePath("/release_21");
+    validatePath("/release_21/README.txt");
+    validatePath("/current");
+    validatePath("/current/README.txt");
+    validatePath("/release_21/Projects");
+    validatePath("/release_21/Projects/README.txt");
+    validatePath("/release_21/Summary");
+    validatePath("/release_21/Summary/README.txt");
+    validatePath("/current/Projects/README.txt");
+    validatePath("/current/Summary");
+    validatePath("/current/Summary/README.txt");
+    validatePath("/release_21/Projects/TST-CA");
+    validatePath("/release_21/Projects/TST-CA/simple_somatic_mutation.open.ALL-US.tsv.gz");
+    validatePath("/release_21/Summary/simple_somatic_mutation.aggregated.vcf.gz");
+    validatePath("/current/Summary/sample.all_projects.tsv.gz");
+    validatePath("/release_26/Projects/LICA-FR/ClinicalSupplemental.xlsx.gz");
   }
 
   @Test
@@ -58,6 +56,7 @@ public class DfsPathsTest {
     assertThat(isRealEntity("/current/Summary/README.txt")).isTrue();
     assertThat(isRealEntity("/release_21/Summary/simple_somatic_mutation.aggregated.vcf.gz")).isTrue();
     assertThat(isRealEntity("/release_21/Summary/sample.all_projects.tsv.gz")).isFalse();
+    assertThat(isRealEntity("/release_26/Projects/LICA-FR/ClinicalSupplemental.xlsx.gz"));
   }
 
   @Test
@@ -70,6 +69,7 @@ public class DfsPathsTest {
   public void testGetProject() throws Exception {
     assertThat(getProject("/release_21/Projects/AML-US/donor.AML-US.tsv.gz").get()).isEqualTo("AML-US");
     assertThat(getProject("/current/Summary/sample.all_projects.tsv.gz").isPresent()).isFalse();
+    assertThat(getProject("/release_26/Projects/LICA-FR/ClinicalSupplemental.xlsx.gz").get()).isEqualTo("LICA-FR");
   }
 
   @Test(expected = IllegalArgumentException.class)
