@@ -40,6 +40,7 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.server.model.Export;
 
 import com.google.common.io.ByteStreams;
+import org.icgc.dcc.download.server.utils.ControlledFiles;
 
 @RequiredArgsConstructor
 public class DataExportStreamer implements FileStreamer {
@@ -107,7 +108,7 @@ public class DataExportStreamer implements FileStreamer {
   private void streamFile(TarArchiveOutputStream tarOutputStream, FileStatus status, String parentPath) {
     val filePath = status.getPath();
     val fileName = relativize(parentPath, filePath);
-    if (!isAuthorized(fileName)) {
+    if (!isAuthorized(filePath.toString())) {
       return;
     }
 
@@ -124,11 +125,7 @@ public class DataExportStreamer implements FileStreamer {
   }
 
   private boolean isAuthorized(String fileName) {
-    return DATA_CONTROLLED == export || !isControlled(fileName);
-  }
-
-  private static boolean isControlled(String fileName) {
-    return fileName.contains("controlled");
+    return DATA_CONTROLLED == export || !ControlledFiles.isControlled(fileName);
   }
 
   private boolean isProjectPath(Path path) {
