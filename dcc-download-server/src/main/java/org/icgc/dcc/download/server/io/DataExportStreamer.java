@@ -107,7 +107,7 @@ public class DataExportStreamer implements FileStreamer {
   private void streamFile(TarArchiveOutputStream tarOutputStream, FileStatus status, String parentPath) {
     val filePath = status.getPath();
     val fileName = relativize(parentPath, filePath);
-    if (!isAuthorized(fileName)) {
+    if (!isAuthorized(filePath.toString())) {
       return;
     }
 
@@ -123,12 +123,12 @@ public class DataExportStreamer implements FileStreamer {
     tarOutputStream.closeArchiveEntry();
   }
 
-  private boolean isAuthorized(String fileName) {
-    return DATA_CONTROLLED == export || !isControlled(fileName);
+  private boolean isAuthorized(String filePath) {
+    return DATA_CONTROLLED == export || !isControlled(filePath);
   }
 
-  private static boolean isControlled(String fileName) {
-    return fileName.contains("controlled");
+  private static boolean isControlled(String filePath) {
+    return filePath.contains("controlled");
   }
 
   private boolean isProjectPath(Path path) {
