@@ -62,6 +62,7 @@ public class RootViewTest extends AbstractFsTest {
     val releases = rootView.listReleases();
     verifyDownloadFiles(releases, of(
         newFile("/README.txt", 18L, getModificationTime("README.txt")),
+        newDir("/PCAWG", getModificationTime("PCAWG")),
         newDir("/current", getModificationTime("release_21")),
         newDir("/legacy_releases", getModificationTime("legacy_releases")),
         newDir("/release_20", getModificationTime("release_20")),

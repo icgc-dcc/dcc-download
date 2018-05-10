@@ -85,6 +85,7 @@ public class DownloadFileSystemTest extends AbstractTest {
     verifyDownloadFiles(dfs.listFiles("/"), of(
         newFile("README.txt"),
         newDir("/current"),
+        newDir("/PCAWG"),
         newDir("/legacy_releases"),
         newDir("/release_20"),
         newDir("/release_21")));
@@ -102,6 +103,7 @@ public class DownloadFileSystemTest extends AbstractTest {
     log.info("{}", result);
     verifyDownloadFiles(dfs.listFiles("/"), of(
         newFile("README.txt"),
+        newDir("/PCAWG"),
         newDir("/current"),
         newDir("/legacy_releases"),
         newDir("/release_20"),

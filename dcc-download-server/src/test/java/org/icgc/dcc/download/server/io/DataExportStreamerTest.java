@@ -69,12 +69,12 @@ public class DataExportStreamerTest extends AbstractTest {
 
   @Test
   public void testStreamControlled() throws Exception {
-    testControlledStream(Optional.empty(), 59);
+    testControlledStream(Optional.empty(), 58);
   }
 
   @Test
   public void testStreamControlledWithProject() throws Exception {
-    testControlledStream(Optional.of("TST2-CA"), 39);
+    testControlledStream(Optional.of("TST2-CA"), 38);
   }
 
   private void testStreamOpen(Optional<String> project, int expectedFilesCount) throws Exception {
