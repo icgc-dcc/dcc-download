@@ -40,7 +40,6 @@ import org.apache.hadoop.fs.Path;
 import org.icgc.dcc.download.server.model.Export;
 
 import com.google.common.io.ByteStreams;
-import org.icgc.dcc.download.server.utils.ControlledFiles;
 
 @RequiredArgsConstructor
 public class DataExportStreamer implements FileStreamer {
