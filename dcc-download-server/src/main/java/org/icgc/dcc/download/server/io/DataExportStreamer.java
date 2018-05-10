@@ -124,8 +124,12 @@ public class DataExportStreamer implements FileStreamer {
     tarOutputStream.closeArchiveEntry();
   }
 
-  private boolean isAuthorized(String fileName) {
-    return DATA_CONTROLLED == export || !ControlledFiles.isControlled(fileName);
+  private boolean isAuthorized(String filePath) {
+    return DATA_CONTROLLED == export || !isControlled(filePath);
+  }
+
+  private static boolean isControlled(String filePath) {
+    return filePath.contains("controlled");
   }
 
   private boolean isProjectPath(Path path) {
