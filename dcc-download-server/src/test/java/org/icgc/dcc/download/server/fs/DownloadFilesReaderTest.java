@@ -39,80 +39,80 @@ import lombok.val;
 
 public class DownloadFilesReaderTest extends AbstractFsTest {
 
-    FileSystem fileSystem = getDefaultLocalFileSystem();
-    DownloadFilesReader downloadFilesReader;
-    PathResolver pathResolver;
+  FileSystem fileSystem = getDefaultLocalFileSystem();
+  DownloadFilesReader downloadFilesReader;
+  PathResolver pathResolver;
 
-    @Override
-    public void setUp() {
-        super.setUp();
-        val properties = new Properties.JobProperties();
-        properties.setInputDir(workingDir.getAbsolutePath());
-        pathResolver = new PathResolver(properties);
-        downloadFilesReader = new DownloadFilesReader(fileSystem, pathResolver);
+  @Override
+  public void setUp() {
+    super.setUp();
+    val properties = new Properties.JobProperties();
+    properties.setInputDir(workingDir.getAbsolutePath());
+    pathResolver = new PathResolver(properties);
+    downloadFilesReader = new DownloadFilesReader(fileSystem, pathResolver);
+  }
+
+  @Test
+  public void testCreateReleaseCache() throws Exception {
+    val releaseTable = downloadFilesReader.createReleaseCache(getReleasePath());
+    assertRelease21(releaseTable);
+  }
+
+  @Test
+  public void testCreateProjectDonors() throws Exception {
+    val projectDonors = DownloadFilesReader.createProjectDonors(DownloadFsTests.createDonorFileTypesTable());
+    assertThat(projectDonors.size()).isEqualTo(3);
+    assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
+    assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003");
+
+  }
+
+  @Test
+  public void testGetReleaseTimes() throws Exception {
+    val releaseTimes = downloadFilesReader.getReleaseTimes();
+    assertThat(releaseTimes).hasSize(1);
+    assertThat(
+            isEpochsEqualUpToSecondsDigits(releaseTimes.get("release_21"), getModificationTime("release_21"))
+    ).isTrue();
+  }
+
+  @Test
+  public void testGetReleaseProjectDonors() throws Exception {
+    val releaseProjects = downloadFilesReader.getReleaseProjectDonors();
+    assertThat(releaseProjects.size()).isEqualTo(1);
+    val projectDonors = releaseProjects.get("release_21");
+    assertThat(projectDonors.size()).isEqualTo(4);
+    assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
+    assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003", "DO004");
+  }
+
+  @Test
+  public void testCreateReleaseCacheString() throws Exception {
+    val releaseTable = downloadFilesReader.createReleaseCache("release_21");
+    assertRelease21(releaseTable);
+  }
+
+  private void assertRelease21(Table<String, DownloadDataType, DataTypeFile> releaseTable) {
+    assertThat(releaseTable.size()).isEqualTo(36);
+    assertDonor(releaseTable.row("DO001"), (short) 0, 10);
+    assertDonor(releaseTable.row("DO002"), (short) 0, 10);
+    assertDonor(releaseTable.row("DO003"), (short) 1, 8);
+    assertDonor(releaseTable.row("DO004"), (short) 1, 8);
+  }
+
+  private Path getReleasePath() {
+    val releaseDir = new File(workingDir, "release_21").getAbsolutePath();
+
+    return new Path(releaseDir);
+  }
+
+  private void assertDonor(Map<DownloadDataType, DataTypeFile> row, Short expectedPartFile, int expectedDataTypes) {
+    assertThat(row).hasSize(expectedDataTypes);
+    for (val dataTypeFile : row.values()) {
+      val partFiles = dataTypeFile.getPartFileIndices();
+      assertThat(partFiles).hasSize(1);
+      assertThat(partFiles.get(0)).isEqualTo(expectedPartFile);
     }
-
-    @Test
-    public void testCreateReleaseCache() throws Exception {
-        val releaseTable = downloadFilesReader.createReleaseCache(getReleasePath());
-        assertRelease21(releaseTable);
-    }
-
-    @Test
-    public void testCreateProjectDonors() throws Exception {
-        val projectDonors = DownloadFilesReader.createProjectDonors(DownloadFsTests.createDonorFileTypesTable());
-        assertThat(projectDonors.size()).isEqualTo(3);
-        assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
-        assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003");
-
-    }
-
-    @Test
-    public void testGetReleaseTimes() throws Exception {
-        val releaseTimes = downloadFilesReader.getReleaseTimes();
-        assertThat(releaseTimes).hasSize(1);
-        assertThat(
-                isEpochsEqualUpToSecondsDigits(releaseTimes.get("release_21"), getModificationTime("release_21"))
-        ).isTrue();
-    }
-
-    @Test
-    public void testGetReleaseProjectDonors() throws Exception {
-        val releaseProjects = downloadFilesReader.getReleaseProjectDonors();
-        assertThat(releaseProjects.size()).isEqualTo(1);
-        val projectDonors = releaseProjects.get("release_21");
-        assertThat(projectDonors.size()).isEqualTo(4);
-        assertThat(projectDonors.get("TST1-CA")).containsOnly("DO001", "DO002");
-        assertThat(projectDonors.get("TST2-CA")).containsOnly("DO003", "DO004");
-    }
-
-    @Test
-    public void testCreateReleaseCacheString() throws Exception {
-        val releaseTable = downloadFilesReader.createReleaseCache("release_21");
-        assertRelease21(releaseTable);
-    }
-
-    private void assertRelease21(Table<String, DownloadDataType, DataTypeFile> releaseTable) {
-        assertThat(releaseTable.size()).isEqualTo(36);
-        assertDonor(releaseTable.row("DO001"), (short) 0, 10);
-        assertDonor(releaseTable.row("DO002"), (short) 0, 10);
-        assertDonor(releaseTable.row("DO003"), (short) 1, 8);
-        assertDonor(releaseTable.row("DO004"), (short) 1, 8);
-    }
-
-    private Path getReleasePath() {
-        val releaseDir = new File(workingDir, "release_21").getAbsolutePath();
-
-        return new Path(releaseDir);
-    }
-
-    private void assertDonor(Map<DownloadDataType, DataTypeFile> row, Short expectedPartFile, int expectedDataTypes) {
-        assertThat(row).hasSize(expectedDataTypes);
-        for (val dataTypeFile : row.values()) {
-            val partFiles = dataTypeFile.getPartFileIndices();
-            assertThat(partFiles).hasSize(1);
-            assertThat(partFiles.get(0)).isEqualTo(expectedPartFile);
-        }
-    }
+  }
 
 }
