@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.utils;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.icgc.dcc.download.server.utils.DateUtils.isEpochsEqualUpToSecondsDigits;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -79,7 +80,7 @@ public abstract class AbstractFsTest extends AbstractTest {
   private static void assertDownloadFiles(DownloadFile actualFile, DownloadFile expectedFile) {
     assertThat(actualFile.getName()).isEqualTo(expectedFile.getName());
     assertThat(actualFile.getType()).isEqualTo(expectedFile.getType());
-    assertThat(actualFile.getDate()).isEqualTo(expectedFile.getDate());
+    assertThat(isEpochsEqualUpToSecondsDigits(actualFile.getDate(), expectedFile.getDate())).isTrue();
     assertThat(actualFile.getSize()).isEqualTo(expectedFile.getSize());
   }
 
