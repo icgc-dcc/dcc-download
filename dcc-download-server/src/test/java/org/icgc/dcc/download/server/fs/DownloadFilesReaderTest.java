@@ -19,6 +19,7 @@ package org.icgc.dcc.download.server.fs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
+import static org.icgc.dcc.download.server.utils.DateUtils.isEpochsEqualUpToSecondsDigits;
 
 import java.io.File;
 import java.util.Map;
@@ -70,7 +71,9 @@ public class DownloadFilesReaderTest extends AbstractFsTest {
   public void testGetReleaseTimes() throws Exception {
     val releaseTimes = downloadFilesReader.getReleaseTimes();
     assertThat(releaseTimes).hasSize(1);
-    assertThat(releaseTimes.get("release_21")).isEqualTo(getModificationTime("release_21"));
+    assertThat(
+            isEpochsEqualUpToSecondsDigits(releaseTimes.get("release_21"), getModificationTime("release_21"))
+    ).isTrue();
   }
 
   @Test

@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.icgc.dcc.common.hadoop.fs.FileSystems.getDefaultLocalFileSystem;
 import static org.icgc.dcc.common.hadoop.fs.HadoopUtils.lsDir;
 import static org.icgc.dcc.download.server.fs.AbstractFileSystemView.resolveCurrentRelease;
+import static org.icgc.dcc.download.server.utils.DateUtils.isEpochsEqualUpToSecondsDigits;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
@@ -118,7 +119,7 @@ public class AbstractFileSystemViewTest extends AbstractTest {
     val fileAttributes = getFileAttributes(srcFile);
     val creationTime = fileAttributes.creationTime();
     log.info("{}", creationTime);
-    assertThat(actualDate).isEqualTo(creationTime.toMillis());
+    assertThat(isEpochsEqualUpToSecondsDigits(actualDate, creationTime.toMillis())).isTrue();
   }
 
   @SneakyThrows

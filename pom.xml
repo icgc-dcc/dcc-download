@@ -21,7 +21,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
   <parent>
     <groupId>org.icgc.dcc</groupId>
     <artifactId>dcc-parent</artifactId>
-    <version>35</version>
+    <version>37</version>
   </parent>
 
   <artifactId>dcc-download</artifactId>
